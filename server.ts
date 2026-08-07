@@ -61,24 +61,80 @@ async function fetchYouTubeChannelStats() {
     return youtubeStatsCache.data;
   }
 
-  const defaultRawSubs = 41200;
+  const defaultRawSubs = 42600;
   const defaultRawViews = 8542190;
-  const defaultRawVideos = 651;
+  const defaultRawVideos = 649;
+
+  // Live scrape fallback if API key is not set
+  async function scrapeYouTubeChannel() {
+    try {
+      const pageRes = await fetch("https://www.youtube.com/@rosleonoficial", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8"
+        }
+      });
+      if (!pageRes.ok) return null;
+      const html = await pageRes.text();
+
+      let subText = "";
+      let vidText = "";
+
+      const matches = [...html.matchAll(/"content":"([^"]+)"/g)].map(m => m[1]);
+      for (const text of matches) {
+        if (!subText && (text.includes("inscrito") || text.includes("subscribers"))) {
+          subText = text;
+        }
+        if (!vidText && (text.includes("vídeo") || text.includes("videos"))) {
+          vidText = text;
+        }
+      }
+
+      if (subText) {
+        let num = defaultRawSubs;
+        const clean = subText.replace(/inscritos|subscribers/gi, "").trim();
+        if (clean.includes("mil") || clean.includes("K") || clean.includes("k")) {
+          const valStr = clean.replace(/mil|k/gi, "").trim().replace(",", ".");
+          const val = parseFloat(valStr);
+          if (!isNaN(val)) num = Math.round(val * 1000);
+        } else {
+          const val = parseInt(clean.replace(/\D/g, ""), 10);
+          if (!isNaN(val)) num = val;
+        }
+
+        let vidNum = defaultRawVideos;
+        if (vidText) {
+          const cleanVid = vidText.replace(/vídeos|videos/gi, "").replace(/\D/g, "");
+          const parsedVid = parseInt(cleanVid, 10);
+          if (!isNaN(parsedVid)) vidNum = parsedVid;
+        }
+
+        return { rawSubscribers: num, rawVideos: vidNum };
+      }
+    } catch (e) {
+      console.warn("Falha ao raspar canal do YouTube no server.ts:", e);
+    }
+    return null;
+  }
 
   if (!apiKey) {
+    const scraped = await scrapeYouTubeChannel();
+    const rawSubscribers = scraped ? scraped.rawSubscribers : defaultRawSubs;
+    const rawVideos = scraped ? scraped.rawVideos : defaultRawVideos;
+
     const defaultData = {
-      subscribers: defaultRawSubs.toLocaleString('pt-BR'),
-      subscribersShort: defaultRawSubs.toLocaleString('pt-BR'),
-      subscribersExact: defaultRawSubs.toLocaleString('pt-BR'),
-      subscribersFull: defaultRawSubs.toLocaleString('pt-BR'),
+      subscribers: rawSubscribers.toLocaleString('pt-BR'),
+      subscribersShort: rawSubscribers.toLocaleString('pt-BR'),
+      subscribersExact: rawSubscribers.toLocaleString('pt-BR'),
+      subscribersFull: rawSubscribers.toLocaleString('pt-BR'),
       views: defaultRawViews.toLocaleString('pt-BR'),
       viewsCompact: defaultRawViews.toLocaleString('pt-BR'),
-      videos: defaultRawVideos.toLocaleString('pt-BR'),
-      rawSubscribers: defaultRawSubs,
+      videos: rawVideos.toLocaleString('pt-BR'),
+      rawSubscribers,
       rawViews: defaultRawViews,
-      rawVideos: defaultRawVideos,
+      rawVideos,
       viewsFull: defaultRawViews.toLocaleString('pt-BR'),
-      videosFull: defaultRawVideos.toLocaleString('pt-BR'),
+      videosFull: rawVideos.toLocaleString('pt-BR'),
       channelTitle: "ROSLEON",
       updatedAt: new Date().toISOString()
     };
