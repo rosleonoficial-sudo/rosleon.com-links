@@ -1,0 +1,6 @@
+{
+  "name": "ROSLEON - Cupons e Ofertas",
+  "description": "Página oficial de links, cupons e ofertas exclusivas de Leonardo Mey (ROSLEON). Responsiva e editável.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

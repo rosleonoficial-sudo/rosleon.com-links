@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@import url('https://fonts.cdnfonts.com/css/quantum');
+
+@layer utilities {
+  .font-quantum {
+    font-family: 'Quantum', 'Orbitron', sans-serif;
+  }
+}
+
+@keyframes shimmerBeam {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  25%, 100% { transform: translateX(200%) skewX(-20deg); }
+}
+
+@keyframes softPulseScale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+
+@keyframes softGlowFade {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+.animate-shimmer-beam {
+  animation: shimmerBeam 3.5s ease-in-out infinite !important;
+}
+
+.animate-button-pulse {
+  animation: softPulseScale 3s ease-in-out infinite !important;
+}
+
+.animate-glow-pulse {
+  animation: softGlowFade 3s ease-in-out infinite !important;
+}
+
