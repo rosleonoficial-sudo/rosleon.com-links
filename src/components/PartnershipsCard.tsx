@@ -11,7 +11,7 @@ interface PartnershipsCardProps {
 export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, stats, instagramStats }) => {
   // Calculate total combined views across YouTube, Instagram & TikTok
   const ytViewsRaw = stats.rawViews || 8298312;
-  const igViewsRaw = instagramStats?.views30d || 494200;
+  const igViewsRaw = instagramStats?.views30d || 259333;
   const ttViewsRaw = 2356235; // 2.356.235 TikTok views
   const totalViewsRaw = ytViewsRaw + igViewsRaw + ttViewsRaw;
 

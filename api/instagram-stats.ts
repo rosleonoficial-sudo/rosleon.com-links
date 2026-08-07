@@ -12,7 +12,7 @@ export default async function handler(req: any, res: any) {
 
   let defaultFollowers = 38710;
   let defaultMediaCount = 183;
-  let defaultViews30d = 494200;
+  let defaultViews30d = 259333; // Default fallback matching official Instagram Graph API 28-day account reach
 
   let rawFollowers = defaultFollowers;
   let rawMediaCount = defaultMediaCount;

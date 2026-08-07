@@ -110,13 +110,13 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
 
                 <div className="h-7 w-px bg-slate-800" />
 
-                {/* Visualizações */}
+                {/* Visualizações / Alcance */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-pink-400">
-                    {instagramStats?.views30dFormatted || "494.200"}
+                    {instagramStats?.views30dFormatted || "259.333"}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    visualizações (30 dias)
+                    alcance (28 dias)
                   </div>
                 </div>
 

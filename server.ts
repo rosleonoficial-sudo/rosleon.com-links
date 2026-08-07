@@ -300,7 +300,7 @@ async function fetchInstagramAccountStats() {
 
   const defaultFollowers = 38710;
   const defaultMediaCount = 183;
-  const defaultViews30d = 494200;
+  const defaultViews30d = 259333; // Official Meta Graph API 28-day account reach
 
   // Return cache if valid
   if (instagramStatsCache && (Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS)) {
