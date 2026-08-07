@@ -48,7 +48,7 @@ export const PhoneMockup: React.FC = () => {
               className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer group transition-all"
             >
               <img 
-                src="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
+                src="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
                 alt="Capa Vídeo ROSLEON"
                 className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-75 transition-opacity"
                 loading="eager"

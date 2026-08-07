@@ -19,7 +19,7 @@ import { Footer } from './components/Footer';
 const STORAGE_KEY = 'rosleon_site_config_v2';
 const CLICKS_STORAGE_KEY = 'rosleon_click_analytics_v1';
 
-const TARGET_PHOTO_URL = 'https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png';
+const TARGET_PHOTO_URL = 'https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
 
 export default function App() {
   const [config, setConfig] = useState<SiteConfig>(() => {
@@ -69,11 +69,11 @@ export default function App() {
           mergedConfig.creator.bioParagraph3 = defaultConfig.creator.bioParagraph3;
           mergedConfig.creator.pillars = defaultConfig.creator.pillars;
         }
-        if (!mergedConfig.creator.aboutPhotoUrl || mergedConfig.creator.aboutPhotoUrl.includes('unsplash') || mergedConfig.creator.aboutPhotoUrl.includes('16-de-jul')) {
-          mergedConfig.creator.aboutPhotoUrl = TARGET_PHOTO_URL;
+        if (!mergedConfig.creator.aboutPhotoUrl || mergedConfig.creator.aboutPhotoUrl.includes('16-de-jul')) {
+          mergedConfig.creator.aboutPhotoUrl = defaultConfig.creator.aboutPhotoUrl;
         }
-        if (!mergedConfig.creator.photoUrl || mergedConfig.creator.photoUrl.includes('unsplash') || mergedConfig.creator.photoUrl.includes('16-de-jul')) {
-          mergedConfig.creator.photoUrl = TARGET_PHOTO_URL;
+        if (!mergedConfig.creator.photoUrl) {
+          mergedConfig.creator.photoUrl = defaultConfig.creator.photoUrl;
         }
 
         return mergedConfig;

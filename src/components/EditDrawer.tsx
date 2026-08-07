@@ -439,14 +439,28 @@ export const EditDrawer: React.FC<EditDrawerProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="text-slate-400 block mb-1">URL da Foto Perfil</label>
-                <input
-                  type="text"
-                  value={formData.creator.photoUrl}
-                  onChange={(e) => handleNestedChange('creator', 'photoUrl', e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono"
-                />
+              <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-3">
+                <span className="font-bold text-cyan-400 block text-xs">🖼️ Imagens do Criador (Independentes)</span>
+                <div>
+                  <label className="text-slate-400 block text-xs mb-1">Foto da Seção "Parcerias & Mídia Kit"</label>
+                  <input
+                    type="text"
+                    value={formData.creator.photoUrl || ''}
+                    onChange={(e) => handleNestedChange('creator', 'photoUrl', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono text-xs"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block text-xs mb-1">Foto da Seção "Quem Sou Eu"</label>
+                  <input
+                    type="text"
+                    value={formData.creator.aboutPhotoUrl || ''}
+                    onChange={(e) => handleNestedChange('creator', 'aboutPhotoUrl', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono text-xs"
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
             </div>
           )}

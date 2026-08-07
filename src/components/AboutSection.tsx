@@ -36,7 +36,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ creator }) => {
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl group">
               <img
-                src={creator.aboutPhotoUrl || creator.photoUrl || "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"}
+                src={creator.aboutPhotoUrl || "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"}
                 alt={creator.name}
                 referrerPolicy="no-referrer"
                 loading="lazy"
