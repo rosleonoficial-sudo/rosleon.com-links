@@ -387,96 +387,101 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             
             {/* Card Detalhado do Estado */}
             {selectedState && (
-              <div className="p-3.5 rounded-xl bg-gradient-to-br from-cyan-950/90 via-slate-900 to-slate-950 border border-cyan-500/40 shadow-lg relative overflow-hidden">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-br from-cyan-950/90 via-slate-900 to-slate-950 border border-cyan-500/50 shadow-xl relative overflow-hidden space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
-                      <span>ESTADO SELECIONADO</span>
-                      <span>•</span>
-                      <span>{selectedState.region}</span>
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      <span>ESTADO SELECIONADO • {selectedState.region}</span>
                     </div>
-                    <h3 className="text-base font-black text-white mt-0.5 flex items-center gap-1.5">
+                    <h3 className="text-lg font-black text-white mt-1 flex items-center gap-2">
                       <span>{selectedState.name}</span>
-                      <span className="text-[10px] font-mono font-bold text-cyan-300 px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-500/30">
+                      <span className="text-xs font-mono font-bold text-cyan-300 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/40">
                         {selectedState.id}
                       </span>
                       {userDetectedState === selectedState.id && (
-                        <span className="text-[9px] bg-emerald-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full">
-                          VOCÊ
+                        <span className="text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase">
+                          SUA LOCALIZAÇÃO
                         </span>
                       )}
                     </h3>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="text-xl font-black text-cyan-300 font-mono">
+                    <span className="text-2xl font-black text-cyan-300 font-mono">
                       {selectedState.sharePercent}%
                     </span>
-                    <div className="text-[9px] text-slate-400 uppercase font-mono">Participação</div>
+                    <div className="text-[9px] text-slate-400 uppercase font-mono">da Audiência Total</div>
                   </div>
                 </div>
 
-                {/* Divisão de Redes Sociais: Tráfego e Intenção de Compra */}
-                <div className="mt-2.5 space-y-2 pt-2 border-t border-slate-800/80">
-                  {/* Cards Dual: Rede Mais Acessada vs Maior Intenção de Compra */}
-                  <div className="grid grid-cols-2 gap-2 text-[10px]">
-                    <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800 flex flex-col justify-between">
-                      <div className="text-slate-400 font-mono text-[9px] uppercase flex items-center gap-1">
-                        <Instagram className="w-3 h-3 text-pink-400" />
-                        <span>Rede Mais Acessada</span>
-                      </div>
-                      <div className="font-bold text-white mt-1 flex items-center justify-between">
-                        <span className="text-pink-400 flex items-center gap-1 font-bold">
-                          <Instagram className="w-3.5 h-3.5 text-pink-400" /> Instagram
-                        </span>
-                        <span className="font-mono text-pink-300 font-extrabold">{selectedState.instagramShare}%</span>
-                      </div>
-                    </div>
+                {/* Destaque das Pessoas nas Redes no Estado Selecionado */}
+                {(() => {
+                  const selStatePessoas = Math.round(selectedState.activeUsers * (totalOnlineCount / 3800));
+                  const selIgP = Math.round(selStatePessoas * (selectedState.instagramShare / 100));
+                  const selYtP = Math.round(selStatePessoas * (selectedState.youtubeShare / 100));
+                  const selSiteP = selStatePessoas - selIgP - selYtP;
 
-                    <div className="bg-gradient-to-r from-red-950/70 to-slate-900 p-2 rounded-lg border border-red-500/40 flex flex-col justify-between">
-                      <div className="text-red-300 font-mono text-[9px] uppercase flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        <span>Maior Intenção de Compra</span>
-                      </div>
-                      <div className="font-bold text-white mt-1 flex items-center justify-between">
-                        <span className="text-red-400 font-black flex items-center gap-1">
-                          <Youtube className="w-3.5 h-3.5 text-red-500" /> YouTube Shopping
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Distribuição de Canais */}
-                  {(() => {
-                    const selStatePessoas = Math.round(selectedState.activeUsers * (totalOnlineCount / 3800));
-                    const selIgP = Math.round(selStatePessoas * (selectedState.instagramShare / 100));
-                    const selYtP = Math.round(selStatePessoas * (selectedState.youtubeShare / 100));
-                    const selSiteP = selStatePessoas - selIgP - selYtP;
-
-                    return (
-                      <div className="space-y-1">
-                        <div className="text-[9px] font-mono text-slate-400 flex justify-between uppercase">
-                          <span>Distribuição dos Canais ({selStatePessoas.toLocaleString('pt-BR')} pessoas)</span>
+                  return (
+                    <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
+                      
+                      {/* Banner do Total de Pessoas Ao Vivo no Estado */}
+                      <div className="bg-cyan-950/60 p-2.5 rounded-xl border border-cyan-500/30 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span className="text-xs font-bold text-slate-200">
+                            Pessoas nas minhas redes <strong className="text-cyan-300">ao vivo</strong> em {selectedState.id}:
+                          </span>
                         </div>
+                        <div className="text-base font-black text-cyan-300 font-mono bg-slate-900/90 px-2.5 py-1 rounded-lg border border-cyan-500/40">
+                          {selStatePessoas.toLocaleString('pt-BR')}
+                        </div>
+                      </div>
+
+                      {/* Detalhamento por Rede Social no Estado Selecionado */}
+                      <div className="grid grid-cols-3 gap-1.5 text-center">
+                        <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-pink-400 font-bold">
+                            <Instagram className="w-3.5 h-3.5" /> Instagram
+                          </div>
+                          <div className="text-xs font-black text-white mt-1 font-mono">
+                            {selIgP.toLocaleString('pt-BR')} <span className="text-[9px] font-normal text-slate-400">({selectedState.instagramShare}%)</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-red-400 font-bold">
+                            <Youtube className="w-3.5 h-3.5 text-red-500" /> YouTube
+                          </div>
+                          <div className="text-xs font-black text-white mt-1 font-mono">
+                            {selYtP.toLocaleString('pt-BR')} <span className="text-[9px] font-normal text-slate-400">({selectedState.youtubeShare}%)</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-amber-400 font-bold">
+                            <Globe className="w-3.5 h-3.5 text-amber-400" /> Site Direct
+                          </div>
+                          <div className="text-xs font-black text-white mt-1 font-mono">
+                            {selSiteP.toLocaleString('pt-BR')} <span className="text-[9px] font-normal text-slate-400">({selectedState.siteShare}%)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Barra Visual Proporcional do Estado */}
+                      <div className="space-y-1 pt-1">
                         <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden flex border border-slate-700/50">
-                          <div style={{ width: `${selectedState.instagramShare}%` }} className="bg-gradient-to-r from-pink-600 to-pink-500 h-full" title="Instagram (Mais Acessado)" />
-                          <div style={{ width: `${selectedState.youtubeShare}%` }} className="bg-gradient-to-r from-red-600 to-red-500 h-full" title="YouTube Shopping (Maior Intenção de Compra)" />
-                          <div style={{ width: `${selectedState.siteShare}%` }} className="bg-amber-500 h-full" title="Site Direct" />
-                        </div>
-                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-300 pt-0.5">
-                          <span className="text-pink-400 font-bold flex items-center gap-1">
-                            <Instagram className="w-3 h-3 text-pink-400" /> Instagram: {selectedState.instagramShare}% ({selIgP.toLocaleString('pt-BR')} p)
-                          </span>
-                          <span className="text-red-400 font-bold flex items-center gap-1">
-                            <Youtube className="w-3 h-3 text-red-500" /> YouTube: {selectedState.youtubeShare}% ({selYtP.toLocaleString('pt-BR')} p)
-                          </span>
-                          <span className="text-amber-400 font-bold flex items-center gap-1">
-                            <Globe className="w-3 h-3 text-amber-400" /> Site: {selectedState.siteShare}% ({selSiteP.toLocaleString('pt-BR')} p)
-                          </span>
+                          <div style={{ width: `${selectedState.instagramShare}%` }} className="bg-gradient-to-r from-pink-600 to-pink-500 h-full" title={`Instagram: ${selectedState.instagramShare}%`} />
+                          <div style={{ width: `${selectedState.youtubeShare}%` }} className="bg-gradient-to-r from-red-600 to-red-500 h-full" title={`YouTube: ${selectedState.youtubeShare}%`} />
+                          <div style={{ width: `${selectedState.siteShare}%` }} className="bg-amber-500 h-full" title={`Site: ${selectedState.siteShare}%`} />
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
+
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

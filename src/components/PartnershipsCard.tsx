@@ -112,10 +112,19 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
           <div className="md:col-span-4 space-y-4 text-left">
             
             {/* 1. SOMA TOTAL DE VISUALIZAÇÕES (Destaque Principal para Parcerias) */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-rose-950/60 border border-amber-500/40 shadow-lg relative overflow-hidden">
-              <div className="flex items-center gap-2 text-amber-400 text-[11px] font-black tracking-wider uppercase mb-1">
-                <Sparkles className="w-3.5 h-3.5 fill-current" />
-                <span>VISUALIZAÇÕES TOTAIS (TODAS AS REDES)</span>
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-rose-950/60 border border-amber-500/40 shadow-lg relative overflow-hidden space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-amber-400 text-[11px] font-black tracking-wider uppercase">
+                  <Sparkles className="w-3.5 h-3.5 fill-current" />
+                  <span>VISUALIZAÇÕES TOTAIS (3 REDES)</span>
+                </div>
+                <div className="flex items-center gap-1 text-emerald-400 font-medium text-[10px]">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Ao vivo</span>
+                </div>
               </div>
               
               <div className="flex items-baseline gap-2 flex-wrap">
@@ -127,27 +136,35 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                 </span>
               </div>
 
-              {/* Platform breakdown icons */}
-              <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-800/80 text-[11px] text-slate-300">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="flex items-center gap-1 text-red-400 font-medium">
+              {/* Platform breakdown items with exact numbers */}
+              <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-800/80 text-center">
+                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-red-400 font-bold">
                     <Youtube className="w-3 h-3 fill-current" /> YouTube
-                  </span>
-                  <span className="flex items-center gap-1 text-pink-400 font-medium">
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                    {(ytViewsRaw / 1_000_000).toFixed(1).replace('.', ',')} M
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-pink-400 font-bold">
                     <Instagram className="w-3 h-3" /> Instagram
-                  </span>
-                  <span className="flex items-center gap-1 text-cyan-400 font-medium">
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                    {(igViewsRaw / 1_000).toFixed(0)} MIL
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-cyan-400 font-bold">
                     <svg className="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
                     </svg> TikTok
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-emerald-400 font-medium text-[10px]">
-                  <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span>Atualizando ao vivo</span>
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                    {(ttViewsRaw / 1_000_000).toFixed(1).replace('.', ',')} M
+                  </div>
                 </div>
               </div>
             </div>
@@ -204,17 +221,51 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
               </div>
             </div>
 
-            {/* 3. Comunidade Total Acumulada */}
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 shrink-0">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black text-white leading-none">
-                  {totalAudienceFormatted}
+            {/* 3. Comunidade Total Acumulada com detalhamento das 3 redes */}
+            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 shadow-sm space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30 shrink-0">
+                  <Users className="w-5 h-5" />
                 </div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  COMUNIDADE ATIVA (INSCRITOS & SEGUIDORES)
+                <div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-none">
+                    {totalAudienceFormatted}
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                    COMUNIDADE SOMADA (3 REDES)
+                  </div>
+                </div>
+              </div>
+
+              {/* Detalhamento de inscritos/seguidores de cada rede */}
+              <div className="grid grid-cols-3 gap-1 pt-2 border-t border-slate-800/80 text-center">
+                <div className="bg-slate-900/90 py-1.5 px-1 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-red-400 font-bold">
+                    <Youtube className="w-3 h-3 fill-current" /> YouTube
+                  </div>
+                  <div className="text-xs font-black text-white mt-0.5">
+                    {ytSubsRaw.toLocaleString('pt-BR')}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/90 py-1.5 px-1 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-pink-400 font-bold">
+                    <Instagram className="w-3 h-3" /> Instagram
+                  </div>
+                  <div className="text-xs font-black text-white mt-0.5">
+                    {igFollowersRaw.toLocaleString('pt-BR')}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/90 py-1.5 px-1 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-cyan-400 font-bold">
+                    <svg className="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
+                    </svg> TikTok
+                  </div>
+                  <div className="text-xs font-black text-white mt-0.5">
+                    {ttFollowersRaw.toLocaleString('pt-BR')}
+                  </div>
                 </div>
               </div>
             </div>
