@@ -106,15 +106,20 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
 
   const totalOnlineCount = propTotalOnlineCount !== undefined ? propTotalOnlineCount : internalOnlineCount;
 
-  // Auto detect user location with strict 1200ms timeout controller so mobile network never hangs
+  // Auto detect user location asynchronously in background (never blocks map rendering)
   useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    let isMounted = true;
 
     const fetchVisitorLocation = async () => {
+      // Primary attempt: ipapi.co
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
         const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-        if (res.ok) {
+        clearTimeout(timeoutId);
+
+        if (res.ok && isMounted) {
           const data = await res.json();
           if (data.country_code === 'BR' && data.region_code) {
             setUserDetectedState(data.region_code);
@@ -123,19 +128,42 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             if (found) {
               setSelectedState(found);
             }
+            return;
           }
         }
       } catch (err) {
-        // Fallback silently if offline/slow network/aborted
-      } finally {
-        clearTimeout(timeoutId);
+        // Fallback to secondary endpoint
+      }
+
+      // Secondary fallback attempt: ipwho.is (fast CORS-enabled geolocation)
+      try {
+        if (!isMounted) return;
+        const controller2 = new AbortController();
+        const timeoutId2 = setTimeout(() => controller2.abort(), 3500);
+
+        const res2 = await fetch('https://ipwho.is/', { signal: controller2.signal });
+        clearTimeout(timeoutId2);
+
+        if (res2.ok && isMounted) {
+          const data2 = await res2.json();
+          if (data2.success && data2.country_code === 'BR' && data2.region_code) {
+            setUserDetectedState(data2.region_code);
+            setUserDetectedCity(data2.city);
+            const found = BRAZIL_STATES.find(s => s.id === data2.region_code);
+            if (found) {
+              setSelectedState(found);
+            }
+          }
+        }
+      } catch (err2) {
+        // Silent fallback to SP default
       }
     };
+
     fetchVisitorLocation();
 
     return () => {
-      clearTimeout(timeoutId);
-      controller.abort();
+      isMounted = false;
     };
   }, []);
 

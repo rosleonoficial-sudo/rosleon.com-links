@@ -7,6 +7,13 @@ const PORT = 3000;
 
 app.use(express.json());
 
+app.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+
 // Helper formatting functions
 function formatYouTubeSubscribers(count: number): string {
   if (count >= 1_000_000) {

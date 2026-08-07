@@ -113,7 +113,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Visualizações */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-pink-400">
-                    {instagramStats?.views30dFormatted || "512,8 mil"}
+                    {instagramStats?.views30dFormatted || "512.800"}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     visualizações (30 dias)
