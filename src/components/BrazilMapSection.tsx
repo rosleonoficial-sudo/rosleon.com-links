@@ -244,36 +244,36 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header Compacto com Seletor Direto de Estado e Total Brasil */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800/80 relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800/80 relative z-10">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
+            <div className="p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 shrink-0">
               <Signal className="w-4 h-4 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-1.5">
                 <span>Audiência no Brasil</span>
                 <Globe className="w-4 h-4 text-cyan-400" />
               </h2>
             </div>
             {/* Total de Pessoas em Todos os Estados e Redes */}
-            <div className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-950/90 to-slate-900 border border-cyan-500/40 rounded-lg px-2.5 py-1 ml-1">
-              <Users className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[10px] text-slate-400 font-mono uppercase">Pessoas Online Agora:</span>
+            <div className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-950/90 to-slate-900 border border-cyan-500/40 rounded-lg px-2.5 py-1">
+              <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="text-[10px] text-slate-400 font-mono uppercase">Online Agora:</span>
               <span className="text-xs font-black font-mono text-cyan-300">{totalOnlineCount.toLocaleString('pt-BR')}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Seletor Rápido de Estado */}
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1">
-              <span className="text-[11px] font-mono text-slate-400">Estado:</span>
+            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1 w-full sm:w-auto justify-between sm:justify-start">
+              <span className="text-[11px] font-mono text-slate-400 shrink-0">Estado:</span>
               <select
                 value={selectedState.id}
                 onChange={(e) => {
                   const found = BRAZIL_STATES.find(s => s.id === e.target.value);
                   if (found) setSelectedState(found);
                 }}
-                className="bg-transparent text-xs font-bold text-cyan-300 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold text-cyan-300 focus:outline-none cursor-pointer max-w-[200px] sm:max-w-none truncate"
               >
                 {sortedStates.map((st) => (
                   <option key={st.id} value={st.id} className="bg-slate-900 text-slate-200">
@@ -388,32 +388,32 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             {/* Card Detalhado do Estado */}
             {selectedState && (
               <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-br from-cyan-950/90 via-slate-900 to-slate-950 border border-cyan-500/50 shadow-xl relative overflow-hidden space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 flex-wrap">
+                      <span className="relative flex h-2 w-2 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                       </span>
-                      <span>ESTADO SELECIONADO • {selectedState.region}</span>
+                      <span className="truncate">ESTADO SELECIONADO • {selectedState.region}</span>
                     </div>
-                    <h3 className="text-lg font-black text-white mt-1 flex items-center gap-2">
-                      <span>{selectedState.name}</span>
-                      <span className="text-xs font-mono font-bold text-cyan-300 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/40">
+                    <h3 className="text-base sm:text-lg font-black text-white mt-1 flex items-center gap-1.5 flex-wrap leading-tight">
+                      <span className="break-words">{selectedState.name}</span>
+                      <span className="text-xs font-mono font-bold text-cyan-300 px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/40 shrink-0">
                         {selectedState.id}
                       </span>
                       {userDetectedState === selectedState.id && (
-                        <span className="text-[10px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase">
+                        <span className="text-[9px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase shrink-0 whitespace-nowrap">
                           SUA LOCALIZAÇÃO
                         </span>
                       )}
                     </h3>
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-2xl font-black text-cyan-300 font-mono">
+                  <div className="text-right shrink-0 bg-slate-900/90 px-2.5 py-1.5 rounded-lg border border-cyan-500/30">
+                    <span className="text-lg sm:text-2xl font-black text-cyan-300 font-mono block leading-none">
                       {selectedState.sharePercent}%
                     </span>
-                    <div className="text-[9px] text-slate-400 uppercase font-mono">da Audiência Total</div>
+                    <div className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-mono mt-0.5 whitespace-nowrap">da Audiência Total</div>
                   </div>
                 </div>
 
@@ -428,44 +428,56 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                     <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
                       
                       {/* Banner do Total de Pessoas Ao Vivo no Estado */}
-                      <div className="bg-cyan-950/60 p-2.5 rounded-xl border border-cyan-500/30 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="bg-cyan-950/70 p-2.5 sm:p-3 rounded-xl border border-cyan-500/30 flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-2 min-w-0">
                           <Users className="w-4 h-4 text-cyan-400 shrink-0" />
-                          <span className="text-xs font-bold text-slate-200">
-                            Pessoas nas minhas redes <strong className="text-cyan-300">ao vivo</strong> em {selectedState.id}:
+                          <span className="text-xs font-bold text-slate-200 leading-tight">
+                            Pessoas nas minhas redes <strong className="text-cyan-300 font-extrabold">ao vivo</strong> em {selectedState.id}:
                           </span>
                         </div>
-                        <div className="text-base font-black text-cyan-300 font-mono bg-slate-900/90 px-2.5 py-1 rounded-lg border border-cyan-500/40">
+                        <div className="text-sm sm:text-base font-black text-cyan-300 font-mono bg-slate-900/90 px-3 py-1 rounded-lg border border-cyan-500/40 shrink-0 ml-auto sm:ml-0">
                           {selStatePessoas.toLocaleString('pt-BR')}
                         </div>
                       </div>
 
                       {/* Detalhamento por Rede Social no Estado Selecionado */}
-                      <div className="grid grid-cols-3 gap-1.5 text-center">
-                        <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-pink-400 font-bold">
-                            <Instagram className="w-3.5 h-3.5" /> Instagram
+                      <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
+                        <div className="bg-slate-900/90 p-1.5 sm:p-2 rounded-lg border border-slate-800 flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-pink-400 font-bold truncate w-full">
+                            <Instagram className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                            <span className="truncate">Instagram</span>
                           </div>
-                          <div className="text-xs font-black text-white mt-1 font-mono">
-                            {selIgP.toLocaleString('pt-BR')} <span className="text-[9px] font-normal text-slate-400">({selectedState.instagramShare}%)</span>
+                          <div className="text-[11px] sm:text-xs font-black text-white mt-0.5 font-mono">
+                            {selIgP.toLocaleString('pt-BR')}
                           </div>
-                        </div>
-
-                        <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-red-400 font-bold">
-                            <Youtube className="w-3.5 h-3.5 text-red-500" /> YouTube
-                          </div>
-                          <div className="text-xs font-black text-white mt-1 font-mono">
-                            {selYtP.toLocaleString('pt-BR')} <span className="text-[9px] font-normal text-slate-400">({selectedState.youtubeShare}%)</span>
+                          <div className="text-[8px] sm:text-[9px] text-slate-400 font-normal font-mono">
+                            ({selectedState.instagramShare}%)
                           </div>
                         </div>
 
-                        <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
-                          <div className="flex items-center justify-center gap-1 text-[10px] text-amber-400 font-bold">
-                            <Globe className="w-3.5 h-3.5 text-amber-400" /> Site Direct
+                        <div className="bg-slate-900/90 p-1.5 sm:p-2 rounded-lg border border-slate-800 flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-red-400 font-bold truncate w-full">
+                            <Youtube className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 shrink-0" />
+                            <span className="truncate">YouTube</span>
                           </div>
-                          <div className="text-xs font-black text-white mt-1 font-mono">
-                            {selSiteP.toLocaleString('pt-BR')} <span className="text-[9px] font-normal text-slate-400">({selectedState.siteShare}%)</span>
+                          <div className="text-[11px] sm:text-xs font-black text-white mt-0.5 font-mono">
+                            {selYtP.toLocaleString('pt-BR')}
+                          </div>
+                          <div className="text-[8px] sm:text-[9px] text-slate-400 font-normal font-mono">
+                            ({selectedState.youtubeShare}%)
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/90 p-1.5 sm:p-2 rounded-lg border border-slate-800 flex flex-col items-center justify-center">
+                          <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-amber-400 font-bold truncate w-full">
+                            <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
+                            <span className="truncate">Site Direct</span>
+                          </div>
+                          <div className="text-[11px] sm:text-xs font-black text-white mt-0.5 font-mono">
+                            {selSiteP.toLocaleString('pt-BR')}
+                          </div>
+                          <div className="text-[8px] sm:text-[9px] text-slate-400 font-normal font-mono">
+                            ({selectedState.siteShare}%)
                           </div>
                         </div>
                       </div>
