@@ -93,6 +93,10 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                   src={creator.photoUrl || "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"}
                   alt={creator.name}
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
+                  width={128}
+                  height={128}
                   className="w-full h-full object-cover"
                 />
               </div>

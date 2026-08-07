@@ -56,6 +56,10 @@ export default function App() {
           mergedConfig.tiktokLink.url = 'https://www.tiktok.com/@rosleonoficial';
         }
 
+        if (!mergedConfig.youtubeSection.url || (mergedConfig.youtubeSection.url.includes('youtube.com/@rosleon') && !mergedConfig.youtubeSection.url.includes('rosleonoficial'))) {
+          mergedConfig.youtubeSection.url = 'https://www.youtube.com/@rosleonoficial';
+        }
+
         // Update creator bio, title & pillars
         mergedConfig.creator.title = "Criador de conteúdo, especialista em marketing e vendas.";
         if (!mergedConfig.creator.bioParagraph1 || mergedConfig.creator.bioParagraph1.includes('ajudo milhares de pessoas') || !mergedConfig.creator.pillars?.[0]?.subtitle) {

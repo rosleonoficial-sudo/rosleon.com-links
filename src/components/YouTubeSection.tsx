@@ -40,6 +40,10 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                   alt="Perfil YouTube ROSLEON"
                   className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
+                  width={64}
+                  height={64}
                 />
               </div>
               {/* Play / Youtube Icon Badge */}

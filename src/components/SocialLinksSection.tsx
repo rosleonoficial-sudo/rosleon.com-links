@@ -54,6 +54,10 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                       alt="Perfil Instagram ROSLEON"
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
+                      width={64}
+                      height={64}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png";
                       }}
@@ -170,6 +174,10 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                       alt="Perfil TikTok ROSLEON"
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
+                      width={64}
+                      height={64}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png";
                       }}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Signal, Globe, RefreshCw, Eye, Instagram, Youtube, Radio, Zap, Users } from 'lucide-react';
 
 interface StateData {
@@ -96,22 +96,24 @@ interface BrazilMapSectionProps {
 
 export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineCount: propTotalOnlineCount }) => {
   const [selectedState, setSelectedState] = useState<StateData>(
-    BRAZIL_STATES.find(s => s.id === 'SP') || BRAZIL_STATES[0]
+    () => BRAZIL_STATES.find(s => s.id === 'SP') || BRAZIL_STATES[0]
   );
   const [selectedRegion, setSelectedRegion] = useState<string>('Todos');
   const [userDetectedState, setUserDetectedState] = useState<string | null>(null);
   const [userDetectedCity, setUserDetectedCity] = useState<string | null>(null);
   const [liveFeed, setLiveFeed] = useState<LiveFeedItem[]>([]);
   const [internalOnlineCount, setInternalOnlineCount] = useState<number>(3842);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const totalOnlineCount = propTotalOnlineCount !== undefined ? propTotalOnlineCount : internalOnlineCount;
 
-  // Auto detect user location
+  // Auto detect user location with strict 1200ms timeout controller so mobile network never hangs
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+
     const fetchVisitorLocation = async () => {
       try {
-        const res = await fetch('https://ipapi.co/json/');
+        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
           if (data.country_code === 'BR' && data.region_code) {
@@ -124,10 +126,17 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
           }
         }
       } catch (err) {
-        // Fallback silently
+        // Fallback silently if offline/slow network/aborted
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
     fetchVisitorLocation();
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   // Initial live feed
@@ -145,25 +154,22 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
   // Live updates with dynamic time-of-day curve and natural oscillations
   useEffect(() => {
     const interval = setInterval(() => {
-      // Calculate realistic traffic curve based on current hour in Brazil (BRT)
       const now = new Date();
       const brtHour = (now.getUTCHours() - 3 + 24) % 24;
       
-      // Target active audience depending on time of day
       let targetAudience = 3842;
       if (brtHour >= 19 && brtHour <= 23) {
-        targetAudience = 4620; // Prime time evening
+        targetAudience = 4620;
       } else if (brtHour >= 12 && brtHour < 19) {
-        targetAudience = 4150; // Afternoon engagement
+        targetAudience = 4150;
       } else if (brtHour >= 1 && brtHour < 7) {
-        targetAudience = 2280; // Late night / early morning
+        targetAudience = 2280;
       } else {
-        targetAudience = 3490; // Morning traffic
+        targetAudience = 3490;
       }
 
       setInternalOnlineCount(prev => {
         const delta = targetAudience - prev;
-        // Smooth random step towards target + organic fluctuation
         const step = Math.sign(delta) * Math.floor(Math.random() * 12 + 3) + (Math.floor(Math.random() * 31) - 15);
         const updated = prev + step;
         return Math.max(1800, Math.min(5500, updated));
@@ -184,63 +190,21 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
       };
 
       setLiveFeed(prev => [newItem, ...prev.slice(0, 4)]);
-    }, 2800);
+    }, 3200);
 
     return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setInternalOnlineCount(prev => prev + Math.floor(Math.random() * 20) + 5);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
-  };
+  // Memoized state calculations for instant rendering
+  const sortedStates = useMemo(() => {
+    return [...BRAZIL_STATES].sort((a, b) => b.activeUsers - a.activeUsers);
+  }, []);
 
-  // Estatísticas Nacionais Consolidando Todos os 27 Estados e Todas as Redes (Instagram, YouTube, Site)
-  const totalNationalUsers = BRAZIL_STATES.reduce((acc, s) => acc + s.activeUsers, 0);
-  
-  const totalInstagramPeople = Math.round(
-    BRAZIL_STATES.reduce((acc, s) => {
-      const statePessoas = Math.round(s.activeUsers * (totalOnlineCount / totalNationalUsers));
-      return acc + (statePessoas * (s.instagramShare / 100));
-    }, 0)
-  );
-  
-  const totalYoutubePeople = Math.round(
-    BRAZIL_STATES.reduce((acc, s) => {
-      const statePessoas = Math.round(s.activeUsers * (totalOnlineCount / totalNationalUsers));
-      return acc + (statePessoas * (s.youtubeShare / 100));
-    }, 0)
-  );
-
-  const totalSitePeople = totalOnlineCount - totalInstagramPeople - totalYoutubePeople;
-
-  const getRegionStats = (reg: string) => {
-    const states = reg === 'Todos' ? BRAZIL_STATES : BRAZIL_STATES.filter(s => s.region === reg);
-    const totalUsers = states.reduce((acc, s) => acc + s.activeUsers, 0);
-    const totalPercent = states.reduce((acc, s) => acc + Number(s.sharePercent), 0);
-    const estimatedOnline = Math.round(states.reduce((acc, s) => acc + (s.activeUsers * (totalOnlineCount / 3800)), 0));
-    const stateCount = states.length;
-    return { totalUsers, totalPercent, estimatedOnline, stateCount };
-  };
-
-  const handleRegionChange = (reg: string) => {
-    setSelectedRegion(reg);
-    const states = reg === 'Todos' ? BRAZIL_STATES : BRAZIL_STATES.filter(s => s.region === reg);
-    if (states.length > 0 && !states.some(s => s.id === selectedState.id)) {
-      const topInRegion = [...states].sort((a, b) => b.activeUsers - a.activeUsers)[0];
-      setSelectedState(topInRegion);
-    }
-  };
-
-  const selectedRegionStats = getRegionStats(selectedRegion);
-
-  const filteredStates = selectedRegion === 'Todos'
-    ? BRAZIL_STATES
-    : BRAZIL_STATES.filter(s => s.region === selectedRegion);
-
-  const sortedStates = [...BRAZIL_STATES].sort((a, b) => b.activeUsers - a.activeUsers);
+  const filteredStates = useMemo(() => {
+    return selectedRegion === 'Todos'
+      ? BRAZIL_STATES
+      : BRAZIL_STATES.filter(s => s.region === selectedRegion);
+  }, [selectedRegion]);
 
   return (
     <section id="audiencia" className="py-3 px-3 max-w-5xl mx-auto my-2">
@@ -326,12 +290,15 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
               </span>
             </div>
 
-            {/* Container do Mapa em Tamanho Reduzido */}
+            {/* Container do Mapa em Tamanho Reduzido com Otimização de Imagem */}
             <div className="w-full max-w-[270px] aspect-[1/1] relative my-0.5 mx-auto select-none">
-              
               <img
                 src="https://i.postimg.cc/g0ScrgDX/bb2cd1d2-c7af-4604-9871-4b8889a156b2.png"
                 referrerPolicy="no-referrer"
+                loading="lazy"
+                decoding="async"
+                width={270}
+                height={270}
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
@@ -502,3 +469,4 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
     </section>
   );
 };
+

@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Play } from 'lucide-react';
 
 export const PhoneMockup: React.FC = () => {
+  const [isStarted, setIsStarted] = useState(true);
+
   return (
     <div className="relative flex items-center justify-center py-4 lg:py-0 select-none">
       {/* Background Glow Pedestal */}
@@ -26,21 +29,46 @@ export const PhoneMockup: React.FC = () => {
           </div>
         </div>
 
-        {/* Embedded YouTube Shorts Video inside Phone Screen */}
+        {/* Video Player Area */}
         <div className="relative w-full aspect-[9/16] bg-black overflow-hidden flex items-center justify-center">
-          <iframe
-            src="https://www.youtube.com/embed/OmoZTIh7DCs?autoplay=1&mute=1&loop=1&playlist=OmoZTIh7DCs&controls=0&modestbranding=1&rel=0&playsinline=1&disablekb=1&fs=0&iv_load_policy=3"
-            title="ROSLEON YouTube Short"
-            className="w-full h-full scale-[1.35] object-cover border-0 pointer-events-none"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          />
-          {/* Unclickable transparent shield overlay to prevent leaving the page */}
+          {isStarted ? (
+            <iframe
+              src="https://www.youtube.com/embed/OmoZTIh7DCs?autoplay=1&mute=1&loop=1&playlist=OmoZTIh7DCs&controls=0&modestbranding=1&rel=0&playsinline=1&enablejsapi=1&disablekb=1&fs=0&iv_load_policy=3"
+              title="ROSLEON YouTube Short"
+              className="w-full h-full scale-[1.35] object-cover border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              loading="eager"
+            />
+          ) : null}
+
+          {/* Fallback Capa/Poster + Play Button Overlay for Mobile Browsers */}
+          {!isStarted && (
+            <div 
+              onClick={() => setIsStarted(true)}
+              className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer group transition-all"
+            >
+              <img 
+                src="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
+                alt="Capa Vídeo ROSLEON"
+                className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-75 transition-opacity"
+                loading="eager"
+                decoding="async"
+                width={300}
+                height={533}
+              />
+              <div className="relative z-10 p-4 rounded-full bg-red-600 group-hover:bg-red-500 text-white shadow-2xl shadow-red-600/60 group-hover:scale-110 transition-transform duration-300 border-2 border-white/80">
+                <Play className="w-8 h-8 fill-current ml-1" />
+              </div>
+              <span className="relative z-10 mt-3 text-xs font-bold text-white bg-black/80 px-3 py-1 rounded-full border border-white/20">
+                Toque para assistir o vídeo
+              </span>
+            </div>
+          )}
+
+          {/* Transparent Overlay to keep user on site while tapping video */}
           <div 
-            className="absolute inset-0 z-30 bg-transparent cursor-default pointer-events-auto" 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+            className="absolute inset-0 z-20 bg-transparent cursor-pointer" 
+            onClick={() => setIsStarted(true)}
           />
         </div>
 
@@ -52,4 +80,5 @@ export const PhoneMockup: React.FC = () => {
     </div>
   );
 };
+
 

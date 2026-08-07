@@ -51,7 +51,7 @@ export const defaultConfig: SiteConfig = {
     title: "CANAL DO YOUTUBE",
     description: "Reviews sinceros, testes completos e as melhores recomendações para você comprar com segurança.",
     buttonText: "Ir para o YouTube",
-    url: "https://youtube.com/@rosleon",
+    url: "https://www.youtube.com/@rosleonoficial",
     bannerText: "OFERTAS TESTADAS E APROVADAS!",
     bannerImage: "https://images.unsplash.com/photo-1593642532744-d377ab507dc8?auto=format&fit=crop&w=800&q=80"
   },
