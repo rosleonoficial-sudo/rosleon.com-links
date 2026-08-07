@@ -295,12 +295,12 @@ let instagramStatsCache: {
 const INSTAGRAM_CACHE_TTL_MS = 5 * 60 * 1000;
 
 async function fetchInstagramAccountStats() {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
-  const userId = process.env.INSTAGRAM_USER_ID || 'me';
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
+  const userId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || 'me';
 
-  const defaultFollowers = 38692;
+  const defaultFollowers = 38710;
   const defaultMediaCount = 183;
-  const defaultViews30d = 512800;
+  const defaultViews30d = 258391;
 
   // Return cache if valid
   if (instagramStatsCache && (Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS)) {
@@ -356,7 +356,7 @@ async function fetchInstagramAccountStats() {
       // Fetch Insights
       try {
         const targetId = profileData.id || userId;
-        const insightsUrl = `https://graph.instagram.com/v20.0/${targetId}/insights?metric=views,impressions,plays,reach,profile_views&period=days_28&access_token=${token}`;
+        const insightsUrl = `https://graph.instagram.com/v20.0/${targetId}/insights?metric=reach,profile_views&period=days_28&access_token=${token}`;
         const insightsRes = await fetch(insightsUrl);
 
         if (insightsRes.ok) {
@@ -367,10 +367,10 @@ async function fetchInstagramAccountStats() {
               if (item.total_value?.value !== undefined) {
                 val = item.total_value.value;
               } else if (Array.isArray(item.values) && item.values.length > 0) {
-                val = item.values.reduce((sum: number, curr: any) => sum + (curr.value || 0), 0);
+                val = item.values[item.values.length - 1].value ?? item.values.reduce((sum: number, curr: any) => sum + (curr.value || 0), 0);
               }
 
-              if (val !== null && (item.name === 'views' || item.name === 'impressions' || item.name === 'plays')) {
+              if (val !== null && (item.name === 'reach' || item.name === 'views' || item.name === 'impressions' || item.name === 'plays')) {
                 rawViews30d = val;
               }
             }

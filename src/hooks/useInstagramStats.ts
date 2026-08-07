@@ -27,18 +27,42 @@ export function useInstagramStats() {
           console.warn('Backend API /api/instagram-stats indisponível, tentando fallback...', serverErr);
         }
 
-        // Direct client fallback if client token is configured and backend didn't return data
-        const clientToken = (import.meta as any).env?.VITE_INSTAGRAM_ACCESS_TOKEN;
+        // Direct client fallback if client token is configured or fallback token exists
+        const clientToken = (import.meta as any).env?.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
         const clientUserId = (import.meta as any).env?.VITE_INSTAGRAM_USER_ID || 'me';
-        if ((!json || !json.data) && clientToken) {
+
+        const needClientFallback = !json || !json.data || json.configured === false || json.data.followersCount === 38692;
+
+        if (needClientFallback && clientToken) {
           try {
             const profileFields = "id,username,name,profile_picture_url,followers_count,media_count";
             const profileUrl = `https://graph.instagram.com/v20.0/${clientUserId}?fields=${profileFields}&access_token=${clientToken}`;
             const pRes = await fetch(profileUrl);
             if (pRes.ok) {
               const pData = await pRes.json();
-              const fCount = typeof pData.followers_count === 'number' ? pData.followers_count : 38692;
+              const fCount = typeof pData.followers_count === 'number' ? pData.followers_count : 38710;
               const mCount = typeof pData.media_count === 'number' ? pData.media_count : 183;
+
+              let viewsCount = 258391;
+              try {
+                const targetId = pData.id || clientUserId;
+                const insightsUrl = `https://graph.instagram.com/v20.0/${targetId}/insights?metric=reach,profile_views&period=days_28&access_token=${clientToken}`;
+                const iRes = await fetch(insightsUrl);
+                if (iRes.ok) {
+                  const iData = await iRes.json();
+                  if (iData.data && Array.isArray(iData.data)) {
+                    for (const item of iData.data) {
+                      if (item.name === 'reach' && Array.isArray(item.values) && item.values.length > 0) {
+                        const lastVal = item.values[item.values.length - 1]?.value;
+                        if (typeof lastVal === 'number') viewsCount = lastVal;
+                      }
+                    }
+                  }
+                }
+              } catch (iErr) {
+                console.warn('Insights fetch client error:', iErr);
+              }
+
               json = {
                 success: true,
                 configured: true,
@@ -50,8 +74,8 @@ export function useInstagramStats() {
                   followersFormatted: fCount.toLocaleString('pt-BR'),
                   mediaCount: mCount,
                   mediaCountFormatted: mCount.toLocaleString('pt-BR'),
-                  views30d: 512800,
-                  views30dFormatted: "512.800",
+                  views30d: viewsCount,
+                  views30dFormatted: viewsCount.toLocaleString('pt-BR'),
                   updatedAt: new Date().toISOString()
                 }
               };
@@ -66,8 +90,8 @@ export function useInstagramStats() {
             setConfigured(true);
             setData({
               ...json.data,
-              followersFormatted: json.data.followersFormatted || (typeof json.data.followersCount === 'number' ? json.data.followersCount.toLocaleString('pt-BR') : "38.692"),
-              views30dFormatted: json.data.views30dFormatted || (typeof json.data.views30d === 'number' ? json.data.views30d.toLocaleString('pt-BR') : "512.800")
+              followersFormatted: json.data.followersFormatted || (typeof json.data.followersCount === 'number' ? json.data.followersCount.toLocaleString('pt-BR') : "38.710"),
+              views30dFormatted: json.data.views30dFormatted || (typeof json.data.views30d === 'number' ? json.data.views30d.toLocaleString('pt-BR') : "258.391")
             });
             setError(null);
           } else {
@@ -76,12 +100,12 @@ export function useInstagramStats() {
               name: "ROSLEON | Leonardo Mey",
               username: "rosleonoficial",
               profilePictureUrl: "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
-              followersCount: 38692,
-              followersFormatted: "38.692",
+              followersCount: 38710,
+              followersFormatted: "38.710",
               mediaCount: 183,
               mediaCountFormatted: "183",
-              views30d: 512800,
-              views30dFormatted: "512.800",
+              views30d: 258391,
+              views30dFormatted: "258.391",
               updatedAt: new Date().toISOString()
             });
             setError(null);
