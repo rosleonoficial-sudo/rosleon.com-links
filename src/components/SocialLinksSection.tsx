@@ -101,7 +101,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Followers */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-white">
-                    {instagramStats?.followersFormatted || "38.692"}
+                    {instagramStats?.followersFormatted || "38.710"}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     seguidores
@@ -113,7 +113,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Visualizações */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-pink-400">
-                    {instagramStats?.views30dFormatted || "512.800"}
+                    {instagramStats?.views30dFormatted || "494.200"}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     visualizações (30 dias)

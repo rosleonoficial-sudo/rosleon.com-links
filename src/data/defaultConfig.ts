@@ -95,14 +95,14 @@ export const defaultConfig: SiteConfig = {
   
   stats: {
     subscribers: "42.600",
-    views: "8.542.190",
+    views: "8.298.312",
     videos: "649",
     levelBadge: "MERCADO LIVRE NÍVEL PRATA",
     subscribersFull: "42.600",
-    viewsFull: "8.542.190",
+    viewsFull: "8.298.312",
     videosFull: "649",
     rawSubscribers: 42600,
-    rawViews: 8542190
+    rawViews: 8298312
   },
   
   couponsFeed: [

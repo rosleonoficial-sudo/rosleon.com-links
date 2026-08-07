@@ -10,8 +10,8 @@ interface PartnershipsCardProps {
 
 export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, stats, instagramStats }) => {
   // Calculate total combined views across YouTube, Instagram & TikTok
-  const ytViewsRaw = stats.rawViews || 8542102;
-  const igViewsRaw = instagramStats?.views30d || 512800;
+  const ytViewsRaw = stats.rawViews || 8298312;
+  const igViewsRaw = instagramStats?.views30d || 494200;
   const ttViewsRaw = 2356235; // 2.356.235 TikTok views
   const totalViewsRaw = ytViewsRaw + igViewsRaw + ttViewsRaw;
 
@@ -19,8 +19,8 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
   const totalViewsExact = totalViewsRaw.toLocaleString('pt-BR');
 
   // Calculate total audience
-  const ytSubsRaw = stats.rawSubscribers || 40000;
-  const igFollowersRaw = instagramStats?.followersCount || 38692;
+  const ytSubsRaw = stats.rawSubscribers || 42600;
+  const igFollowersRaw = instagramStats?.followersCount || 38710;
   const ttFollowersRaw = 15089; // 15.089 TikTok followers
   const totalAudienceRaw = ytSubsRaw + igFollowersRaw + ttFollowersRaw;
   const totalAudienceFormatted = `+${(totalAudienceRaw / 1_000).toFixed(1).replace('.', ',')} MIL`;

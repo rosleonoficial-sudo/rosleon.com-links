@@ -55,14 +55,14 @@ let youtubeStatsCache: {
 const CACHE_TTL_MS = 50 * 1000;
 
 async function fetchYouTubeChannelStats() {
-  const apiKey = process.env.YOUTUBE_API_KEY;
+  const apiKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
 
   if (youtubeStatsCache && Date.now() - youtubeStatsCache.timestamp < CACHE_TTL_MS) {
     return youtubeStatsCache.data;
   }
 
   const defaultRawSubs = 42600;
-  const defaultRawViews = 8542190;
+  const defaultRawViews = 8298312;
   const defaultRawVideos = 649;
 
   // Live scrape fallback if API key is not set
@@ -300,7 +300,7 @@ async function fetchInstagramAccountStats() {
 
   const defaultFollowers = 38710;
   const defaultMediaCount = 183;
-  const defaultViews30d = 258391;
+  const defaultViews30d = 494200;
 
   // Return cache if valid
   if (instagramStatsCache && (Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS)) {

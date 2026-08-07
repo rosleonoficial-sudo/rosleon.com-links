@@ -43,7 +43,7 @@ export function useInstagramStats() {
               const fCount = typeof pData.followers_count === 'number' ? pData.followers_count : 38710;
               const mCount = typeof pData.media_count === 'number' ? pData.media_count : 183;
 
-              let viewsCount = 258391;
+              let viewsCount = 494200;
               try {
                 const targetId = pData.id || clientUserId;
                 const insightsUrl = `https://graph.instagram.com/v20.0/${targetId}/insights?metric=reach,profile_views&period=days_28&access_token=${clientToken}`;
@@ -91,7 +91,7 @@ export function useInstagramStats() {
             setData({
               ...json.data,
               followersFormatted: json.data.followersFormatted || (typeof json.data.followersCount === 'number' ? json.data.followersCount.toLocaleString('pt-BR') : "38.710"),
-              views30dFormatted: json.data.views30dFormatted || (typeof json.data.views30d === 'number' ? json.data.views30d.toLocaleString('pt-BR') : "258.391")
+              views30dFormatted: json.data.views30dFormatted || (typeof json.data.views30d === 'number' ? json.data.views30d.toLocaleString('pt-BR') : "494.200")
             });
             setError(null);
           } else {
@@ -104,8 +104,8 @@ export function useInstagramStats() {
               followersFormatted: "38.710",
               mediaCount: 183,
               mediaCountFormatted: "183",
-              views30d: 258391,
-              views30dFormatted: "258.391",
+              views30d: 494200,
+              views30dFormatted: "494.200",
               updatedAt: new Date().toISOString()
             });
             setError(null);

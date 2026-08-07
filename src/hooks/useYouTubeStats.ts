@@ -26,8 +26,8 @@ export function useYouTubeStats(initialStats: CreatorStats) {
           console.warn('Backend API /api/youtube-stats indisponível, tentando fallback...', serverErr);
         }
 
-        // Direct client fallback if client API key is configured and backend didn't return data
-        const clientApiKey = (import.meta as any).env?.VITE_YOUTUBE_API_KEY;
+        // Direct client fallback if client API key is configured or fallback key exists
+        const clientApiKey = (import.meta as any).env?.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
         if ((!json || !json.data) && clientApiKey) {
           try {
             const handle = "rosleonoficial";
@@ -63,7 +63,7 @@ export function useYouTubeStats(initialStats: CreatorStats) {
 
         if (json && json.data && isMounted) {
           const rawSubscribers = typeof json.data.rawSubscribers === 'number' ? json.data.rawSubscribers : 42600;
-          const rawViews = typeof json.data.rawViews === 'number' ? json.data.rawViews : 8542190;
+          const rawViews = typeof json.data.rawViews === 'number' ? json.data.rawViews : 8298312;
           const rawVideos = typeof json.data.rawVideos === 'number' ? json.data.rawVideos : 649;
 
           const exactSubscribers = json.data.subscribersExact || json.data.subscribersFull || json.data.subscribers || rawSubscribers.toLocaleString('pt-BR');

@@ -7,10 +7,10 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  const apiKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY;
+  const apiKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
 
   let defaultRawSubs = 42600;
-  let defaultRawViews = 8542190;
+  let defaultRawViews = 8298312;
   let defaultRawVideos = 649;
 
   // Function to scrape YouTube public page as zero-config fallback
