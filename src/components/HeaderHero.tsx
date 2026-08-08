@@ -20,106 +20,150 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
   onTrackClick,
   totalOnlineCount = 3840
 }) => {
-  const { t, formatNumber } = useLanguage();
+  const { t, formatNumber, language } = useLanguage();
 
   return (
     <header className="relative pt-6 pb-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* Top Bar Navigation Actions for Mobile & Desktop */}
-      <div className="flex items-center justify-between mb-8">
-        {/* Brand Logo & Menu */}
-        <div className="flex flex-col items-start gap-2">
+      {/* Top Bar Navigation Actions for Mobile & Desktop */}
+      <div className="flex flex-col gap-3.5 mb-8">
+        {/* Row 1: Brand Logo & Right Action Buttons */}
+        <div className="flex items-center justify-between w-full">
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wider text-white font-quantum uppercase">
             {config.logoText || "ROSLEON"}
           </h1>
-          <nav className="flex items-center justify-center flex-wrap gap-2 sm:gap-2.5 text-sm sm:text-base font-bold">
-            <a 
-              href="#grupos"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('grupos')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
+
+          <div className="flex items-center gap-2 shrink-0">
+            <LanguageSelector />
+
+            <button
+              onClick={onOpenShare}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
+              title="Compartilhar página"
             >
-              {t('nav.groups')}
-            </a>
-            <a 
-              href="#parcerias"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('parcerias')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
-            >
-              {t('nav.partnerships')}
-            </a>
-            <a 
-              href="#youtube"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('youtube')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
-            >
-              {t('nav.youtube')}
-            </a>
-            <a 
-              href="#suporte"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('suporte')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-3.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/80 hover:bg-emerald-900/60 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
-            >
-              {t('nav.support')}
-            </a>
-            <a 
-              href="#audiencia"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('audiencia')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-slate-900/90 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/80 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 text-xs sm:text-sm font-mono font-bold"
-              title="Público em tempo real conectado ao vivo"
-            >
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span>{formatNumber(totalOnlineCount)} {t('nav.live')}</span>
-            </a>
-          </nav>
+              <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden xs:inline">{t('share.button')}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Action Buttons: Language Selector & Share */}
-        <div className="flex items-center gap-2">
-          <LanguageSelector />
-
-          <button
-            onClick={onOpenShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
-            title="Compartilhar página"
+        {/* Row 2: Clean, Well-Aligned Navigation Pills */}
+        <nav className="flex items-center justify-start sm:justify-center flex-wrap gap-2 text-xs sm:text-sm font-bold w-full">
+          <a 
+            href="#grupos"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('grupos')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3.5 py-2 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
           >
-            <Share2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden xs:inline">{t('share.button')}</span>
-          </button>
-        </div>
+            {t('nav.groups')}
+          </a>
+          <a 
+            href="#parcerias"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('parcerias')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3.5 py-2 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+          >
+            {t('nav.partnerships')}
+          </a>
+          <a 
+            href="#youtube"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('youtube')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3.5 py-2 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+          >
+            {t('nav.youtube')}
+          </a>
+          <a 
+            href="#suporte"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('suporte')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3.5 py-2 rounded-xl border border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/80 hover:bg-emerald-900/60 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+          >
+            {t('nav.support')}
+          </a>
+          <a 
+            href="#audiencia"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('audiencia')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3.5 py-2 rounded-xl border border-emerald-500/40 bg-slate-900/90 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/80 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 text-xs sm:text-sm font-mono font-bold whitespace-nowrap"
+            title="Público em tempo real conectado ao vivo"
+          >
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>{formatNumber(totalOnlineCount)} {t('nav.live')}</span>
+          </a>
+        </nav>
       </div>
 
       {/* Main Hero Container */}
       <div className="flex flex-col items-center text-center space-y-5 max-w-3xl mx-auto">
         {/* Main Headline */}
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight tracking-tight">
-          {t('hero.alertHeadline')}
+          {language === 'pt' ? (
+            <>
+              <span>⚠️ Você pode estar </span>
+              <span className="text-rose-400 font-black underline decoration-rose-500/80 underline-offset-4">pagando mais caro</span>
+              <span> por </span>
+              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-black drop-shadow-[0_2px_12px_rgba(251,191,36,0.6)]">não estar no grupo!</span>
+            </>
+          ) : language === 'zh-CN' ? (
+            <>
+              <span>⚠️ 不在群里, 你 </span>
+              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-black drop-shadow-[0_2px_12px_rgba(251,191,36,0.6)]">可能正在</span>
+              <span> </span>
+              <span className="text-rose-400 font-black underline decoration-rose-500/80 underline-offset-4">多花冤枉钱!</span>
+            </>
+          ) : (
+            <>
+              <span>⚠️ You might be </span>
+              <span className="text-rose-400 font-black underline decoration-rose-500/80 underline-offset-4">paying more</span>
+              <span> by </span>
+              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-black drop-shadow-[0_2px_12px_rgba(251,191,36,0.6)]">not being in the group!</span>
+            </>
+          )}
         </h2>
 
         {/* Subheadline */}
         <p className="text-slate-200 text-base sm:text-lg font-medium leading-relaxed max-w-2xl">
-          {t('hero.subheadline')}
+          {language === 'pt' ? (
+            <>
+              <span>Compre o que você quer pelos </span>
+              <span className="text-emerald-300 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">melhores preços do mercado</span>
+              <span> — com </span>
+              <span className="text-cyan-300 font-extrabold bg-cyan-950/80 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">segurança!</span>
+            </>
+          ) : language === 'zh-CN' ? (
+            <>
+              <span>以全网 </span>
+              <span className="text-emerald-300 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">极优价格</span>
+              <span> 购买心仪商品 — </span>
+              <span className="text-cyan-300 font-extrabold bg-cyan-950/80 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">100% 安全保障!</span>
+            </>
+          ) : (
+            <>
+              <span>Buy what you want at the </span>
+              <span className="text-emerald-300 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">best market prices</span>
+              <span> — with </span>
+              <span className="text-cyan-300 font-extrabold bg-cyan-950/80 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">complete safety!</span>
+            </>
+          )}
         </p>
 
         {/* Subheadline Categories */}
-        <p className="text-slate-400 text-xs sm:text-sm font-semibold tracking-wider uppercase -mt-2">
-          {t('hero.categories')}
+        <p className="text-amber-400/90 text-xs sm:text-sm font-extrabold tracking-widest uppercase -mt-1 drop-shadow-sm flex items-center justify-center gap-1.5">
+          <span>⚡</span> {t('hero.categories')}
         </p>
 
         {/* Phone Video Mockup placed directly below the title */}
