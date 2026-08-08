@@ -113,57 +113,56 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight tracking-tight">
           {language === 'pt' ? (
             <>
-              <span>⚠️ Você pode estar </span>
-              <span className="text-rose-400 font-black underline decoration-rose-500/80 underline-offset-4">pagando mais caro</span>
+              <span>Você pode estar </span>
+              <span className="text-amber-400 font-black">pagando mais caro</span>
               <span> por </span>
-              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-black drop-shadow-[0_2px_12px_rgba(251,191,36,0.6)]">não estar no grupo!</span>
+              <span className="text-amber-400 font-black">não estar no grupo!</span>
             </>
           ) : language === 'zh-CN' ? (
             <>
-              <span>⚠️ 不在群里, 你 </span>
-              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-black drop-shadow-[0_2px_12px_rgba(251,191,36,0.6)]">可能正在</span>
-              <span> </span>
-              <span className="text-rose-400 font-black underline decoration-rose-500/80 underline-offset-4">多花冤枉钱!</span>
+              <span>不在群里，你</span>
+              <span className="text-amber-400 font-black">可能多花冤枉钱</span>
+              <span>！</span>
             </>
           ) : (
             <>
-              <span>⚠️ You might be </span>
-              <span className="text-rose-400 font-black underline decoration-rose-500/80 underline-offset-4">paying more</span>
+              <span>You might be </span>
+              <span className="text-amber-400 font-black">paying more</span>
               <span> by </span>
-              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-black drop-shadow-[0_2px_12px_rgba(251,191,36,0.6)]">not being in the group!</span>
+              <span className="text-amber-400 font-black">not being in the group!</span>
             </>
           )}
         </h2>
 
         {/* Subheadline */}
-        <p className="text-slate-200 text-base sm:text-lg font-medium leading-relaxed max-w-2xl">
+        <p className="text-slate-100 text-base sm:text-lg font-medium leading-relaxed max-w-2xl">
           {language === 'pt' ? (
             <>
               <span>Compre o que você quer pelos </span>
-              <span className="text-emerald-300 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">melhores preços do mercado</span>
+              <span className="text-amber-400 font-bold">melhores preços do mercado</span>
               <span> — com </span>
-              <span className="text-cyan-300 font-extrabold bg-cyan-950/80 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">segurança!</span>
+              <span className="text-amber-400 font-bold">segurança!</span>
             </>
           ) : language === 'zh-CN' ? (
             <>
-              <span>以全网 </span>
-              <span className="text-emerald-300 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">极优价格</span>
+              <span>以 </span>
+              <span className="text-amber-400 font-bold">全网极优价格</span>
               <span> 购买心仪商品 — </span>
-              <span className="text-cyan-300 font-extrabold bg-cyan-950/80 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">100% 安全保障!</span>
+              <span className="text-amber-400 font-bold">100% 安全保障！</span>
             </>
           ) : (
             <>
               <span>Buy what you want at the </span>
-              <span className="text-emerald-300 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">best market prices</span>
+              <span className="text-amber-400 font-bold">best market prices</span>
               <span> — with </span>
-              <span className="text-cyan-300 font-extrabold bg-cyan-950/80 border border-cyan-500/50 px-2.5 py-0.5 rounded-lg shadow-md inline-block my-0.5">complete safety!</span>
+              <span className="text-amber-400 font-bold">safety!</span>
             </>
           )}
         </p>
 
         {/* Subheadline Categories */}
-        <p className="text-amber-400/90 text-xs sm:text-sm font-extrabold tracking-widest uppercase -mt-1 drop-shadow-sm flex items-center justify-center gap-1.5">
-          <span>⚡</span> {t('hero.categories')}
+        <p className="text-slate-300 text-xs sm:text-sm font-semibold tracking-widest uppercase pt-1">
+          {t('hero.categories')}
         </p>
 
         {/* Phone Video Mockup placed directly below the title */}
