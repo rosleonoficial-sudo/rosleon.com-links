@@ -61,7 +61,7 @@ export const defaultConfig: SiteConfig = {
     platform: "instagram",
     title: "INSTAGRAM",
     subtitle: "Conteúdo diário, bastidores, ofertas e cupons exclusivos.",
-    url: "https://www.instagram.com/rosleonoficial",
+    url: "https://www.instagram.com/rosleonoficial/",
     buttonText: "Ir para o Instagram",
     enabled: true
   },

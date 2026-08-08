@@ -49,9 +49,7 @@ export default function App() {
           }
         };
 
-        if (!mergedConfig.instagramLink.url || (mergedConfig.instagramLink.url.includes('instagram.com/rosleon') && !mergedConfig.instagramLink.url.includes('rosleonoficial'))) {
-          mergedConfig.instagramLink.url = 'https://www.instagram.com/rosleonoficial';
-        }
+        mergedConfig.instagramLink.url = 'https://www.instagram.com/rosleonoficial/';
 
         if (!mergedConfig.tiktokLink.url || (mergedConfig.tiktokLink.url.includes('tiktok.com/@rosleon') && !mergedConfig.tiktokLink.url.includes('rosleonoficial'))) {
           mergedConfig.tiktokLink.url = 'https://www.tiktok.com/@rosleonoficial';
