@@ -106,6 +106,11 @@ export default function App() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
 
+  // Update document title dynamically
+  useEffect(() => {
+    document.title = config.siteTitle || 'GRUPO ROSLEON';
+  }, [config.siteTitle]);
+
   // Save config to localStorage whenever it changes
   useEffect(() => {
     try {

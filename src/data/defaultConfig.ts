@@ -1,7 +1,7 @@
 import { SiteConfig } from '../types';
 
 export const defaultConfig: SiteConfig = {
-  siteTitle: "ROSLEON - Cupons e Ofertas",
+  siteTitle: "GRUPO ROSLEON",
   logoText: "ROSLEON",
   badgeText: "Afiliado Profissional Nível Prata Mercado Livre",
   
@@ -32,7 +32,7 @@ export const defaultConfig: SiteConfig = {
     platform: "whatsapp",
     title: "WhatsApp",
     subtitle: "Canal de ofertas no WhatsApp",
-    url: "https://www.gruporosleon.com.br/",
+    url: "https://pag.gruporosleon.com.br/",
     buttonText: "👉 TOQUE AQUI E VEJA COMO FUNCIONA NA PRÁTICA!",
     enabled: true
   },

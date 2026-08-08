@@ -181,7 +181,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
             {/* Categories Pills */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <a
-                href="https://gruporosleon.com.br/"
+                href="https://pag.gruporosleon.com.br/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => onTrackClick('Category Pill - Fitness')}
@@ -191,7 +191,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
                 <span className="text-xs sm:text-sm leading-tight">{t('hero.catFitness')}</span>
               </a>
               <a
-                href="https://gruporosleon.com.br/"
+                href="https://pag.gruporosleon.com.br/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => onTrackClick('Category Pill - Eletronicos')}
@@ -201,7 +201,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
                 <span className="text-xs sm:text-sm leading-tight">{t('hero.catElectronics')}</span>
               </a>
               <a
-                href="https://gruporosleon.com.br/"
+                href="https://pag.gruporosleon.com.br/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => onTrackClick('Category Pill - Ofertas Gerais')}
@@ -217,7 +217,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
         {/* Yellow Pulsing Button */}
         <div className="pt-2 w-full max-w-lg">
           <a
-            href="https://www.gruporosleon.com.br/"
+            href="https://pag.gruporosleon.com.br/"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onTrackClick('CTA Button')}
