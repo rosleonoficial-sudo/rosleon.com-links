@@ -4,7 +4,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 export const PhoneMockup: React.FC = () => {
   const { t } = useLanguage();
-  const [isStarted, setIsStarted] = useState(false);
+  const [isStarted, setIsStarted] = useState(true);
 
   return (
     <div className="relative flex items-center justify-center py-4 lg:py-0 select-none">
@@ -39,7 +39,7 @@ export const PhoneMockup: React.FC = () => {
               title="ROSLEON YouTube Short"
               className="w-full h-full scale-[1.35] object-cover border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy"
+              loading="eager"
             />
           ) : (
             /* Fallback Capa/Poster + Play Button Overlay */

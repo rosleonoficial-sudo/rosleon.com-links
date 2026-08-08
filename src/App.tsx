@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SiteConfig } from './types';
 import { defaultConfig } from './data/defaultConfig';
 import { useYouTubeStats } from './hooks/useYouTubeStats';
@@ -7,17 +7,15 @@ import { useLiveOnlineCount } from './hooks/useLiveOnlineCount';
 
 import { HeaderHero } from './components/HeaderHero';
 import { PartnershipsCard } from './components/PartnershipsCard';
+import { YouTubeSection } from './components/YouTubeSection';
+import { SocialLinksSection } from './components/SocialLinksSection';
+import { BrazilMapSection } from './components/BrazilMapSection';
+import { SupportSection } from './components/SupportSection';
+import { AboutSection } from './components/AboutSection';
+import { EditDrawer } from './components/EditDrawer';
+import { ShareModal } from './components/ShareModal';
 import { Footer } from './components/Footer';
 import { FloatingScrollDown } from './components/FloatingScrollDown';
-
-// Code-split below-the-fold components & heavy assets (such as Brazil map geometries)
-const BrazilMapSection = lazy(() => import('./components/BrazilMapSection').then(m => ({ default: m.BrazilMapSection })));
-const YouTubeSection = lazy(() => import('./components/YouTubeSection').then(m => ({ default: m.YouTubeSection })));
-const SocialLinksSection = lazy(() => import('./components/SocialLinksSection').then(m => ({ default: m.SocialLinksSection })));
-const SupportSection = lazy(() => import('./components/SupportSection').then(m => ({ default: m.SupportSection })));
-const AboutSection = lazy(() => import('./components/AboutSection').then(m => ({ default: m.AboutSection })));
-const EditDrawer = lazy(() => import('./components/EditDrawer').then(m => ({ default: m.EditDrawer })));
-const ShareModal = lazy(() => import('./components/ShareModal').then(m => ({ default: m.ShareModal })));
 
 const STORAGE_KEY = 'rosleon_site_config_v2';
 const CLICKS_STORAGE_KEY = 'rosleon_click_analytics_v1';
@@ -171,9 +169,7 @@ export default function App() {
         />
 
         {/* Mapa de Audiência do Brasil em Tempo Real */}
-        <Suspense fallback={<div className="h-48 my-6" />}>
-          <BrazilMapSection totalOnlineCount={totalOnlineCount} />
-        </Suspense>
+        <BrazilMapSection totalOnlineCount={totalOnlineCount} />
 
         {/* Section Divider Title */}
         <div className="flex items-center justify-center gap-4 my-6 px-4 max-w-6xl mx-auto">
@@ -184,40 +180,38 @@ export default function App() {
           <div className="h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent flex-1 max-w-xs" />
         </div>
 
-        <Suspense fallback={<div className="h-48 my-6" />}>
-          {/* 1º YouTube Section */}
-          {config.youtubeSection && (
-            <YouTubeSection
-              youtubeData={config.youtubeSection}
-              stats={liveStats}
-              onTrackClick={handleTrackClick}
-            />
-          )}
-
-          {/* 2º Instagram & 3º TikTok Section */}
-          <SocialLinksSection
-            instagram={config.instagramLink}
-            tiktok={config.tiktokLink}
-            telegram={config.telegramLink}
-            instagramStats={instagramStats}
-            instagramLoading={instagramLoading}
-            instagramError={instagramError}
-            instagramConfigured={instagramConfigured}
-            onTrackClick={handleTrackClick}
-            showTitle={false}
-          />
-
-          {/* Suporte WhatsApp para Seguidores */}
-          <SupportSection
-            supportLink={config.whatsappSupportLink}
+        {/* 1º YouTube Section */}
+        {config.youtubeSection && (
+          <YouTubeSection
+            youtubeData={config.youtubeSection}
+            stats={liveStats}
             onTrackClick={handleTrackClick}
           />
+        )}
 
-          {/* Quem Sou Eu Section */}
-          <AboutSection
-            creator={config.creator}
-          />
-        </Suspense>
+        {/* 2º Instagram & 3º TikTok Section */}
+        <SocialLinksSection
+          instagram={config.instagramLink}
+          tiktok={config.tiktokLink}
+          telegram={config.telegramLink}
+          instagramStats={instagramStats}
+          instagramLoading={instagramLoading}
+          instagramError={instagramError}
+          instagramConfigured={instagramConfigured}
+          onTrackClick={handleTrackClick}
+          showTitle={false}
+        />
+
+        {/* Suporte WhatsApp para Seguidores */}
+        <SupportSection
+          supportLink={config.whatsappSupportLink}
+          onTrackClick={handleTrackClick}
+        />
+
+        {/* Quem Sou Eu Section */}
+        <AboutSection
+          creator={config.creator}
+        />
 
         {/* Footer */}
         <Footer
@@ -229,21 +223,20 @@ export default function App() {
       </div>
 
       {/* Slide-over Edit Panel Modal & Share Modal */}
-      <Suspense fallback={null}>
-        <EditDrawer
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          config={config}
-          onSaveConfig={handleSaveConfig}
-          onResetDefault={handleResetDefault}
-        />
+      <EditDrawer
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        config={config}
+        onSaveConfig={handleSaveConfig}
+        onResetDefault={handleResetDefault}
+      />
 
-        <ShareModal
-          isOpen={isShareOpen}
-          onClose={() => setIsShareOpen(false)}
-          siteTitle={config.siteTitle || "ROSLEON"}
-        />
-      </Suspense>
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        siteTitle={config.siteTitle || "ROSLEON"}
+      />
 
       {/* Floating Scroll Down Arrow Button */}
       <FloatingScrollDown />
