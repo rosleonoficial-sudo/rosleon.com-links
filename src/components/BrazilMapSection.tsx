@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Signal, Globe, RefreshCw, Eye, Instagram, Youtube, Radio, Zap, Users } from 'lucide-react';
+import { BRAZIL_STATES_GEO } from '../data/brazil-states-geo';
 
 interface StateData {
   id: string;
@@ -18,41 +19,41 @@ interface StateData {
 
 const BRAZIL_STATES: StateData[] = [
   // Sul
-  { id: 'SC', name: 'Santa Catarina', region: 'Sul', capital: 'Florianópolis', activeUsers: 820, sharePercent: 11.2, instagramShare: 76, youtubeShare: 16, siteShare: 8, topCity: 'Florianópolis / Balneário Camboriú', x: 57, y: 81 },
-  { id: 'PR', name: 'Paraná', region: 'Sul', capital: 'Curitiba', activeUsers: 690, sharePercent: 9.4, instagramShare: 72, youtubeShare: 18, siteShare: 10, topCity: 'Curitiba', x: 54, y: 74 },
+  { id: 'SC', name: 'Santa Catarina', region: 'Sul', capital: 'Florianópolis', activeUsers: 820, sharePercent: 11.2, instagramShare: 76, youtubeShare: 16, siteShare: 8, topCity: 'Florianópolis / Balneário Camboriú', x: 56, y: 82 },
+  { id: 'PR', name: 'Paraná', region: 'Sul', capital: 'Curitiba', activeUsers: 690, sharePercent: 9.4, instagramShare: 72, youtubeShare: 18, siteShare: 10, topCity: 'Curitiba', x: 54, y: 76 },
   { id: 'RS', name: 'Rio Grande do Sul', region: 'Sul', capital: 'Porto Alegre', activeUsers: 610, sharePercent: 8.3, instagramShare: 74, youtubeShare: 17, siteShare: 9, topCity: 'Porto Alegre', x: 50, y: 89 },
   
   // Sudeste
-  { id: 'SP', name: 'São Paulo', region: 'Sudeste', capital: 'São Paulo', activeUsers: 1890, sharePercent: 25.6, instagramShare: 78, youtubeShare: 14, siteShare: 8, topCity: 'São Paulo', x: 59, y: 67 },
-  { id: 'RJ', name: 'Rio de Janeiro', region: 'Sudeste', capital: 'Rio de Janeiro', activeUsers: 1150, sharePercent: 15.6, instagramShare: 79, youtubeShare: 13, siteShare: 8, topCity: 'Rio de Janeiro / Niterói', x: 75, y: 66 },
-  { id: 'MG', name: 'Minas Gerais', region: 'Sudeste', capital: 'Belo Horizonte', activeUsers: 980, sharePercent: 13.3, instagramShare: 71, youtubeShare: 19, siteShare: 10, topCity: 'Belo Horizonte', x: 67, y: 58 },
-  { id: 'ES', name: 'Espírito Santo', region: 'Sudeste', capital: 'Vitória', activeUsers: 240, sharePercent: 3.2, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Vitória / Vila Velha', x: 79, y: 60 },
+  { id: 'SP', name: 'São Paulo', region: 'Sudeste', capital: 'São Paulo', activeUsers: 1890, sharePercent: 25.6, instagramShare: 78, youtubeShare: 14, siteShare: 8, topCity: 'São Paulo', x: 59, y: 70 },
+  { id: 'RJ', name: 'Rio de Janeiro', region: 'Sudeste', capital: 'Rio de Janeiro', activeUsers: 1150, sharePercent: 15.6, instagramShare: 79, youtubeShare: 13, siteShare: 8, topCity: 'Rio de Janeiro / Niterói', x: 73, y: 70 },
+  { id: 'MG', name: 'Minas Gerais', region: 'Sudeste', capital: 'Belo Horizonte', activeUsers: 980, sharePercent: 13.3, instagramShare: 71, youtubeShare: 19, siteShare: 10, topCity: 'Belo Horizonte', x: 68, y: 61 },
+  { id: 'ES', name: 'Espírito Santo', region: 'Sudeste', capital: 'Vitória', activeUsers: 240, sharePercent: 3.2, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Vitória / Vila Velha', x: 77, y: 64 },
 
   // Nordeste
-  { id: 'BA', name: 'Bahia', region: 'Nordeste', capital: 'Salvador', activeUsers: 780, sharePercent: 10.6, instagramShare: 75, youtubeShare: 17, siteShare: 8, topCity: 'Salvador / Feira de Santana', x: 73, y: 44 },
-  { id: 'PE', name: 'Pernambuco', region: 'Nordeste', capital: 'Recife', activeUsers: 590, sharePercent: 8.0, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Recife / Olinda', x: 86, y: 33 },
-  { id: 'CE', name: 'Ceará', region: 'Nordeste', capital: 'Fortaleza', activeUsers: 540, sharePercent: 7.3, instagramShare: 73, youtubeShare: 19, siteShare: 8, topCity: 'Fortaleza', x: 80, y: 22 },
-  { id: 'MA', name: 'Maranhão', region: 'Nordeste', capital: 'São Luís', activeUsers: 360, sharePercent: 4.9, instagramShare: 69, youtubeShare: 21, siteShare: 10, topCity: 'São Luís', x: 65, y: 22 },
-  { id: 'PB', name: 'Paraíba', region: 'Nordeste', capital: 'João Pessoa', activeUsers: 250, sharePercent: 3.4, instagramShare: 71, youtubeShare: 20, siteShare: 9, topCity: 'João Pessoa', x: 89, y: 29 },
-  { id: 'RN', name: 'Rio Grande do Norte', region: 'Nordeste', capital: 'Natal', activeUsers: 230, sharePercent: 3.1, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Natal', x: 88, y: 25 },
-  { id: 'PI', name: 'Piauí', region: 'Nordeste', capital: 'Teresina', activeUsers: 200, sharePercent: 2.7, instagramShare: 68, youtubeShare: 22, siteShare: 10, topCity: 'Teresina', x: 72, y: 28 },
-  { id: 'AL', name: 'Alagoas', region: 'Nordeste', capital: 'Maceió', activeUsers: 185, sharePercent: 2.5, instagramShare: 72, youtubeShare: 20, siteShare: 8, topCity: 'Maceió', x: 86, y: 37 },
-  { id: 'SE', name: 'Sergipe', region: 'Nordeste', capital: 'Aracaju', activeUsers: 130, sharePercent: 1.8, instagramShare: 70, youtubeShare: 21, siteShare: 9, topCity: 'Aracaju', x: 83, y: 40 },
+  { id: 'BA', name: 'Bahia', region: 'Nordeste', capital: 'Salvador', activeUsers: 780, sharePercent: 10.6, instagramShare: 75, youtubeShare: 17, siteShare: 8, topCity: 'Salvador / Feira de Santana', x: 74, y: 49 },
+  { id: 'PE', name: 'Pernambuco', region: 'Nordeste', capital: 'Recife', activeUsers: 590, sharePercent: 8.0, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Recife / Olinda', x: 85, y: 35 },
+  { id: 'CE', name: 'Ceará', region: 'Nordeste', capital: 'Fortaleza', activeUsers: 540, sharePercent: 7.3, instagramShare: 73, youtubeShare: 19, siteShare: 8, topCity: 'Fortaleza', x: 81, y: 25 },
+  { id: 'MA', name: 'Maranhão', region: 'Nordeste', capital: 'São Luís', activeUsers: 360, sharePercent: 4.9, instagramShare: 69, youtubeShare: 21, siteShare: 10, topCity: 'São Luís', x: 67, y: 27 },
+  { id: 'PB', name: 'Paraíba', region: 'Nordeste', capital: 'João Pessoa', activeUsers: 250, sharePercent: 3.4, instagramShare: 71, youtubeShare: 20, siteShare: 9, topCity: 'João Pessoa', x: 88, y: 31 },
+  { id: 'RN', name: 'Rio Grande do Norte', region: 'Nordeste', capital: 'Natal', activeUsers: 230, sharePercent: 3.1, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Natal', x: 88, y: 27 },
+  { id: 'PI', name: 'Piauí', region: 'Nordeste', capital: 'Teresina', activeUsers: 200, sharePercent: 2.7, instagramShare: 68, youtubeShare: 22, siteShare: 10, topCity: 'Teresina', x: 73, y: 34 },
+  { id: 'AL', name: 'Alagoas', region: 'Nordeste', capital: 'Maceió', activeUsers: 185, sharePercent: 2.5, instagramShare: 72, youtubeShare: 20, siteShare: 8, topCity: 'Maceió', x: 86, y: 40 },
+  { id: 'SE', name: 'Sergipe', region: 'Nordeste', capital: 'Aracaju', activeUsers: 130, sharePercent: 1.8, instagramShare: 70, youtubeShare: 21, siteShare: 9, topCity: 'Aracaju', x: 83, y: 44 },
 
   // Centro-Oeste
-  { id: 'DF', name: 'Distrito Federal', region: 'Centro-Oeste', capital: 'Brasília', activeUsers: 410, sharePercent: 5.6, instagramShare: 72, youtubeShare: 17, siteShare: 11, topCity: 'Brasília', x: 62, y: 49 },
-  { id: 'GO', name: 'Goiás', region: 'Centro-Oeste', capital: 'Goiânia', activeUsers: 440, sharePercent: 6.0, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Goiânia', x: 57, y: 49 },
-  { id: 'MT', name: 'Mato Grosso', region: 'Centro-Oeste', capital: 'Cuiabá', activeUsers: 310, sharePercent: 4.2, instagramShare: 65, youtubeShare: 23, siteShare: 12, topCity: 'Cuiabá', x: 42, y: 43 },
-  { id: 'MS', name: 'Mato Grosso do Sul', region: 'Centro-Oeste', capital: 'Campo Grande', activeUsers: 270, sharePercent: 3.7, instagramShare: 67, youtubeShare: 21, siteShare: 12, topCity: 'Campo Grande', x: 46, y: 59 },
+  { id: 'DF', name: 'Distrito Federal', region: 'Centro-Oeste', capital: 'Brasília', activeUsers: 410, sharePercent: 5.6, instagramShare: 72, youtubeShare: 17, siteShare: 11, topCity: 'Brasília', x: 63, y: 53 },
+  { id: 'GO', name: 'Goiás', region: 'Centro-Oeste', capital: 'Goiânia', activeUsers: 440, sharePercent: 6.0, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Goiânia', x: 58, y: 53 },
+  { id: 'MT', name: 'Mato Grosso', region: 'Centro-Oeste', capital: 'Cuiabá', activeUsers: 310, sharePercent: 4.2, instagramShare: 65, youtubeShare: 23, siteShare: 12, topCity: 'Cuiabá', x: 43, y: 47 },
+  { id: 'MS', name: 'Mato Grosso do Sul', region: 'Centro-Oeste', capital: 'Campo Grande', activeUsers: 270, sharePercent: 3.7, instagramShare: 67, youtubeShare: 21, siteShare: 12, topCity: 'Campo Grande', x: 47, y: 62 },
 
   // Norte
-  { id: 'PA', name: 'Pará', region: 'Norte', capital: 'Belém', activeUsers: 470, sharePercent: 6.4, instagramShare: 64, youtubeShare: 24, siteShare: 12, topCity: 'Belém', x: 48, y: 21 },
-  { id: 'AM', name: 'Amazonas', region: 'Norte', capital: 'Manaus', activeUsers: 330, sharePercent: 4.5, instagramShare: 62, youtubeShare: 28, siteShare: 10, topCity: 'Manaus', x: 23, y: 23 },
-  { id: 'TO', name: 'Tocantins', region: 'Norte', capital: 'Palmas', activeUsers: 190, sharePercent: 2.6, instagramShare: 66, youtubeShare: 22, siteShare: 12, topCity: 'Palmas', x: 57, y: 36 },
-  { id: 'RO', name: 'Rondônia', region: 'Norte', capital: 'Porto Velho', activeUsers: 140, sharePercent: 1.9, instagramShare: 65, youtubeShare: 25, siteShare: 10, topCity: 'Porto Velho', x: 25, y: 39 },
-  { id: 'AC', name: 'Acre', region: 'Norte', capital: 'Rio Branco', activeUsers: 80, sharePercent: 1.1, instagramShare: 55, youtubeShare: 30, siteShare: 15, topCity: 'Rio Branco', x: 11, y: 35 },
-  { id: 'AP', name: 'Amapá', region: 'Norte', capital: 'Macapá', activeUsers: 75, sharePercent: 1.0, instagramShare: 60, youtubeShare: 28, siteShare: 12, topCity: 'Macapá', x: 55, y: 11 },
-  { id: 'RR', name: 'Roraima', region: 'Norte', capital: 'Boa Vista', activeUsers: 60, sharePercent: 0.8, instagramShare: 58, youtubeShare: 32, siteShare: 10, topCity: 'Boa Vista', x: 31, y: 11 }
+  { id: 'PA', name: 'Pará', region: 'Norte', capital: 'Belém', activeUsers: 470, sharePercent: 6.4, instagramShare: 64, youtubeShare: 24, siteShare: 12, topCity: 'Belém', x: 49, y: 26 },
+  { id: 'AM', name: 'Amazonas', region: 'Norte', capital: 'Manaus', activeUsers: 330, sharePercent: 4.5, instagramShare: 62, youtubeShare: 28, siteShare: 10, topCity: 'Manaus', x: 23, y: 26 },
+  { id: 'TO', name: 'Tocantins', region: 'Norte', capital: 'Palmas', activeUsers: 190, sharePercent: 2.6, instagramShare: 66, youtubeShare: 22, siteShare: 12, topCity: 'Palmas', x: 58, y: 40 },
+  { id: 'RO', name: 'Rondônia', region: 'Norte', capital: 'Porto Velho', activeUsers: 140, sharePercent: 1.9, instagramShare: 65, youtubeShare: 25, siteShare: 10, topCity: 'Porto Velho', x: 26, y: 42 },
+  { id: 'AC', name: 'Acre', region: 'Norte', capital: 'Rio Branco', activeUsers: 80, sharePercent: 1.1, instagramShare: 55, youtubeShare: 30, siteShare: 15, topCity: 'Rio Branco', x: 10, y: 39 },
+  { id: 'AP', name: 'Amapá', region: 'Norte', capital: 'Macapá', activeUsers: 75, sharePercent: 1.0, instagramShare: 60, youtubeShare: 28, siteShare: 12, topCity: 'Macapá', x: 57, y: 14 },
+  { id: 'RR', name: 'Roraima', region: 'Norte', capital: 'Boa Vista', activeUsers: 60, sharePercent: 0.8, instagramShare: 58, youtubeShare: 32, siteShare: 10, topCity: 'Boa Vista', x: 31, y: 12 }
 ];
 
 interface LiveFeedItem {
@@ -90,6 +91,45 @@ const ACTIONS = [
   'Novo visitante detectado'
 ];
 
+interface SVGStateDef {
+  path: string;
+  labelX: number;
+  labelY: number;
+}
+
+const REGION_COLORS: Record<string, { baseFill: string; hoverFill: string; selectedFill: string; stroke: string }> = {
+  Norte: {
+    baseFill: '#064e3b',
+    hoverFill: '#059669',
+    selectedFill: '#10b981',
+    stroke: '#34d399'
+  },
+  Nordeste: {
+    baseFill: '#78350f',
+    hoverFill: '#d97706',
+    selectedFill: '#f59e0b',
+    stroke: '#fbbf24'
+  },
+  'Centro-Oeste': {
+    baseFill: '#0c4a6e',
+    hoverFill: '#0284c7',
+    selectedFill: '#0ea5e9',
+    stroke: '#38bdf8'
+  },
+  Sudeste: {
+    baseFill: '#164e63',
+    hoverFill: '#0891b2',
+    selectedFill: '#06b6d4',
+    stroke: '#22d3ee'
+  },
+  Sul: {
+    baseFill: '#581c87',
+    hoverFill: '#9333ea',
+    selectedFill: '#a855f7',
+    stroke: '#c084fc'
+  }
+};
+
 interface BrazilMapSectionProps {
   totalOnlineCount?: number;
 }
@@ -98,6 +138,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
   const [selectedState, setSelectedState] = useState<StateData>(
     () => BRAZIL_STATES.find(s => s.id === 'SP') || BRAZIL_STATES[0]
   );
+  const [hoveredStateId, setHoveredStateId] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string>('Todos');
   const [userDetectedState, setUserDetectedState] = useState<string | null>(null);
   const [userDetectedCity, setUserDetectedCity] = useState<string | null>(null);
@@ -314,69 +355,191 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                 <span>MAPA DE CALOR</span>
               </span>
               <span className="text-[9px] text-slate-400 font-mono">
-                Toque nos pontos
+                Toque nos estados
               </span>
             </div>
 
-            {/* Container do Mapa em Tamanho Reduzido com Otimização de Imagem */}
-            <div className="w-full max-w-[270px] aspect-[1/1] relative my-0.5 mx-auto select-none">
-              <img
-                src="https://i.postimg.cc/g0ScrgDX/bb2cd1d2-c7af-4604-9871-4b8889a156b2.png"
-                referrerPolicy="no-referrer"
-                loading="lazy"
-                decoding="async"
-                width={270}
-                height={270}
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-                alt="Mapa do Brasil"
-                className="w-full h-full object-contain filter invert opacity-75 contrast-150 drop-shadow-[0_0_12px_rgba(34,211,238,0.3)] mix-blend-screen"
-              />
+            {/* Container do Mapa em SVG Vectorial Responsivo */}
+            <div className="w-full max-w-[460px] sm:max-w-[520px] aspect-[600/650] relative my-1 mx-auto select-none">
+              {/* Efeito de iluminação radial ambiente de fundo */}
+              <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(34,211,238,0.08)_0%,transparent_70%)]" />
 
-              {/* Marcadores Interativos de Cada Estado com Pulso Neon */}
-              {filteredStates.map((st) => {
-                const isSelected = selectedState.id === st.id;
-                const isUserLoc = userDetectedState === st.id;
+              <svg
+                viewBox="0 0 600 650"
+                className="w-full h-full filter drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)] overflow-visible relative z-10"
+              >
+                <defs>
+                  {/* Filtro de iluminação suave para o estado selecionado */}
+                  <filter id="glow-selected" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComponentTransfer in="blur" result="glow">
+                      <feFuncA type="linear" slope="0.7" />
+                    </feComponentTransfer>
+                    <feMerge>
+                      <feMergeNode in="glow" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+
+                  {/* Gradientes Sutis Por Região */}
+                  <linearGradient id="grad-Norte" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#064e3b" />
+                    <stop offset="100%" stopColor="#047857" />
+                  </linearGradient>
+                  <linearGradient id="grad-Norte-hover" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#047857" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </linearGradient>
+                  <linearGradient id="grad-Norte-selected" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#059669" />
+                    <stop offset="100%" stopColor="#10b981" />
+                  </linearGradient>
+
+                  <linearGradient id="grad-Nordeste" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#78350f" />
+                    <stop offset="100%" stopColor="#92400e" />
+                  </linearGradient>
+                  <linearGradient id="grad-Nordeste-hover" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#92400e" />
+                    <stop offset="100%" stopColor="#d97706" />
+                  </linearGradient>
+                  <linearGradient id="grad-Nordeste-selected" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#d97706" />
+                    <stop offset="100%" stopColor="#f59e0b" />
+                  </linearGradient>
+
+                  <linearGradient id="grad-Centro-Oeste" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0c4a6e" />
+                    <stop offset="100%" stopColor="#0369a1" />
+                  </linearGradient>
+                  <linearGradient id="grad-Centro-Oeste-hover" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0369a1" />
+                    <stop offset="100%" stopColor="#0ea5e9" />
+                  </linearGradient>
+                  <linearGradient id="grad-Centro-Oeste-selected" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0284c7" />
+                    <stop offset="100%" stopColor="#38bdf8" />
+                  </linearGradient>
+
+                  <linearGradient id="grad-Sudeste" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#164e63" />
+                    <stop offset="100%" stopColor="#0e7490" />
+                  </linearGradient>
+                  <linearGradient id="grad-Sudeste-hover" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0e7490" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                  <linearGradient id="grad-Sudeste-selected" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0891b2" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+
+                  <linearGradient id="grad-Sul" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#581c87" />
+                    <stop offset="100%" stopColor="#6b21a8" />
+                  </linearGradient>
+                  <linearGradient id="grad-Sul-hover" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#6b21a8" />
+                    <stop offset="100%" stopColor="#9333ea" />
+                  </linearGradient>
+                  <linearGradient id="grad-Sul-selected" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#9333ea" />
+                    <stop offset="100%" stopColor="#c084fc" />
+                  </linearGradient>
+                </defs>
+
+                {/* Renderização de Cada Estado do Brasil em SVG com Geometria Oficial Cartográfica IBGE */}
+                {filteredStates.map((st) => {
+                  const svgDef = BRAZIL_STATES_GEO[st.id];
+                  if (!svgDef) return null;
+
+                  const isSelected = selectedState.id === st.id;
+                  const isUserLoc = userDetectedState === st.id;
+                  const isHovered = hoveredStateId === st.id;
+                  const isSmallState = ['DF', 'ES', 'SE', 'AL', 'PB', 'RN'].includes(st.id);
+
+                  const palette = REGION_COLORS[st.region] || REGION_COLORS.Sudeste;
+                  const regKey = st.region;
+
+                  let fill = `url(#grad-${regKey})`;
+                  let stroke = 'rgba(255, 255, 255, 0.22)';
+                  let strokeWidth = '0.9';
+                  let filterStyle = undefined;
+
+                  if (isSelected) {
+                    fill = `url(#grad-${regKey}-selected)`;
+                    stroke = '#ffffff';
+                    strokeWidth = '2';
+                    filterStyle = 'url(#glow-selected)';
+                  } else if (isUserLoc) {
+                    fill = '#059669';
+                    stroke = '#34d399';
+                    strokeWidth = '1.8';
+                  } else if (isHovered) {
+                    fill = `url(#grad-${regKey}-hover)`;
+                    stroke = palette.stroke;
+                    strokeWidth = '1.5';
+                  }
+
+                  return (
+                    <g key={st.id} className="cursor-pointer group">
+                      <path
+                        d={svgDef.path}
+                        fill={fill}
+                        stroke={stroke}
+                        strokeWidth={strokeWidth}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        filter={filterStyle}
+                        className="transition-all duration-200 ease-out hover:brightness-125"
+                        onClick={() => setSelectedState(st)}
+                        onMouseEnter={() => setHoveredStateId(st.id)}
+                        onMouseLeave={() => setHoveredStateId(null)}
+                      />
+                      {/* Sigla do Estado posicionada no centro cartográfico do território real */}
+                      <text
+                        x={svgDef.labelX}
+                        y={svgDef.labelY}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        pointerEvents="none"
+                        className={`font-mono font-bold select-none transition-all duration-200 ${
+                          isSmallState ? 'text-[7.5px]' : 'text-[10.5px]'
+                        } ${
+                          isSelected
+                            ? 'fill-white font-black'
+                            : isUserLoc
+                            ? 'fill-emerald-200 font-extrabold'
+                            : 'fill-slate-100/95'
+                        }`}
+                        style={{
+                          textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,1)'
+                        }}
+                      >
+                        {st.id}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Tooltip Responsivo do Estado em Destaque */}
+              {(() => {
+                const activeState = hoveredStateId ? BRAZIL_STATES.find(s => s.id === hoveredStateId) : selectedState;
+                if (!activeState) return null;
 
                 return (
-                  <button
-                    key={st.id}
-                    onClick={() => setSelectedState(st)}
-                    style={{ left: `${st.x}%`, top: `${st.y}%` }}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 group z-20 transition-all duration-200 focus:outline-none`}
-                    title={`${st.name} (${st.id}) - ${st.sharePercent}%`}
-                  >
-                    {(isSelected || isUserLoc) && (
-                      <span className={`absolute -inset-1.5 rounded-full animate-ping opacity-75 ${
-                        isUserLoc ? 'bg-emerald-400' : 'bg-cyan-400'
-                      }`} />
-                    )}
-
-                    <div className={`relative flex items-center justify-center rounded-full transition-all duration-200 shadow-md ${
-                      isSelected
-                        ? 'w-6 h-6 bg-cyan-400 text-slate-950 ring-2 ring-cyan-400/40 font-black z-30 scale-110'
-                        : isUserLoc
-                        ? 'w-5 h-5 bg-emerald-400 text-slate-950 ring-2 ring-emerald-400/40 font-black z-30'
-                        : st.sharePercent >= 10
-                        ? 'w-4.5 h-4.5 bg-cyan-500/90 hover:bg-cyan-400 text-slate-950 font-bold border border-cyan-300/60'
-                        : st.sharePercent >= 4
-                        ? 'w-4 h-4 bg-sky-600/90 hover:bg-cyan-400 text-white font-bold border border-sky-400/50'
-                        : 'w-3.5 h-3.5 bg-slate-700 hover:bg-cyan-400 text-slate-300 hover:text-slate-950 text-[8px] font-bold border border-slate-600'
-                    }`}>
-                      <span className="text-[9px] font-mono leading-none">
-                        {st.id}
-                      </span>
+                  <div className="absolute top-1 left-1/2 -translate-x-1/2 pointer-events-none z-30 max-w-[92%]">
+                    <div className="bg-slate-950/80 backdrop-blur-md border border-cyan-500/40 text-white text-[10px] sm:text-xs px-3.5 py-1.5 rounded-full font-mono shadow-2xl flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      <span className="font-bold text-cyan-300">{activeState.name} ({activeState.id})</span>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-emerald-400 font-bold">{activeState.sharePercent}%</span>
+                      <span className="text-slate-400 text-[9px] hidden sm:inline">da audiência</span>
                     </div>
-
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:flex flex-col items-center pointer-events-none z-40 whitespace-nowrap">
-                      <div className="bg-slate-950/95 border border-cyan-500/50 text-white text-[9px] px-2 py-0.5 rounded font-mono shadow-lg">
-                        <span className="font-bold text-cyan-400">{st.name}</span> • {st.sharePercent}%
-                      </div>
-                    </div>
-                  </button>
+                  </div>
                 );
-              })}
+              })()}
 
             </div>
 

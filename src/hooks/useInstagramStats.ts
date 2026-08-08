@@ -1,9 +1,22 @@
 import { useState, useEffect } from 'react';
 import { InstagramStats } from '../types';
 
+const DEFAULT_IG_DATA: InstagramStats = {
+  name: "ROSLEON | Leonardo Mey",
+  username: "rosleonoficial",
+  profilePictureUrl: "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
+  followersCount: 38710,
+  followersFormatted: "38.710",
+  mediaCount: 183,
+  mediaCountFormatted: "183",
+  views30d: 259333,
+  views30dFormatted: "259.333",
+  updatedAt: new Date().toISOString()
+};
+
 export function useInstagramStats() {
-  const [data, setData] = useState<InstagramStats | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<InstagramStats | null>(DEFAULT_IG_DATA);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState<boolean>(true);
 

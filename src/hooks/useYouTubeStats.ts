@@ -3,7 +3,7 @@ import { CreatorStats } from '../types';
 
 export function useYouTubeStats(initialStats: CreatorStats) {
   const [stats, setStats] = useState<CreatorStats>(initialStats);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
