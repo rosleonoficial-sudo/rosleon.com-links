@@ -4,7 +4,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 export const PhoneMockup: React.FC = () => {
   const { t } = useLanguage();
-  const [isStarted, setIsStarted] = useState(true);
+  const [isStarted, setIsStarted] = useState(false);
 
   return (
     <div className="relative flex items-center justify-center py-4 lg:py-0 select-none">
@@ -39,21 +39,20 @@ export const PhoneMockup: React.FC = () => {
               title="ROSLEON YouTube Short"
               className="w-full h-full scale-[1.35] object-cover border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="eager"
+              loading="lazy"
             />
-          ) : null}
-
-          {/* Fallback Capa/Poster + Play Button Overlay for Mobile Browsers */}
-          {!isStarted && (
+          ) : (
+            /* Fallback Capa/Poster + Play Button Overlay */
             <div 
               onClick={() => setIsStarted(true)}
-              className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer group transition-all"
+              className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer group transition-all"
             >
               <img 
                 src="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
                 alt="Capa Vídeo ROSLEON"
-                className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-75 transition-opacity"
+                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
                 loading="eager"
+                fetchPriority="high"
                 decoding="async"
                 width={300}
                 height={533}
@@ -67,11 +66,13 @@ export const PhoneMockup: React.FC = () => {
             </div>
           )}
 
-          {/* Transparent Overlay to keep user on site while tapping video */}
-          <div 
-            className="absolute inset-0 z-20 bg-transparent cursor-pointer" 
-            onClick={() => setIsStarted(true)}
-          />
+          {/* Transparent Overlay to start video when tapped */}
+          {!isStarted && (
+            <div 
+              className="absolute inset-0 z-20 bg-transparent cursor-pointer" 
+              onClick={() => setIsStarted(true)}
+            />
+          )}
         </div>
 
         {/* Home Bar Indicator */}
