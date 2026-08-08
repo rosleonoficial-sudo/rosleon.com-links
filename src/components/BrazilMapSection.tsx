@@ -18,41 +18,41 @@ interface StateData {
 
 const BRAZIL_STATES: StateData[] = [
   // Sul
-  { id: 'SC', name: 'Santa Catarina', region: 'Sul', capital: 'Florianópolis', activeUsers: 820, sharePercent: 11.2, instagramShare: 76, youtubeShare: 16, siteShare: 8, topCity: 'Florianópolis / Balneário Camboriú', x: 56, y: 77 },
-  { id: 'PR', name: 'Paraná', region: 'Sul', capital: 'Curitiba', activeUsers: 690, sharePercent: 9.4, instagramShare: 72, youtubeShare: 18, siteShare: 10, topCity: 'Curitiba', x: 53, y: 70 },
-  { id: 'RS', name: 'Rio Grande do Sul', region: 'Sul', capital: 'Porto Alegre', activeUsers: 610, sharePercent: 8.3, instagramShare: 74, youtubeShare: 17, siteShare: 9, topCity: 'Porto Alegre', x: 50, y: 85 },
+  { id: 'SC', name: 'Santa Catarina', region: 'Sul', capital: 'Florianópolis', activeUsers: 820, sharePercent: 11.2, instagramShare: 76, youtubeShare: 16, siteShare: 8, topCity: 'Florianópolis / Balneário Camboriú', x: 57, y: 81 },
+  { id: 'PR', name: 'Paraná', region: 'Sul', capital: 'Curitiba', activeUsers: 690, sharePercent: 9.4, instagramShare: 72, youtubeShare: 18, siteShare: 10, topCity: 'Curitiba', x: 54, y: 74 },
+  { id: 'RS', name: 'Rio Grande do Sul', region: 'Sul', capital: 'Porto Alegre', activeUsers: 610, sharePercent: 8.3, instagramShare: 74, youtubeShare: 17, siteShare: 9, topCity: 'Porto Alegre', x: 50, y: 89 },
   
   // Sudeste
-  { id: 'SP', name: 'São Paulo', region: 'Sudeste', capital: 'São Paulo', activeUsers: 1890, sharePercent: 25.6, instagramShare: 78, youtubeShare: 14, siteShare: 8, topCity: 'São Paulo', x: 58, y: 62 },
-  { id: 'RJ', name: 'Rio de Janeiro', region: 'Sudeste', capital: 'Rio de Janeiro', activeUsers: 1150, sharePercent: 15.6, instagramShare: 79, youtubeShare: 13, siteShare: 8, topCity: 'Rio de Janeiro / Niterói', x: 74, y: 63 },
-  { id: 'MG', name: 'Minas Gerais', region: 'Sudeste', capital: 'Belo Horizonte', activeUsers: 980, sharePercent: 13.3, instagramShare: 71, youtubeShare: 19, siteShare: 10, topCity: 'Belo Horizonte', x: 66, y: 54 },
-  { id: 'ES', name: 'Espírito Santo', region: 'Sudeste', capital: 'Vitória', activeUsers: 240, sharePercent: 3.2, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Vitória / Vila Velha', x: 78, y: 57 },
+  { id: 'SP', name: 'São Paulo', region: 'Sudeste', capital: 'São Paulo', activeUsers: 1890, sharePercent: 25.6, instagramShare: 78, youtubeShare: 14, siteShare: 8, topCity: 'São Paulo', x: 59, y: 67 },
+  { id: 'RJ', name: 'Rio de Janeiro', region: 'Sudeste', capital: 'Rio de Janeiro', activeUsers: 1150, sharePercent: 15.6, instagramShare: 79, youtubeShare: 13, siteShare: 8, topCity: 'Rio de Janeiro / Niterói', x: 75, y: 66 },
+  { id: 'MG', name: 'Minas Gerais', region: 'Sudeste', capital: 'Belo Horizonte', activeUsers: 980, sharePercent: 13.3, instagramShare: 71, youtubeShare: 19, siteShare: 10, topCity: 'Belo Horizonte', x: 67, y: 58 },
+  { id: 'ES', name: 'Espírito Santo', region: 'Sudeste', capital: 'Vitória', activeUsers: 240, sharePercent: 3.2, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Vitória / Vila Velha', x: 79, y: 60 },
 
   // Nordeste
-  { id: 'BA', name: 'Bahia', region: 'Nordeste', capital: 'Salvador', activeUsers: 780, sharePercent: 10.6, instagramShare: 75, youtubeShare: 17, siteShare: 8, topCity: 'Salvador / Feira de Santana', x: 72, y: 42 },
-  { id: 'PE', name: 'Pernambuco', region: 'Nordeste', capital: 'Recife', activeUsers: 590, sharePercent: 8.0, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Recife / Olinda', x: 84, y: 33 },
-  { id: 'CE', name: 'Ceará', region: 'Nordeste', capital: 'Fortaleza', activeUsers: 540, sharePercent: 7.3, instagramShare: 73, youtubeShare: 19, siteShare: 8, topCity: 'Fortaleza', x: 81, y: 21 },
-  { id: 'MA', name: 'Maranhão', region: 'Nordeste', capital: 'São Luís', activeUsers: 360, sharePercent: 4.9, instagramShare: 69, youtubeShare: 21, siteShare: 10, topCity: 'São Luís', x: 64, y: 20 },
-  { id: 'PB', name: 'Paraíba', region: 'Nordeste', capital: 'João Pessoa', activeUsers: 250, sharePercent: 3.4, instagramShare: 71, youtubeShare: 20, siteShare: 9, topCity: 'João Pessoa', x: 88, y: 29 },
+  { id: 'BA', name: 'Bahia', region: 'Nordeste', capital: 'Salvador', activeUsers: 780, sharePercent: 10.6, instagramShare: 75, youtubeShare: 17, siteShare: 8, topCity: 'Salvador / Feira de Santana', x: 73, y: 44 },
+  { id: 'PE', name: 'Pernambuco', region: 'Nordeste', capital: 'Recife', activeUsers: 590, sharePercent: 8.0, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Recife / Olinda', x: 86, y: 33 },
+  { id: 'CE', name: 'Ceará', region: 'Nordeste', capital: 'Fortaleza', activeUsers: 540, sharePercent: 7.3, instagramShare: 73, youtubeShare: 19, siteShare: 8, topCity: 'Fortaleza', x: 80, y: 22 },
+  { id: 'MA', name: 'Maranhão', region: 'Nordeste', capital: 'São Luís', activeUsers: 360, sharePercent: 4.9, instagramShare: 69, youtubeShare: 21, siteShare: 10, topCity: 'São Luís', x: 65, y: 22 },
+  { id: 'PB', name: 'Paraíba', region: 'Nordeste', capital: 'João Pessoa', activeUsers: 250, sharePercent: 3.4, instagramShare: 71, youtubeShare: 20, siteShare: 9, topCity: 'João Pessoa', x: 89, y: 29 },
   { id: 'RN', name: 'Rio Grande do Norte', region: 'Nordeste', capital: 'Natal', activeUsers: 230, sharePercent: 3.1, instagramShare: 74, youtubeShare: 18, siteShare: 8, topCity: 'Natal', x: 88, y: 25 },
-  { id: 'PI', name: 'Piauí', region: 'Nordeste', capital: 'Teresina', activeUsers: 200, sharePercent: 2.7, instagramShare: 68, youtubeShare: 22, siteShare: 10, topCity: 'Teresina', x: 71, y: 27 },
-  { id: 'AL', name: 'Alagoas', region: 'Nordeste', capital: 'Maceió', activeUsers: 185, sharePercent: 2.5, instagramShare: 72, youtubeShare: 20, siteShare: 8, topCity: 'Maceió', x: 85, y: 37 },
-  { id: 'SE', name: 'Sergipe', region: 'Nordeste', capital: 'Aracaju', activeUsers: 130, sharePercent: 1.8, instagramShare: 70, youtubeShare: 21, siteShare: 9, topCity: 'Aracaju', x: 82, y: 40 },
+  { id: 'PI', name: 'Piauí', region: 'Nordeste', capital: 'Teresina', activeUsers: 200, sharePercent: 2.7, instagramShare: 68, youtubeShare: 22, siteShare: 10, topCity: 'Teresina', x: 72, y: 28 },
+  { id: 'AL', name: 'Alagoas', region: 'Nordeste', capital: 'Maceió', activeUsers: 185, sharePercent: 2.5, instagramShare: 72, youtubeShare: 20, siteShare: 8, topCity: 'Maceió', x: 86, y: 37 },
+  { id: 'SE', name: 'Sergipe', region: 'Nordeste', capital: 'Aracaju', activeUsers: 130, sharePercent: 1.8, instagramShare: 70, youtubeShare: 21, siteShare: 9, topCity: 'Aracaju', x: 83, y: 40 },
 
   // Centro-Oeste
-  { id: 'DF', name: 'Distrito Federal', region: 'Centro-Oeste', capital: 'Brasília', activeUsers: 410, sharePercent: 5.6, instagramShare: 72, youtubeShare: 17, siteShare: 11, topCity: 'Brasília', x: 63, y: 46 },
-  { id: 'GO', name: 'Goiás', region: 'Centro-Oeste', capital: 'Goiânia', activeUsers: 440, sharePercent: 6.0, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Goiânia', x: 57, y: 46 },
-  { id: 'MT', name: 'Mato Grosso', region: 'Centro-Oeste', capital: 'Cuiabá', activeUsers: 310, sharePercent: 4.2, instagramShare: 65, youtubeShare: 23, siteShare: 12, topCity: 'Cuiabá', x: 41, y: 41 },
-  { id: 'MS', name: 'Mato Grosso do Sul', region: 'Centro-Oeste', capital: 'Campo Grande', activeUsers: 270, sharePercent: 3.7, instagramShare: 67, youtubeShare: 21, siteShare: 12, topCity: 'Campo Grande', x: 45, y: 56 },
+  { id: 'DF', name: 'Distrito Federal', region: 'Centro-Oeste', capital: 'Brasília', activeUsers: 410, sharePercent: 5.6, instagramShare: 72, youtubeShare: 17, siteShare: 11, topCity: 'Brasília', x: 62, y: 49 },
+  { id: 'GO', name: 'Goiás', region: 'Centro-Oeste', capital: 'Goiânia', activeUsers: 440, sharePercent: 6.0, instagramShare: 68, youtubeShare: 21, siteShare: 11, topCity: 'Goiânia', x: 57, y: 49 },
+  { id: 'MT', name: 'Mato Grosso', region: 'Centro-Oeste', capital: 'Cuiabá', activeUsers: 310, sharePercent: 4.2, instagramShare: 65, youtubeShare: 23, siteShare: 12, topCity: 'Cuiabá', x: 42, y: 43 },
+  { id: 'MS', name: 'Mato Grosso do Sul', region: 'Centro-Oeste', capital: 'Campo Grande', activeUsers: 270, sharePercent: 3.7, instagramShare: 67, youtubeShare: 21, siteShare: 12, topCity: 'Campo Grande', x: 46, y: 59 },
 
   // Norte
-  { id: 'PA', name: 'Pará', region: 'Norte', capital: 'Belém', activeUsers: 470, sharePercent: 6.4, instagramShare: 64, youtubeShare: 24, siteShare: 12, topCity: 'Belém', x: 47, y: 20 },
-  { id: 'AM', name: 'Amazonas', region: 'Norte', capital: 'Manaus', activeUsers: 330, sharePercent: 4.5, instagramShare: 62, youtubeShare: 28, siteShare: 10, topCity: 'Manaus', x: 21, y: 21 },
-  { id: 'TO', name: 'Tocantins', region: 'Norte', capital: 'Palmas', activeUsers: 190, sharePercent: 2.6, instagramShare: 66, youtubeShare: 22, siteShare: 12, topCity: 'Palmas', x: 56, y: 34 },
-  { id: 'RO', name: 'Rondônia', region: 'Norte', capital: 'Porto Velho', activeUsers: 140, sharePercent: 1.9, instagramShare: 65, youtubeShare: 25, siteShare: 10, topCity: 'Porto Velho', x: 24, y: 37 },
-  { id: 'AC', name: 'Acre', region: 'Norte', capital: 'Rio Branco', activeUsers: 80, sharePercent: 1.1, instagramShare: 55, youtubeShare: 30, siteShare: 15, topCity: 'Rio Branco', x: 10, y: 32 },
-  { id: 'AP', name: 'Amapá', region: 'Norte', capital: 'Macapá', activeUsers: 75, sharePercent: 1.0, instagramShare: 60, youtubeShare: 28, siteShare: 12, topCity: 'Macapá', x: 55, y: 10 },
-  { id: 'RR', name: 'Roraima', region: 'Norte', capital: 'Boa Vista', activeUsers: 60, sharePercent: 0.8, instagramShare: 58, youtubeShare: 32, siteShare: 10, topCity: 'Boa Vista', x: 31, y: 10 }
+  { id: 'PA', name: 'Pará', region: 'Norte', capital: 'Belém', activeUsers: 470, sharePercent: 6.4, instagramShare: 64, youtubeShare: 24, siteShare: 12, topCity: 'Belém', x: 48, y: 21 },
+  { id: 'AM', name: 'Amazonas', region: 'Norte', capital: 'Manaus', activeUsers: 330, sharePercent: 4.5, instagramShare: 62, youtubeShare: 28, siteShare: 10, topCity: 'Manaus', x: 23, y: 23 },
+  { id: 'TO', name: 'Tocantins', region: 'Norte', capital: 'Palmas', activeUsers: 190, sharePercent: 2.6, instagramShare: 66, youtubeShare: 22, siteShare: 12, topCity: 'Palmas', x: 57, y: 36 },
+  { id: 'RO', name: 'Rondônia', region: 'Norte', capital: 'Porto Velho', activeUsers: 140, sharePercent: 1.9, instagramShare: 65, youtubeShare: 25, siteShare: 10, topCity: 'Porto Velho', x: 25, y: 39 },
+  { id: 'AC', name: 'Acre', region: 'Norte', capital: 'Rio Branco', activeUsers: 80, sharePercent: 1.1, instagramShare: 55, youtubeShare: 30, siteShare: 15, topCity: 'Rio Branco', x: 11, y: 35 },
+  { id: 'AP', name: 'Amapá', region: 'Norte', capital: 'Macapá', activeUsers: 75, sharePercent: 1.0, instagramShare: 60, youtubeShare: 28, siteShare: 12, topCity: 'Macapá', x: 55, y: 11 },
+  { id: 'RR', name: 'Roraima', region: 'Norte', capital: 'Boa Vista', activeUsers: 60, sharePercent: 0.8, instagramShare: 58, youtubeShare: 32, siteShare: 10, topCity: 'Boa Vista', x: 31, y: 11 }
 ];
 
 interface LiveFeedItem {
@@ -111,17 +111,17 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
     let isMounted = true;
 
     const fetchVisitorLocation = async () => {
-      // Primary attempt: ipapi.co
+      // Primary attempt: ipwho.is (fast CORS-enabled geolocation)
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
 
-        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        const res = await fetch('https://ipwho.is/', { signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (res.ok && isMounted) {
           const data = await res.json();
-          if (data.country_code === 'BR' && data.region_code) {
+          if (data.success && data.country_code === 'BR' && data.region_code) {
             setUserDetectedState(data.region_code);
             setUserDetectedCity(data.city);
             const found = BRAZIL_STATES.find(s => s.id === data.region_code);
@@ -135,18 +135,18 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
         // Fallback to secondary endpoint
       }
 
-      // Secondary fallback attempt: ipwho.is (fast CORS-enabled geolocation)
+      // Secondary fallback attempt: ipapi.co
       try {
         if (!isMounted) return;
         const controller2 = new AbortController();
-        const timeoutId2 = setTimeout(() => controller2.abort(), 3500);
+        const timeoutId2 = setTimeout(() => controller2.abort(), 1200);
 
-        const res2 = await fetch('https://ipwho.is/', { signal: controller2.signal });
+        const res2 = await fetch('https://ipapi.co/json/', { signal: controller2.signal });
         clearTimeout(timeoutId2);
 
         if (res2.ok && isMounted) {
           const data2 = await res2.json();
-          if (data2.success && data2.country_code === 'BR' && data2.region_code) {
+          if (data2.country_code === 'BR' && data2.region_code) {
             setUserDetectedState(data2.region_code);
             setUserDetectedCity(data2.city);
             const found = BRAZIL_STATES.find(s => s.id === data2.region_code);
@@ -156,7 +156,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
           }
         }
       } catch (err2) {
-        // Silent fallback to SP default
+        // Silent fallback to default state
       }
     };
 

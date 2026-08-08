@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Play } from 'lucide-react';
 
 export const PhoneMockup: React.FC = () => {
-  const [isStarted, setIsStarted] = useState(true);
+  const [isStarted, setIsStarted] = useState(false);
 
   return (
     <div className="relative flex items-center justify-center py-4 lg:py-0 select-none">
