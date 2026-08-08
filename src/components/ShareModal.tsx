@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Copy, Check, QrCode, Share2, Send, MessageCircle } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface ShareModalProps {
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, siteTitle }) => {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://rosleon.app';
 
@@ -38,9 +40,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, siteTit
             <Share2 className="w-6 h-6" />
           </div>
 
-          <h3 className="text-xl font-extrabold text-white">Compartilhar Página</h3>
+          <h3 className="text-xl font-extrabold text-white">{t('share.title')}</h3>
           <p className="text-xs text-slate-300">
-            Envie este link para amigos e economize com as melhores ofertas e cupons!
+            {t('share.subtitle')}
           </p>
 
           {/* Copy URL Input Box */}
@@ -57,11 +59,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, siteTit
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4 text-emerald-300" /> Copiado!
+                  <Check className="w-4 h-4 text-emerald-300" /> {t('share.copied')}
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" /> Copiar
+                  <Copy className="w-4 h-4" /> {t('share.copy')}
                 </>
               )}
             </button>
@@ -91,7 +93,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, siteTit
           {/* QR Code Graphic Representation */}
           <div className="pt-4 border-t border-slate-800 flex flex-col items-center justify-center gap-2">
             <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-              <QrCode className="w-4 h-4 text-amber-400" /> Escaneie para abrir no celular
+              <QrCode className="w-4 h-4 text-amber-400" /> {t('share.scanQr')}
             </span>
             <div className="p-3 bg-white rounded-2xl shadow-inner">
               <img
@@ -108,3 +110,4 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, siteTit
     </div>
   );
 };
+

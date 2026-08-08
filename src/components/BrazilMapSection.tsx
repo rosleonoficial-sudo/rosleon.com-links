@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Signal, Globe, RefreshCw, Eye, Instagram, Youtube, Radio, Zap, Users } from 'lucide-react';
 import { BRAZIL_STATES_GEO } from '../data/brazil-states-geo';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface StateData {
   id: string;
@@ -135,6 +136,7 @@ interface BrazilMapSectionProps {
 }
 
 export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineCount: propTotalOnlineCount }) => {
+  const { t, formatNumber, formatPercent } = useLanguage();
   const [selectedState, setSelectedState] = useState<StateData>(
     () => BRAZIL_STATES.find(s => s.id === 'SP') || BRAZIL_STATES[0]
   );
@@ -292,22 +294,22 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-1.5">
-                <span>Audiência no Brasil</span>
+                <span>{t('map.title')}</span>
                 <Globe className="w-4 h-4 text-cyan-400" />
               </h2>
             </div>
             {/* Total de Pessoas em Todos os Estados e Redes */}
             <div className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-950/90 to-slate-900 border border-cyan-500/40 rounded-lg px-2.5 py-1">
               <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="text-[10px] text-slate-400 font-mono uppercase">Online Agora:</span>
-              <span className="text-xs font-black font-mono text-cyan-300">{totalOnlineCount.toLocaleString('pt-BR')}</span>
+              <span className="text-[10px] text-slate-400 font-mono uppercase">{t('partnerships.live')}:</span>
+              <span className="text-xs font-black font-mono text-cyan-300">{formatNumber(totalOnlineCount)}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Seletor Rápido de Estado */}
             <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1 w-full sm:w-auto justify-between sm:justify-start">
-              <span className="text-[11px] font-mono text-slate-400 shrink-0">Estado:</span>
+              <span className="text-[11px] font-mono text-slate-400 shrink-0">{t('map.state')}</span>
               <select
                 value={selectedState.id}
                 onChange={(e) => {
@@ -332,12 +334,12 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             <div className="flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="text-slate-300 text-[11px]">
-                Sua localização: <strong className="text-emerald-300 font-bold">{BRAZIL_STATES.find(s => s.id === userDetectedState)?.name || userDetectedState} ({userDetectedState})</strong>
+                {t('map.yourLocation')} <strong className="text-emerald-300 font-bold">{BRAZIL_STATES.find(s => s.id === userDetectedState)?.name || userDetectedState} ({userDetectedState})</strong>
               </span>
             </div>
             <span className="text-[9px] font-mono font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/30 flex items-center gap-1">
               <Zap className="w-2.5 h-2.5 text-emerald-400" />
-              NO MAPA
+              {t('map.onMap')}
             </span>
           </div>
         )}
@@ -352,10 +354,10 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             <div className="w-full flex items-center justify-between z-10 mb-1">
               <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
                 <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <span>MAPA DE CALOR</span>
+                <span>{t('map.heatMap')}</span>
               </span>
               <span className="text-[9px] text-slate-400 font-mono">
-                Toque nos estados
+                {t('map.tapStates')}
               </span>
             </div>
 
@@ -535,7 +537,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                       <span className="font-bold text-cyan-300">{activeState.name} ({activeState.id})</span>
                       <span className="text-slate-600">•</span>
                       <span className="text-emerald-400 font-bold">{activeState.sharePercent}%</span>
-                      <span className="text-slate-400 text-[9px] hidden sm:inline">da audiência</span>
+                      <span className="text-slate-400 text-[9px] hidden sm:inline">{t('map.audienceShare')}</span>
                     </div>
                   </div>
                 );
@@ -558,7 +560,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                       </span>
-                      <span className="truncate">ESTADO SELECIONADO • {selectedState.region}</span>
+                      <span className="truncate">{t('map.selectedState')} • {selectedState.region}</span>
                     </div>
                     <h3 className="text-base sm:text-lg font-black text-white mt-1 flex items-center gap-1.5 flex-wrap leading-tight">
                       <span className="break-words">{selectedState.name}</span>
@@ -567,7 +569,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                       </span>
                       {userDetectedState === selectedState.id && (
                         <span className="text-[9px] bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase shrink-0 whitespace-nowrap">
-                          SUA LOCALIZAÇÃO
+                          {t('map.yourLocationBadge')}
                         </span>
                       )}
                     </h3>
@@ -576,7 +578,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                     <span className="text-lg sm:text-2xl font-black text-cyan-300 font-mono block leading-none">
                       {selectedState.sharePercent}%
                     </span>
-                    <div className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-mono mt-0.5 whitespace-nowrap">da Audiência Total</div>
+                    <div className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-mono mt-0.5 whitespace-nowrap">{t('map.ofTotalAudience')}</div>
                   </div>
                 </div>
 
@@ -595,7 +597,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
                         <div className="flex items-center gap-2 min-w-0">
                           <Users className="w-4 h-4 text-cyan-400 shrink-0" />
                           <span className="text-xs font-bold text-slate-200 leading-tight">
-                            Pessoas nas minhas redes <strong className="text-cyan-300 font-extrabold">ao vivo</strong> em {selectedState.id}:
+                            {t('map.peopleOnNetworks')} <strong className="text-cyan-300 font-extrabold">{t('map.liveIn')}</strong> {selectedState.id}:
                           </span>
                         </div>
                         <div className="text-sm sm:text-base font-black text-cyan-300 font-mono bg-slate-900/90 px-3 py-1 rounded-lg border border-cyan-500/40 shrink-0 ml-auto sm:ml-0">
@@ -670,7 +672,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <span>Dados captados em tempo real, conectados às plataformas.</span>
+          <span>{t('map.realtimeDataFootnote')}</span>
         </div>
 
       </div>

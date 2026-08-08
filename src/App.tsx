@@ -15,6 +15,7 @@ import { AboutSection } from './components/AboutSection';
 import { EditDrawer } from './components/EditDrawer';
 import { ShareModal } from './components/ShareModal';
 import { Footer } from './components/Footer';
+import { FloatingScrollDown } from './components/FloatingScrollDown';
 
 const STORAGE_KEY = 'rosleon_site_config_v2';
 const CLICKS_STORAGE_KEY = 'rosleon_click_analytics_v1';
@@ -239,6 +240,9 @@ export default function App() {
         onClose={() => setIsShareOpen(false)}
         siteTitle={config.siteTitle || "ROSLEON"}
       />
+
+      {/* Floating Scroll Down Arrow Button */}
+      <FloatingScrollDown />
 
     </div>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageCircle, ArrowRight } from 'lucide-react';
 import { SocialLink } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SupportSectionProps {
   supportLink?: SocialLink;
@@ -8,6 +9,7 @@ interface SupportSectionProps {
 }
 
 export const SupportSection: React.FC<SupportSectionProps> = ({ supportLink, onTrackClick }) => {
+  const { t } = useLanguage();
   const whatsappUrl = supportLink?.url || "https://wa.me/5547997785876?text=Ol%C3%A1%20ROSLEON,%20sou%20seu%20seguidor%20e%20preciso%20de%20suporte!";
 
   return (
@@ -31,10 +33,10 @@ export const SupportSection: React.FC<SupportSectionProps> = ({ supportLink, onT
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span>Suporte Direto</span>
+                <span>{t('support.title')}</span>
               </div>
               <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
-                Suporte para meus seguidores e inscritos!
+                {t('support.subtitle')}
               </h3>
             </div>
           </div>
@@ -50,7 +52,7 @@ export const SupportSection: React.FC<SupportSectionProps> = ({ supportLink, onT
             >
               <MessageCircle className="w-5 h-5 fill-slate-950 text-emerald-400 shrink-0" />
               <span className="tracking-wide uppercase font-black text-slate-950 whitespace-nowrap">
-                Fale comigo aqui
+                {t('support.button')}
               </span>
               <ArrowRight className="w-4 h-4 text-slate-950 shrink-0 transition-transform group-hover:translate-x-1 duration-200" />
             </a>
@@ -62,3 +64,4 @@ export const SupportSection: React.FC<SupportSectionProps> = ({ supportLink, onT
     </section>
   );
 };
+

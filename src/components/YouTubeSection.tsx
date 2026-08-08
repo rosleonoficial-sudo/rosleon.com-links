@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Youtube, Play, ExternalLink, X } from 'lucide-react';
 import { CreatorStats } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface YouTubeSectionProps {
   youtubeData: {
@@ -16,6 +17,7 @@ interface YouTubeSectionProps {
 }
 
 export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, stats, onTrackClick }) => {
+  const { t } = useLanguage();
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   return (
@@ -32,7 +34,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                 onTrackClick('YouTube Play');
               }}
               className="relative shrink-0 cursor-pointer group"
-              title="Clique para assistir ao vídeo de destaque"
+              title={t('youtube.clickToWatch')}
             >
               <div className="p-[3px] rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform duration-200">
                 <img
@@ -68,7 +70,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                 @rosleonoficial
               </p>
               <p className="text-xs text-slate-400 max-w-md">
-                {youtubeData.description || "Reviews sinceros, testes completos e as melhores recomendações para você comprar com segurança."}
+                {(!youtubeData.description || youtubeData.description.includes('Reviews sinceros')) ? t('youtube.description') : youtubeData.description}
               </p>
             </div>
           </div>
@@ -88,7 +90,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                   {stats.subscribers}
                 </div>
                 <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                  inscritos
+                  {t('youtube.subscribers')}
                 </div>
               </div>
 
@@ -100,7 +102,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                   {stats.views}
                 </div>
                 <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                  visualizações
+                  {t('youtube.views')}
                 </div>
               </div>
 
@@ -113,7 +115,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                       {stats.videos}
                     </div>
                     <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                      vídeos
+                      {t('youtube.videos')}
                     </div>
                   </div>
                 </>
@@ -137,7 +139,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none animate-shimmer-beam" />
 
               <Youtube className="w-5 h-5 fill-current shrink-0 text-white relative z-10 transition-transform group-hover:scale-110 duration-200" />
-              <span className="tracking-wide uppercase font-black relative z-10 text-white whitespace-nowrap">{youtubeData.buttonText || "Inscrever-se"}</span>
+              <span className="tracking-wide uppercase font-black relative z-10 text-white whitespace-nowrap">{youtubeData.buttonText || t('youtube.subscribeButton')}</span>
               <ExternalLink className="w-4 h-4 relative z-10 text-white shrink-0 transition-transform group-hover:translate-x-0.5 duration-200" />
             </a>
           </div>
@@ -151,7 +153,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
           <div className="relative w-full max-w-3xl bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl p-4">
             <div className="flex justify-between items-center pb-3 mb-2 border-b border-slate-800">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Youtube className="w-5 h-5 text-red-500" /> ROSLEON - Canal Oficial
+                <Youtube className="w-5 h-5 text-red-500" /> {t('youtube.officialChannel')}
               </h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
@@ -176,3 +178,4 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
     </section>
   );
 };
+

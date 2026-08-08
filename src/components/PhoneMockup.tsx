@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Play } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export const PhoneMockup: React.FC = () => {
-  const [isStarted, setIsStarted] = useState(false);
+  const { t } = useLanguage();
+  const [isStarted, setIsStarted] = useState(true);
 
   return (
     <div className="relative flex items-center justify-center py-4 lg:py-0 select-none">
@@ -60,7 +62,7 @@ export const PhoneMockup: React.FC = () => {
                 <Play className="w-8 h-8 fill-current ml-1" />
               </div>
               <span className="relative z-10 mt-3 text-xs font-bold text-white bg-black/80 px-3 py-1 rounded-full border border-white/20">
-                Toque para assistir o vídeo
+                {t('hero.tapToWatchVideo')}
               </span>
             </div>
           )}

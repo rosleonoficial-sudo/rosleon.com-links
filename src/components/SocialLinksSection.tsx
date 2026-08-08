@@ -1,6 +1,7 @@
 import React from 'react';
 import { SocialLink, InstagramStats } from '../types';
 import { Instagram, ChevronRight, Users, Eye, TrendingUp, ArrowUpRight, Send, Zap } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SocialLinksSectionProps {
   instagram: SocialLink;
@@ -25,6 +26,8 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
   onTrackClick,
   showTitle = true
 }) => {
+  const { t, formatNumber } = useLanguage();
+
   return (
     <section className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto my-4">
       {/* Section Divider Title */}
@@ -32,7 +35,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
         <div className="flex items-center justify-center gap-4 my-6">
           <div className="h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent flex-1 max-w-xs" />
           <h3 className="text-xs sm:text-sm font-bold text-amber-400 tracking-widest uppercase">
-            ME ACOMPANHE NAS REDES
+            {t('sections.followMe')}
           </h3>
           <div className="h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent flex-1 max-w-xs" />
         </div>
@@ -85,7 +88,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                     {instagramStats?.name || "ROSLEON | Leonardo Mey"}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {instagram.subtitle || "Conteúdo diário, bastidores, ofertas e cupons exclusivos."}
+                    {(!instagram.subtitle || instagram.subtitle.includes('Conteúdo diário')) ? t('social.instagramSub') : instagram.subtitle}
                   </p>
                 </div>
               </div>
@@ -101,10 +104,10 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Followers */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-white">
-                    {instagramStats?.followersFormatted || "38.710"}
+                    {instagramStats?.followersFormatted || formatNumber(38710)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    seguidores
+                    {t('social.followers')}
                   </div>
                 </div>
 
@@ -113,10 +116,10 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Visualizações / Alcance */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-pink-400">
-                    {instagramStats?.views30dFormatted || "259.333"}
+                    {instagramStats?.views30dFormatted || formatNumber(259333)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    alcance (28 dias)
+                    {t('social.reach28d')}
                   </div>
                 </div>
 
@@ -129,7 +132,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                         {instagramStats.reach30dFormatted}
                       </div>
                       <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                        alcance (30 dias)
+                        {t('social.reach30d')}
                       </div>
                     </div>
                   </>
@@ -149,7 +152,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none animate-shimmer-beam" />
                   <Instagram className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-110 duration-200 relative z-10" />
-                  <span className="tracking-wide uppercase font-black relative z-10 text-white whitespace-nowrap">{instagram.buttonText || "Ver no Instagram"}</span>
+                  <span className="tracking-wide uppercase font-black relative z-10 text-white whitespace-nowrap">{instagram.buttonText || t('social.viewInstagram')}</span>
                   <ChevronRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-1 duration-200 relative z-10" />
                 </a>
               </div>
@@ -207,7 +210,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                     ROSLEON | Leonardo Mey
                   </p>
                   <p className="text-xs text-slate-400">
-                    {tiktok.subtitle || instagram.subtitle || "Conteúdo diário, bastidores, ofertas e cupons exclusivos."}
+                    {(!tiktok.subtitle || tiktok.subtitle.includes('Conteúdo diário')) ? t('social.tiktokSub') : tiktok.subtitle}
                   </p>
                 </div>
               </div>
@@ -222,10 +225,10 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Followers */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-white">
-                    15.089
+                    {formatNumber(15089)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    seguidores
+                    {t('social.followers')}
                   </div>
                 </div>
 
@@ -234,10 +237,10 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Visualizações */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-cyan-400">
-                    2.356.235
+                    {formatNumber(2356235)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    visualizações
+                    {t('youtube.views')}
                   </div>
                 </div>
               </div>
@@ -257,7 +260,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                   <svg className="w-4.5 h-4.5 fill-current shrink-0 transition-transform group-hover:scale-110 duration-200 relative z-10" viewBox="0 0 24 24">
                     <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
                   </svg>
-                  <span className="tracking-wide uppercase font-black relative z-10 text-white whitespace-nowrap">{tiktok.buttonText || "Ir para o TikTok"}</span>
+                  <span className="tracking-wide uppercase font-black relative z-10 text-white whitespace-nowrap">{tiktok.buttonText || t('social.goToTikTok')}</span>
                   <ChevronRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-1 duration-200 relative z-10" />
                 </a>
               </div>
@@ -271,3 +274,4 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
     </section>
   );
 };
+

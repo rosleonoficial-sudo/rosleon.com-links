@@ -1,7 +1,9 @@
 import React from 'react';
 import { SiteConfig } from '../types';
 import { PhoneMockup } from './PhoneMockup';
-import { Share2 } from 'lucide-react';
+import { Share2, ChevronDown } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { LanguageSelector } from './LanguageSelector';
 
 interface HeaderHeroProps {
   config: SiteConfig;
@@ -18,6 +20,8 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
   onTrackClick,
   totalOnlineCount = 3840
 }) => {
+  const { t, formatNumber } = useLanguage();
+
   return (
     <header className="relative pt-6 pb-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* Top Bar Navigation Actions for Mobile & Desktop */}
@@ -36,7 +40,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
               }}
               className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
             >
-              Grupos
+              {t('nav.groups')}
             </a>
             <a 
               href="#parcerias"
@@ -46,7 +50,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
               }}
               className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
             >
-              Parcerias
+              {t('nav.partnerships')}
             </a>
             <a 
               href="#youtube"
@@ -56,7 +60,17 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
               }}
               className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-slate-900/80 text-slate-200 hover:text-amber-400 hover:border-amber-400/70 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
             >
-              Youtube
+              {t('nav.youtube')}
+            </a>
+            <a 
+              href="#suporte"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('suporte')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-3.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/80 hover:bg-emerald-900/60 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
+            >
+              {t('nav.support')}
             </a>
             <a 
               href="#audiencia"
@@ -71,20 +85,22 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>{totalOnlineCount.toLocaleString('pt-BR')} ao vivo</span>
+              <span>{formatNumber(totalOnlineCount)} {t('nav.live')}</span>
             </a>
           </nav>
         </div>
 
-        {/* Action Buttons: Share */}
+        {/* Action Buttons: Language Selector & Share */}
         <div className="flex items-center gap-2">
+          <LanguageSelector />
+
           <button
             onClick={onOpenShare}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
             title="Compartilhar página"
           >
             <Share2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden xs:inline">Compartilhar</span>
+            <span className="hidden xs:inline">{t('share.button')}</span>
           </button>
         </div>
       </div>
@@ -93,28 +109,17 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
       <div className="flex flex-col items-center text-center space-y-5 max-w-3xl mx-auto">
         {/* Main Headline */}
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight tracking-tight">
-          ⚠️ Você pode estar{" "}
-          <span className="text-amber-400 underline decoration-amber-500/40 decoration-4 underline-offset-4">
-            pagando mais caro
-          </span>{" "}
-          por não estar no grupo!
+          {t('hero.alertHeadline')}
         </h2>
 
-        {/* Subheadline (Previous Main Title) */}
+        {/* Subheadline */}
         <p className="text-slate-200 text-base sm:text-lg font-medium leading-relaxed max-w-2xl">
-          Compre o que você quer pelos{" "}
-          <span className="text-amber-400 font-bold">
-            melhores preços
-          </span>{" "}
-          do mercado —{" "}
-          <span className="text-amber-400 font-bold">
-            com segurança!
-          </span>
+          {t('hero.subheadline')}
         </p>
 
         {/* Subheadline Categories */}
         <p className="text-slate-400 text-xs sm:text-sm font-semibold tracking-wider uppercase -mt-2">
-          Fitness &nbsp;•&nbsp; Eletrônicos &nbsp;•&nbsp; Ofertas Gerais
+          {t('hero.categories')}
         </p>
 
         {/* Phone Video Mockup placed directly below the title */}
@@ -127,7 +132,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
           {/* Subtitle Header */}
           <div className="space-y-3">
             <p className="text-white font-extrabold text-base sm:text-lg flex items-center gap-2">
-              <span>🔥</span> Grupos separados por categoria:
+              <span>🔥</span> {t('hero.groupedByCategory')}
             </p>
 
             {/* Categories Pills */}
@@ -140,7 +145,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
                 className="flex flex-col items-center justify-center text-center gap-1 py-2.5 px-1.5 sm:px-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-white font-bold hover:border-amber-400 hover:bg-slate-800 hover:text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <span className="text-lg">💪</span>
-                <span className="text-xs sm:text-sm leading-tight">Fitness</span>
+                <span className="text-xs sm:text-sm leading-tight">{t('hero.catFitness')}</span>
               </a>
               <a
                 href="https://gruporosleon.com.br/"
@@ -150,7 +155,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
                 className="flex flex-col items-center justify-center text-center gap-1 py-2.5 px-1.5 sm:px-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-white font-bold hover:border-amber-400 hover:bg-slate-800 hover:text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <span className="text-lg">🔌</span>
-                <span className="text-xs sm:text-sm leading-tight">Eletrônicos</span>
+                <span className="text-xs sm:text-sm leading-tight">{t('hero.catElectronics')}</span>
               </a>
               <a
                 href="https://gruporosleon.com.br/"
@@ -160,7 +165,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
                 className="flex flex-col items-center justify-center text-center gap-1 py-2.5 px-1.5 sm:px-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-white font-bold hover:border-amber-400 hover:bg-slate-800 hover:text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <span className="text-lg">🛒</span>
-                <span className="text-xs sm:text-sm leading-tight">Ofertas Gerais</span>
+                <span className="text-xs sm:text-sm leading-tight">{t('hero.catGeneral')}</span>
               </a>
             </div>
           </div>
@@ -175,10 +180,11 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
             onClick={() => onTrackClick('CTA Button')}
             className="group relative flex items-center justify-center w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-base sm:text-lg tracking-tight shadow-[0_0_30px_rgba(250,204,21,0.6)] border-2 border-yellow-200 hover:shadow-[0_0_45px_rgba(250,204,21,0.85)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 animate-pulse text-center leading-snug"
           >
-            <span>👉 TOQUE AQUI E VEJA COMO FUNCIONA NA PRÁTICA!</span>
+            <span>{t('hero.ctaButton')}</span>
           </a>
         </div>
       </div>
     </header>
   );
 };
+
