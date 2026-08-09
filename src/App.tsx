@@ -68,12 +68,8 @@ export default function App() {
           mergedConfig.creator.bioParagraph3 = defaultConfig.creator.bioParagraph3;
           mergedConfig.creator.pillars = defaultConfig.creator.pillars;
         }
-        if (!mergedConfig.creator.aboutPhotoUrl || mergedConfig.creator.aboutPhotoUrl.includes('16-de-jul')) {
-          mergedConfig.creator.aboutPhotoUrl = defaultConfig.creator.aboutPhotoUrl;
-        }
-        if (!mergedConfig.creator.photoUrl) {
-          mergedConfig.creator.photoUrl = defaultConfig.creator.photoUrl;
-        }
+        mergedConfig.creator.aboutPhotoUrl = defaultConfig.creator.aboutPhotoUrl;
+        mergedConfig.creator.photoUrl = defaultConfig.creator.photoUrl;
 
         return mergedConfig;
       }

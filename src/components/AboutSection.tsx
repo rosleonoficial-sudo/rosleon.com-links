@@ -2,6 +2,7 @@ import React from 'react';
 import { CreatorProfile } from '../types';
 import { User, Tag, ShieldCheck, BarChart3, Heart, Award, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface AboutSectionProps {
   creator: CreatorProfile;
@@ -75,18 +76,21 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ creator }) => {
           
           {/* Left Column: Creator Image */}
           <div className="lg:col-span-5 flex justify-center">
-            <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl group">
-              <img
-                src={creator.aboutPhotoUrl || "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"}
+            <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl group flex items-center justify-center bg-slate-900">
+              <ImageWithFallback
+                src={creator.aboutPhotoUrl || "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"}
+                backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
                 alt={creator.name || "Leonardo Mey"}
+                initials="ROSLEON"
                 referrerPolicy="no-referrer"
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
                 decoding="async"
                 width={384}
                 height={480}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 pointer-events-none" />
             </div>
           </div>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { SocialLink, InstagramStats } from '../types';
 import { Instagram, ChevronRight, Users, Eye, TrendingUp, ArrowUpRight, Send, Zap } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface SocialLinksSectionProps {
   instagram: SocialLink;
@@ -52,18 +53,17 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Story Ring Avatar */}
                 <div className="relative shrink-0">
                   <div className="p-[3px] rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-md shadow-pink-500/20">
-                    <img
+                    <ImageWithFallback
                       src={instagramStats?.profilePictureUrl || "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"}
+                      backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
                       alt="Perfil Instagram ROSLEON"
+                      initials="IG"
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
                       referrerPolicy="no-referrer"
                       loading="lazy"
                       decoding="async"
                       width={64}
                       height={64}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png";
-                      }}
                     />
                   </div>
                   {/* Small Instagram Icon Badge on Avatar */}
@@ -172,18 +172,17 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* TikTok Gradient Ring Avatar */}
                 <div className="relative shrink-0">
                   <div className="p-[3px] rounded-full bg-gradient-to-tr from-cyan-500 via-sky-400 to-rose-500 shadow-md shadow-cyan-500/20">
-                    <img
+                    <ImageWithFallback
                       src={instagramStats?.profilePictureUrl || "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"}
+                      backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
                       alt="Perfil TikTok ROSLEON"
+                      initials="TT"
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
                       referrerPolicy="no-referrer"
                       loading="lazy"
                       decoding="async"
                       width={64}
                       height={64}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png";
-                      }}
                     />
                   </div>
                   {/* TikTok Icon Badge on Avatar */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Play } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import { ImageWithFallback } from './ImageWithFallback';
 
 export const PhoneMockup: React.FC = () => {
   const { t } = useLanguage();
@@ -47,9 +48,11 @@ export const PhoneMockup: React.FC = () => {
               onClick={() => setIsStarted(true)}
               className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer group transition-all"
             >
-              <img 
+              <ImageWithFallback 
                 src="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
+                backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
                 alt="Capa Vídeo ROSLEON"
+                initials="PLAY"
                 className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
                 loading="eager"
                 fetchPriority="high"

@@ -2,6 +2,7 @@ import React from 'react';
 import { CreatorProfile, CreatorStats, InstagramStats } from '../types';
 import { Handshake, Youtube, Instagram, CheckCircle2, Users, Sparkles, Mail, MessageSquare, Heart, Share2 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface PartnershipsCardProps {
   creator: CreatorProfile;
@@ -91,12 +92,14 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
               {/* Soft Outer Golden Glow Ring */}
               <div className="absolute -inset-1 bg-gradient-to-tr from-amber-400/50 via-amber-300/40 to-amber-500/50 rounded-full blur-xs opacity-60 group-hover:opacity-90 transition duration-300" />
               
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800">
-                <img
-                  src={creator.photoUrl || "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"}
-                  alt={creator.name}
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800 flex items-center justify-center">
+                <ImageWithFallback
+                  src={creator.photoUrl || "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"}
+                  backupSrc="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
+                  alt={creator.name || "Leonardo Mey"}
+                  initials="LM"
                   referrerPolicy="no-referrer"
-                  loading="lazy"
+                  loading="eager"
                   decoding="async"
                   width={128}
                   height={128}

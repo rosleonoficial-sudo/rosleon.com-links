@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Youtube, Play, ExternalLink, X } from 'lucide-react';
 import { CreatorStats } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface YouTubeSectionProps {
   youtubeData: {
@@ -37,9 +38,11 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
               title={t('youtube.clickToWatch')}
             >
               <div className="p-[3px] rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform duration-200">
-                <img
+                <ImageWithFallback
                   src="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
+                  backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
                   alt="Perfil YouTube ROSLEON"
+                  initials="YT"
                   className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
                   referrerPolicy="no-referrer"
                   loading="lazy"
