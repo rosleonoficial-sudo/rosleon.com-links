@@ -39,8 +39,8 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
             >
               <div className="p-[3px] rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform duration-200">
                 <ImageWithFallback
-                  src="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
-                  backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
+                  src="/images/rosleon-jul.webp"
+                  backupSrc="/images/rosleon-ago.webp"
                   alt="Perfil YouTube ROSLEON"
                   initials="YT"
                   className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"

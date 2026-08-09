@@ -53,7 +53,7 @@ export const defaultConfig: SiteConfig = {
     buttonText: "Ir para o YouTube",
     url: "https://www.youtube.com/@rosleonoficial",
     bannerText: "OFERTAS TESTADAS E APROVADAS!",
-    bannerImage: "https://images.unsplash.com/photo-1593642532744-d377ab507dc8?auto=format&fit=crop&w=800&q=80"
+    bannerImage: "/images/youtube-banner.jpg"
   },
   
   instagramLink: {
@@ -83,8 +83,8 @@ export const defaultConfig: SiteConfig = {
     bioParagraph1: "Sou Leonardo Mey, criador de conteúdo, formado em Processos Gerenciais, copywriter e especialista em vendas e mercado digital, com mais de 10 anos de experiência.",
     bioParagraph2: "Ao longo desses anos, construí meu trabalho produzindo conteúdos, analisando produtos, compartilhando experiências e ajudando meu público a encontrar boas opções e tomar decisões de compra com mais segurança.",
     bioParagraph3: "Sou cristão, marido da Janaína e pai da Alice e do Joaquim. Meu compromisso é com Deus, com a minha família e com cada pessoa que acompanha e confia no meu trabalho.",
-    photoUrl: "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png",
-    aboutPhotoUrl: "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
+    photoUrl: "/images/rosleon-ago.webp",
+    aboutPhotoUrl: "/images/rosleon-jul.webp",
     pillars: [
       { title: "+10 Anos de Experiência", subtitle: "Copywriting, Marketing & Vendas", icon: "award" },
       { title: "Análises Criteriosas", subtitle: "Recomendações com responsabilidade", icon: "sparkles" },

@@ -94,12 +94,13 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
               
               <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800 flex items-center justify-center">
                 <ImageWithFallback
-                  src={creator.photoUrl || "https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"}
-                  backupSrc="https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
+                  src={creator.photoUrl || "/images/rosleon-ago.webp"}
+                  backupSrc="/images/rosleon-jul.webp"
                   alt={creator.name || "Leonardo Mey"}
                   initials="LM"
                   referrerPolicy="no-referrer"
                   loading="eager"
+                  fetchPriority="high"
                   decoding="async"
                   width={128}
                   height={128}

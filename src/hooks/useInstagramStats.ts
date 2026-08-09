@@ -4,7 +4,7 @@ import { InstagramStats } from '../types';
 const DEFAULT_IG_DATA: InstagramStats = {
   name: "ROSLEON | Leonardo Mey",
   username: "rosleonoficial",
-  profilePictureUrl: "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
+  profilePictureUrl: "/images/rosleon-jul.webp",
   followersCount: 38710,
   followersFormatted: "38.710",
   mediaCount: 183,
@@ -82,7 +82,7 @@ export function useInstagramStats() {
                 data: {
                   name: pData.name || "ROSLEON | Leonardo Mey",
                   username: pData.username || "rosleonoficial",
-                  profilePictureUrl: pData.profile_picture_url || "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
+                  profilePictureUrl: pData.profile_picture_url || "/images/rosleon-jul.webp",
                   followersCount: fCount,
                   followersFormatted: fCount.toLocaleString('pt-BR'),
                   mediaCount: mCount,
@@ -112,7 +112,7 @@ export function useInstagramStats() {
             setData({
               name: "ROSLEON | Leonardo Mey",
               username: "rosleonoficial",
-              profilePictureUrl: "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
+              profilePictureUrl: "/images/rosleon-jul.webp",
               followersCount: 38710,
               followersFormatted: "38.710",
               mediaCount: 183,

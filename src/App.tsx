@@ -20,7 +20,7 @@ import { FloatingScrollDown } from './components/FloatingScrollDown';
 const STORAGE_KEY = 'rosleon_site_config_v2';
 const CLICKS_STORAGE_KEY = 'rosleon_click_analytics_v1';
 
-const TARGET_PHOTO_URL = 'https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
+const TARGET_PHOTO_URL = '/images/rosleon-jul.webp';
 
 export default function App() {
   const [config, setConfig] = useState<SiteConfig>(() => {

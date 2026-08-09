@@ -78,13 +78,12 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ creator }) => {
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl group flex items-center justify-center bg-slate-900">
               <ImageWithFallback
-                src={creator.aboutPhotoUrl || "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"}
-                backupSrc="https://i.postimg.cc/VLyPkxjv/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
+                src={creator.aboutPhotoUrl || "/images/rosleon-jul.webp"}
+                backupSrc="/images/rosleon-ago.webp"
                 alt={creator.name || "Leonardo Mey"}
                 initials="ROSLEON"
                 referrerPolicy="no-referrer"
-                loading="eager"
-                fetchPriority="high"
+                loading="lazy"
                 decoding="async"
                 width={384}
                 height={480}
