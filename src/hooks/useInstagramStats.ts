@@ -4,7 +4,7 @@ import { InstagramStats } from '../types';
 const DEFAULT_IG_DATA: InstagramStats = {
   name: "ROSLEON | Leonardo Mey",
   username: "rosleonoficial",
-  profilePictureUrl: "/images/rosleon-jul.webp",
+  profilePictureUrl: "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png",
   followersCount: 38710,
   followersFormatted: "38.710",
   mediaCount: 183,
@@ -82,7 +82,7 @@ export function useInstagramStats() {
                 data: {
                   name: pData.name || "ROSLEON | Leonardo Mey",
                   username: pData.username || "rosleonoficial",
-                  profilePictureUrl: pData.profile_picture_url || "/images/rosleon-jul.webp",
+                  profilePictureUrl: pData.profile_picture_url || "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png",
                   followersCount: fCount,
                   followersFormatted: fCount.toLocaleString('pt-BR'),
                   mediaCount: mCount,
@@ -112,7 +112,7 @@ export function useInstagramStats() {
             setData({
               name: "ROSLEON | Leonardo Mey",
               username: "rosleonoficial",
-              profilePictureUrl: "/images/rosleon-jul.webp",
+              profilePictureUrl: "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png",
               followersCount: 38710,
               followersFormatted: "38.710",
               mediaCount: 183,

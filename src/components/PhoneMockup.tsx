@@ -49,8 +49,8 @@ export const PhoneMockup: React.FC = () => {
               className="absolute inset-0 z-30 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer group transition-all"
             >
               <ImageWithFallback 
-                src="/images/rosleon-jul.webp"
-                backupSrc="/images/rosleon-ago.webp"
+                src="https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
+                backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
                 alt="Capa Vídeo ROSLEON"
                 initials="PLAY"
                 className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"

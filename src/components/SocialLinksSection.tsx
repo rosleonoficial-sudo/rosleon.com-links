@@ -54,8 +54,8 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 <div className="relative shrink-0">
                   <div className="p-[3px] rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-md shadow-pink-500/20">
                     <ImageWithFallback
-                      src={instagramStats?.profilePictureUrl || "/images/rosleon-jul.webp"}
-                      backupSrc="/images/rosleon-ago.webp"
+                      src={instagramStats?.profilePictureUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"}
+                      backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
                       alt="Perfil Instagram ROSLEON"
                       initials="IG"
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
@@ -173,8 +173,8 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 <div className="relative shrink-0">
                   <div className="p-[3px] rounded-full bg-gradient-to-tr from-cyan-500 via-sky-400 to-rose-500 shadow-md shadow-cyan-500/20">
                     <ImageWithFallback
-                      src={instagramStats?.profilePictureUrl || "/images/rosleon-jul.webp"}
-                      backupSrc="/images/rosleon-ago.webp"
+                      src={instagramStats?.profilePictureUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"}
+                      backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
                       alt="Perfil TikTok ROSLEON"
                       initials="TT"
                       className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"

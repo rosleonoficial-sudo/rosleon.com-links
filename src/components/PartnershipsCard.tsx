@@ -94,8 +94,8 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
               
               <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800 flex items-center justify-center">
                 <ImageWithFallback
-                  src={creator.photoUrl || "/images/rosleon-ago.webp"}
-                  backupSrc="/images/rosleon-jul.webp"
+                  src={creator.photoUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"}
+                  backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
                   alt={creator.name || "Leonardo Mey"}
                   initials="LM"
                   referrerPolicy="no-referrer"

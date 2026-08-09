@@ -78,8 +78,8 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ creator }) => {
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl group flex items-center justify-center bg-slate-900">
               <ImageWithFallback
-                src={creator.aboutPhotoUrl || "/images/rosleon-jul.webp"}
-                backupSrc="/images/rosleon-ago.webp"
+                src={creator.aboutPhotoUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_640/q_auto:eco/f_auto/v1786311281/ChatGPT_Image_7_de_ago._de_2026_07_59_44.png"}
+                backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_640/q_auto:eco/f_auto/v1786311281/ChatGPT_Image_7_de_ago._de_2026_07_59_44.png"
                 alt={creator.name || "Leonardo Mey"}
                 initials="ROSLEON"
                 referrerPolicy="no-referrer"

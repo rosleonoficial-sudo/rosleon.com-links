@@ -83,8 +83,8 @@ export const defaultConfig: SiteConfig = {
     bioParagraph1: "Sou Leonardo Mey, criador de conteúdo, formado em Processos Gerenciais, copywriter e especialista em vendas e mercado digital, com mais de 10 anos de experiência.",
     bioParagraph2: "Ao longo desses anos, construí meu trabalho produzindo conteúdos, analisando produtos, compartilhando experiências e ajudando meu público a encontrar boas opções e tomar decisões de compra com mais segurança.",
     bioParagraph3: "Sou cristão, marido da Janaína e pai da Alice e do Joaquim. Meu compromisso é com Deus, com a minha família e com cada pessoa que acompanha e confia no meu trabalho.",
-    photoUrl: "/images/rosleon-ago.webp",
-    aboutPhotoUrl: "/images/rosleon-jul.webp",
+    photoUrl: "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png",
+    aboutPhotoUrl: "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_640/q_auto:eco/f_auto/v1786311281/ChatGPT_Image_7_de_ago._de_2026_07_59_44.png",
     pillars: [
       { title: "+10 Anos de Experiência", subtitle: "Copywriting, Marketing & Vendas", icon: "award" },
       { title: "Análises Criteriosas", subtitle: "Recomendações com responsabilidade", icon: "sparkles" },
