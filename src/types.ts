@@ -29,16 +29,24 @@ export interface InstagramStats {
   name?: string;
   username?: string;
   profilePictureUrl?: string;
+  followers?: number | null;
   followersCount?: number | null;
   followersFormatted?: string | null;
   mediaCount?: number | null;
   mediaCountFormatted?: string | null;
+  views30Days?: number | null;
+  views30DaysFormatted?: string | null;
   views30d?: number | null;
   views30dFormatted?: string | null;
   reach30d?: number | null;
   reach30dFormatted?: string | null;
   profileVisits30d?: number | null;
   profileVisits30dFormatted?: string | null;
+  source?: string;
+  isAutoSynced?: boolean;
+  lastSyncedAt?: string;
+  stale?: boolean;
+  syncError?: string | null;
   updatedAt?: string;
 }
 
@@ -65,6 +73,79 @@ export interface CouponItem {
   timeAgo: string;
   activeUsers: string;
   active: boolean;
+}
+
+export interface StateAudience {
+  id: string;
+  name: string;
+  region: string;
+  topCity: string;
+  x: number;
+  y: number;
+  viewers: number;
+  viewersFormatted: string;
+  activeUsers: number;
+  percentage: number;
+  sharePercent: number;
+  instagram: number;
+  youtube: number;
+  site: number;
+  instagramShare: number;
+  youtubeShare: number;
+  siteShare: number;
+}
+
+export interface PlatformAudience {
+  instagram: number;
+  instagramFormatted: string;
+  youtube: number;
+  youtubeFormatted: string;
+  site: number;
+  siteFormatted: string;
+  total: number;
+  totalFormatted: string;
+}
+
+export interface RealtimeAudienceData {
+  snapshotId: string;
+  activeNow: number;
+  activeNowFormatted: string;
+  generatedAt: string;
+  nextUpdateAt: string;
+  platforms: PlatformAudience;
+  states: StateAudience[];
+}
+
+export interface CentralMediaKitData {
+  success: boolean;
+  snapshotId: string;
+  generatedAt: string;
+  nextUpdateAt: string;
+  instagram: InstagramStats;
+  youtube: {
+    subscribers: number;
+    subscribersFormatted: string;
+    views: number;
+    viewsFormatted: string;
+    videos: number;
+  };
+  tiktok: {
+    followers: number;
+    followersFormatted: string;
+    views: number;
+    viewsFormatted: string;
+    isAutoSynced: boolean;
+  };
+  communityTotal: {
+    total: number;
+    totalFormatted: string;
+    breakdown: {
+      youtube: number;
+      instagram: number;
+      tiktok: number;
+    };
+  };
+  realtimeAudience: RealtimeAudienceData;
 }
 
 export interface SiteConfig {

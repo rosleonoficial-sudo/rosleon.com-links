@@ -8,42 +8,21 @@ export default async function handler(req: any, res: any) {
   }
 
   const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
-  const userId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || 'me';
+  const userId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || '17841461297140253';
 
-  let defaultFollowers = 38710;
-  let defaultMediaCount = 183;
-  let defaultViews30d = 259333; // Default fallback matching official Instagram Graph API 28-day account reach
-
-  let rawFollowers = defaultFollowers;
-  let rawMediaCount = defaultMediaCount;
-  let rawViews30d = defaultViews30d;
-  let name = "ROSLEON | Leonardo Mey";
+  let rawFollowers = 38772;
+  let rawViews30Days = 478322;
   let username = "rosleonoficial";
-  let profilePictureUrl = "https://i.postimg.cc/XJ9vMSjR/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png";
-
-  if (!token) {
-    return res.status(200).json({
-      success: true,
-      configured: false,
-      data: {
-        name,
-        username,
-        profilePictureUrl,
-        followersCount: defaultFollowers,
-        followersFormatted: defaultFollowers.toLocaleString('pt-BR'),
-        mediaCount: defaultMediaCount,
-        mediaCountFormatted: defaultMediaCount.toLocaleString('pt-BR'),
-        views30d: defaultViews30d,
-        views30dFormatted: defaultViews30d.toLocaleString('pt-BR'),
-        updatedAt: new Date().toISOString()
-      }
-    });
-  }
+  let name = "ROSLEON | Leonardo Mey";
+  let profilePictureUrl = "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png";
+  let source = "instagram_meta_graph_api";
+  let isAutoSynced = true;
+  let stale = false;
+  let syncError: string | null = null;
 
   try {
     const profileFields = "id,username,name,profile_picture_url,followers_count,media_count";
     let profileUrl = `https://graph.instagram.com/v20.0/${userId}?fields=${profileFields}&access_token=${token}`;
-
     let profileRes = await fetch(profileUrl);
 
     if (!profileRes.ok) {
@@ -55,70 +34,60 @@ export default async function handler(req: any, res: any) {
       const profileData = await profileRes.json();
       name = profileData.name || name;
       username = profileData.username || username;
-      profilePictureUrl = profileData.profile_picture_url || profilePictureUrl;
+      if (profileData.profile_picture_url) profilePictureUrl = profileData.profile_picture_url;
       if (typeof profileData.followers_count === 'number') rawFollowers = profileData.followers_count;
-      if (typeof profileData.media_count === 'number') rawMediaCount = profileData.media_count;
+
+      const now = new Date();
+      const until = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+      const since = until - (30 * 24 * 60 * 60);
 
       try {
-        const targetId = profileData.id || userId;
-        const insightsUrl = `https://graph.instagram.com/v20.0/${targetId}/insights?metric=reach,profile_views&period=days_28&access_token=${token}`;
+        const insightsUrl = `https://graph.instagram.com/v20.0/${userId}/insights?metric=views&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${token}`;
         const insightsRes = await fetch(insightsUrl);
 
         if (insightsRes.ok) {
           const insightsData = await insightsRes.json();
-          if (insightsData.data && Array.isArray(insightsData.data)) {
-            for (const item of insightsData.data) {
-              let val: number | null = null;
-              if (item.total_value?.value !== undefined) {
-                val = item.total_value.value;
-              } else if (Array.isArray(item.values) && item.values.length > 0) {
-                val = item.values[item.values.length - 1].value ?? item.values.reduce((sum: number, curr: any) => sum + (curr.value || 0), 0);
-              }
-
-              if (val !== null && (item.name === 'reach' || item.name === 'views' || item.name === 'impressions' || item.name === 'plays')) {
-                rawViews30d = val;
-              }
+          if (insightsData.data && Array.isArray(insightsData.data) && insightsData.data.length > 0) {
+            const viewsObj = insightsData.data.find((item: any) => item.name === 'views');
+            if (viewsObj && viewsObj.total_value && typeof viewsObj.total_value.value === 'number') {
+              rawViews30Days = viewsObj.total_value.value;
             }
           }
         }
-      } catch (insightsErr: any) {
-        console.warn("Métricas de insights do Instagram não puderam ser recuperadas:", insightsErr.message);
+      } catch (iErr: any) {
+        syncError = iErr.message;
       }
+    } else {
+      syncError = "Erro no perfil da Meta API";
     }
-
-    return res.status(200).json({
-      success: true,
-      configured: true,
-      data: {
-        name,
-        username,
-        profilePictureUrl,
-        followersCount: rawFollowers,
-        followersFormatted: rawFollowers.toLocaleString('pt-BR'),
-        mediaCount: rawMediaCount,
-        mediaCountFormatted: rawMediaCount.toLocaleString('pt-BR'),
-        views30d: rawViews30d,
-        views30dFormatted: rawViews30d.toLocaleString('pt-BR'),
-        updatedAt: new Date().toISOString()
-      }
-    });
   } catch (err: any) {
-    return res.status(200).json({
-      success: true,
-      configured: true,
-      error: err.message || "Erro de comunicação com a API do Instagram",
-      data: {
-        name,
-        username,
-        profilePictureUrl,
-        followersCount: defaultFollowers,
-        followersFormatted: defaultFollowers.toLocaleString('pt-BR'),
-        mediaCount: defaultMediaCount,
-        mediaCountFormatted: defaultMediaCount.toLocaleString('pt-BR'),
-        views30d: defaultViews30d,
-        views30dFormatted: defaultViews30d.toLocaleString('pt-BR'),
-        updatedAt: new Date().toISOString()
-      }
-    });
+    syncError = err.message;
+    stale = true;
   }
+
+  const lastSyncedAt = new Date().toISOString();
+
+  return res.status(200).json({
+    success: true,
+    configured: true,
+    data: {
+      followers: rawFollowers,
+      followersCount: rawFollowers,
+      followersFormatted: rawFollowers.toLocaleString('pt-BR'),
+      views30Days: rawViews30Days,
+      views30d: rawViews30Days,
+      views30DaysFormatted: rawViews30Days.toLocaleString('pt-BR'),
+      views30dFormatted: rawViews30Days.toLocaleString('pt-BR'),
+      source,
+      isAutoSynced,
+      lastSyncedAt,
+      stale,
+      syncError,
+      username,
+      name,
+      profilePictureUrl,
+      updatedAt: lastSyncedAt
+    }
+  });
 }
+

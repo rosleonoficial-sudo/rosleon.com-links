@@ -95,14 +95,10 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
               e.preventDefault();
               document.getElementById('audiencia')?.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="px-3.5 py-2 rounded-xl border border-emerald-500/40 bg-slate-900/90 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/80 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 text-xs sm:text-sm font-mono font-bold whitespace-nowrap"
-            title="Público em tempo real conectado ao vivo"
+            className="px-3.5 py-2 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-cyan-300 hover:text-cyan-200 hover:border-cyan-400/80 hover:bg-slate-800/90 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+            title="Audiência Estimada"
           >
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>{formatNumber(totalOnlineCount)} {t('nav.live')}</span>
+            {t('nav.audience')}
           </a>
         </nav>
       </div>

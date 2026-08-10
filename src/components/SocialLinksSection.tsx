@@ -96,7 +96,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
               {/* Instagram Stats Row */}
               <div className="flex items-center justify-center gap-3 sm:gap-6 py-2.5 px-4 sm:px-6 rounded-xl bg-slate-950/70 border border-slate-800 mx-auto">
                 {/* Live sync dot */}
-                <span className="relative flex h-2 w-2 shrink-0" title="Sincronizado via Instagram Graph API">
+                <span className="relative flex h-2 w-2 shrink-0" title="Sincronizado via Media Kit Central Rosleon (Instagram Meta Graph API)">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
                 </span>
@@ -104,7 +104,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Followers */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-white">
-                    {instagramStats?.followersFormatted || formatNumber(38710)}
+                    {instagramStats?.followersFormatted || (typeof instagramStats?.followers === 'number' ? instagramStats.followers.toLocaleString('pt-BR') : (typeof instagramStats?.followersCount === 'number' ? instagramStats.followersCount.toLocaleString('pt-BR') : '—'))}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('social.followers')}
@@ -113,30 +113,15 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
 
                 <div className="h-7 w-px bg-slate-800" />
 
-                {/* Visualizações / Alcance */}
+                {/* Visualizações (30 dias) */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-pink-400">
-                    {instagramStats?.views30dFormatted || formatNumber(259333)}
+                    {instagramStats?.views30DaysFormatted || instagramStats?.views30dFormatted || (typeof instagramStats?.views30Days === 'number' ? instagramStats.views30Days.toLocaleString('pt-BR') : (typeof instagramStats?.views30d === 'number' ? instagramStats.views30d.toLocaleString('pt-BR') : '—'))}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    {t('social.reach28d')}
+                    {t('social.views30d')}
                   </div>
                 </div>
-
-                {instagramStats?.reach30dFormatted && (
-                  <>
-                    <div className="h-7 w-px bg-slate-800" />
-                    {/* Alcance */}
-                    <div className="text-center px-1">
-                      <div className="text-sm sm:text-base font-extrabold text-rose-400">
-                        {instagramStats.reach30dFormatted}
-                      </div>
-                      <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                        {t('social.reach30d')}
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
 
               {/* Instagram Action Button com Animação Leve */}
