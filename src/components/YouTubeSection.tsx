@@ -107,6 +107,9 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
                 <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                   {t('youtube.views')}
                 </div>
+                <div className="text-[8.5px] font-mono text-slate-400/90 mt-0.5">
+                  Total acumulado
+                </div>
               </div>
 
               {stats.videos && (

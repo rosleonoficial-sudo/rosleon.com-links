@@ -143,35 +143,44 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                 </span>
               </div>
 
-              {/* Platform breakdown items with exact numbers */}
+              {/* Platform breakdown items with exact numbers and timeframes */}
               <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-800/80 text-center">
-                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800">
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-red-400 font-bold">
-                    <Youtube className="w-3 h-3 fill-current" /> YouTube
+                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-red-400 font-bold">
+                      <Youtube className="w-3 h-3 fill-current" /> YouTube
+                    </div>
+                    <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                      {formatNumber(Number((ytViewsRaw / 1_000_000).toFixed(1)))} {t('partnerships.million')}
+                    </div>
                   </div>
-                  <div className="text-[11px] font-bold text-slate-200 mt-0.5">
-                    {formatNumber(Number((ytViewsRaw / 1_000_000).toFixed(1)))} {t('partnerships.million')}
-                  </div>
+                  <span className="text-[8.5px] text-slate-400 font-mono mt-0.5">Total acumulado</span>
                 </div>
 
-                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800">
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-pink-400 font-bold">
-                    <Instagram className="w-3 h-3" /> Instagram
+                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-pink-400 font-bold">
+                      <Instagram className="w-3 h-3" /> Instagram
+                    </div>
+                    <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                      {formatNumber(Math.round(igViewsRaw / 1_000))} {t('partnerships.thousand')}
+                    </div>
                   </div>
-                  <div className="text-[11px] font-bold text-slate-200 mt-0.5">
-                    {formatNumber(Math.round(igViewsRaw / 1_000))} {t('partnerships.thousand')}
-                  </div>
+                  <span className="text-[8.5px] text-pink-400/90 font-mono mt-0.5">Últimos 30 dias</span>
                 </div>
 
-                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800">
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-cyan-400 font-bold">
-                    <svg className="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
-                    </svg> TikTok
+                <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-cyan-400 font-bold">
+                      <svg className="w-3 h-3 fill-current inline-block" viewBox="0 0 24 24">
+                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
+                      </svg> TikTok
+                    </div>
+                    <div className="text-[11px] font-bold text-slate-200 mt-0.5">
+                      {formatNumber(Number((ttViewsRaw / 1_000_000).toFixed(1)))} {t('partnerships.million')}
+                    </div>
                   </div>
-                  <div className="text-[11px] font-bold text-slate-200 mt-0.5">
-                    {formatNumber(Number((ttViewsRaw / 1_000_000).toFixed(1)))} {t('partnerships.million')}
-                  </div>
+                  <span className="text-[8.5px] text-slate-400 font-mono mt-0.5">Total acumulado</span>
                 </div>
               </div>
             </div>

@@ -121,6 +121,9 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('social.views30d')}
                   </div>
+                  <div className="text-[8.5px] font-mono text-pink-400/90 mt-0.5">
+                    Últimos 30 dias
+                  </div>
                 </div>
               </div>
 
@@ -225,6 +228,9 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('youtube.views')}
+                  </div>
+                  <div className="text-[8.5px] font-mono text-slate-400/90 mt-0.5">
+                    Total acumulado
                   </div>
                 </div>
               </div>
