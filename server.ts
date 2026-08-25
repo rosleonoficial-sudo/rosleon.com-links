@@ -1,9 +1,9 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { initDatabase } from './server/db';
-import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents } from './server/resultsService';
-import { reclassifyAllDatabaseContents } from './server/classifierService';
+import { initDatabase } from './server/db.js';
+import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents } from './server/resultsService.js';
+import { reclassifyAllDatabaseContents } from './server/classifierService.js';
 
 const app = express();
 const PORT = 3000;

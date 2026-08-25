@@ -1,4 +1,4 @@
-import { getPool, isPostgresActive, getMemoryStore, DbBrand } from './db';
+import { getPool, isPostgresActive, getMemoryStore, DbBrand } from './db.js';
 
 export interface DbProduct {
   id: number;

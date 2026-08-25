@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.ts": {
+      "includeFiles": "server/**"
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -24,7 +29,9 @@
     { "source": "/api/youtube-stats", "destination": "/api/youtube-stats.ts" },
     { "source": "/api/instagram-stats", "destination": "/api/instagram-stats.ts" },
     { "source": "/api/media-kit", "destination": "/api/media-kit.ts" },
+    { "source": "/api/results/status", "destination": "/api/results/status.ts" },
     { "source": "/api/results(.*)", "destination": "/api/results.ts" },
+    { "source": "/results/status", "destination": "/api/results/status.ts" },
     { "source": "/results(.*)", "destination": "/api/results.ts" },
     { "source": "/((?!api/|results).*)", "destination": "/index.html" }
   ]

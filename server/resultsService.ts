@@ -1,11 +1,11 @@
-import { getPool, isPostgresActive, getMemoryStore, DbBrand, DbContent, DbContentMetrics } from './db';
+import { getPool, isPostgresActive, getMemoryStore, DbBrand, DbContent, DbContentMetrics } from './db.js';
 import {
   classifyContent,
   reclassifyAllDatabaseContents,
   refreshCatalog,
   cleanText,
   normalizeToken
-} from './classifierService';
+} from './classifierService.js';
 import {
   ContentItem,
   ResultsFilterState,
@@ -14,7 +14,7 @@ import {
   PlatformSummaryBreakdown,
   Brand,
   ContentClassification
-} from '../src/types';
+} from '../src/types.js';
 
 let globalLastSyncedAt = new Date().toISOString();
 let globalNextSyncAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();

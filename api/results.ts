@@ -1,4 +1,4 @@
-import { searchContents } from '../server/resultsService';
+import { searchContents, getSyncStatus } from '../server/resultsService.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -8,6 +8,11 @@ export default async function handler(req: any, res: any) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Handle status route if routed here
+  if (req.url?.includes('/status')) {
+    return res.status(200).json(getSyncStatus());
   }
 
   try {
