@@ -119,7 +119,7 @@ const ALIAS_TRIGGERS = [
 ];
 
 // Explicit Comparison Regex (strict match for real comparisons only)
-const EXPLICIT_COMPARISON_REGEX = /\b(vs\.?|versus|\b\s+x\s+|\bvs\b|qual é melhor|qual e melhor|qual escolher|um ou outro|duelo|batalha|teste lado a lado|quem leva a melhor|disputa)\b/i;
+const EXPLICIT_COMPARISON_REGEX = /\b(vs\.?|versus|\b\s+x\s+|\bvs\b|\bvc\b|\bou\b|qual é melhor|qual e melhor|qual escolher|um ou outro|duelo|batalha|teste lado a lado|quem leva a melhor|disputa)\b/i;
 
 // Regex for model codes (e.g., RAD-441, RAD 441, NM-IP501, NM IP501, S78, DR-908, X39, GP13000, ZE41, ACS6331, IP-601M)
 const MODEL_CODE_REGEX = /\b([a-z]{1,4}[- ]?\d{2,5}[a-z]?|\d{3,5}[a-z]{1,3}|[a-z]{2,5}\d{1,4}[a-z]?)\b/i;
@@ -300,6 +300,30 @@ function extractEntitiesFromSegment(segmentText: string): { brands: string[]; pr
 
   const extractedBrands = new Set<string>();
   const extractedProducts = new Set<string>();
+
+  // Explicit Bomber brand & product extraction rule
+  if (/\b(bomber|bomberbass|bomberbox|bombertrolley|boomberbass|boomberbox)\b/i.test(text)) {
+    extractedBrands.add('Bomber');
+
+    if (/bomber\s*premium\s*140/i.test(text)) {
+      extractedProducts.add('Bomber Premium 140');
+    }
+    if (/bo*mbe*rbass\s*plus/i.test(text)) {
+      extractedProducts.add('BomberBass Plus');
+    } else if (/bomberbass\s*4/i.test(text)) {
+      extractedProducts.add('BomberBass 4');
+    } else if (/bo*mbe*rbass/i.test(text)) {
+      extractedProducts.add('BomberBass');
+    }
+
+    if (/bo*mbe*rbox\s*pro/i.test(text) || /bo*mbe*rbox/i.test(text)) {
+      extractedProducts.add('BomberBox Pro');
+    }
+
+    if (/bomber\s*trolley\s*850/i.test(text) || /bomber\s*trolley/i.test(text)) {
+      extractedProducts.add('Bomber Trolley 850');
+    }
+  }
 
   // 1. Check existing Catalog Brands first
   for (const b of brandCatalog) {
@@ -739,4 +763,135 @@ export async function reclassifyAllDatabaseContents() {
 
   console.log('Reclassificação concluída com sucesso:', report);
   return report;
+}
+
+export const BOMBER_RECORDS = [
+  { id: 5, primaryBrands: ['Bomber', 'Basike'], primaryProducts: ['Bomber Premium 140', 'Basike RAD 439'], isComparison: true },
+  { id: 10, primaryBrands: ['Bomber'], primaryProducts: ['Bomber Premium 140'], isComparison: false },
+  { id: 71, primaryBrands: ['Bomber', 'Basike'], primaryProducts: ['BomberBass Plus', 'Basike RAD 304'], isComparison: true },
+  { id: 74, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass Plus'], isComparison: false },
+  { id: 102, primaryBrands: ['Bomber'], primaryProducts: ['BomberBox Pro'], isComparison: false },
+  { id: 130, primaryBrands: ['Bomber', 'Sabala'], primaryProducts: ['BomberBox Pro', 'Sabala DR-909'], isComparison: true },
+  { id: 132, primaryBrands: ['Bomber', 'Sabala'], primaryProducts: ['BomberBox Pro', 'Sabala DR-909'], isComparison: true },
+  { id: 135, primaryBrands: ['Bomber'], primaryProducts: ['BomberBox Pro'], isComparison: false },
+  { id: 137, primaryBrands: ['Bomber'], primaryProducts: ['BomberBox Pro'], isComparison: false },
+  { id: 172, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false },
+  { id: 220, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false },
+  { id: 261, primaryBrands: ['Bomber'], primaryProducts: ['Bomber Trolley 850'], isComparison: false },
+  { id: 262, primaryBrands: ['Bomber'], primaryProducts: ['Bomber Trolley 850'], isComparison: false },
+  { id: 292, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false },
+  { id: 294, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass 4'], isComparison: false },
+  { id: 296, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false },
+  { id: 709, primaryBrands: ['Bomber'], primaryProducts: ['BomberBox Pro'], isComparison: false },
+  { id: 774, primaryBrands: ['Bomber'], primaryProducts: ['Bomber Trolley 850'], isComparison: false },
+  { id: 792, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false }
+];
+
+export async function fixBomberBrandOnly() {
+  console.log('Auditando e corrigindo exclusivamente os conteúdos da marca Bomber...');
+  await refreshCatalog();
+
+  let bomberBrand = brandCatalog.find(b => normalizeToken(b.name) === 'bomber');
+  if (!bomberBrand) {
+    if (isPostgresActive()) {
+      const pool = getPool();
+      if (pool) {
+        try {
+          const res = await pool.query(
+            `INSERT INTO brands (name, slug, keywords) VALUES ($1, $2, $3)
+             ON CONFLICT (name) DO UPDATE SET keywords = EXCLUDED.keywords
+             RETURNING id, name, keywords`,
+            ['Bomber', 'bomber', JSON.stringify(['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'])]
+          );
+          if (res.rows[0]) {
+            bomberBrand = { id: res.rows[0].id, name: 'Bomber', keywords: ['bomber'] };
+            brandCatalog.push(bomberBrand);
+          }
+        } catch (e) {}
+      }
+    } else {
+      const memoryDb = getMemoryStore();
+      let existing = memoryDb.brands.find(b => b.slug === 'bomber');
+      if (!existing) {
+        const newId = memoryDb.nextBrandId++;
+        existing = { id: newId, name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] };
+        memoryDb.brands.push(existing);
+      }
+      bomberBrand = { id: existing.id, name: 'Bomber', keywords: existing.keywords };
+      brandCatalog.push(bomberBrand);
+    }
+  }
+
+  for (const item of BOMBER_RECORDS) {
+    if (isPostgresActive()) {
+      const pool = getPool();
+      if (pool) {
+        try {
+          await pool.query(`
+            INSERT INTO content_classifications (
+              content_id, primary_brands, primary_products, secondary_brands, secondary_products, aliases, is_comparison, confidence_score, updated_at
+            ) VALUES ($1, $2, $3, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, $4, 0.95, NOW())
+            ON CONFLICT (content_id) DO UPDATE SET
+              primary_brands = EXCLUDED.primary_brands,
+              primary_products = EXCLUDED.primary_products,
+              secondary_brands = '[]'::jsonb,
+              secondary_products = '[]'::jsonb,
+              aliases = '[]'::jsonb,
+              is_comparison = EXCLUDED.is_comparison,
+              confidence_score = 0.95,
+              updated_at = NOW()
+          `, [
+            item.id,
+            JSON.stringify(item.primaryBrands),
+            JSON.stringify(item.primaryProducts),
+            item.isComparison
+          ]);
+
+          await pool.query('DELETE FROM content_brands WHERE content_id = $1', [item.id]);
+
+          for (const bName of item.primaryBrands) {
+            const bObj = brandCatalog.find(b => normalizeToken(b.name) === normalizeToken(bName));
+            if (bObj) {
+              await pool.query(
+                'INSERT INTO content_brands (content_id, brand_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                [item.id, bObj.id]
+              );
+            }
+          }
+        } catch (e) {
+          console.warn(`Erro ao atualizar Bomber para content_id ${item.id}:`, e);
+        }
+      }
+    } else {
+      const memoryDb = getMemoryStore();
+      if (!(memoryDb as any).content_classifications) {
+        (memoryDb as any).content_classifications = new Map<number, DbClassification>();
+      }
+      (memoryDb as any).content_classifications.set(item.id, {
+        content_id: item.id,
+        primary_brands: item.primaryBrands,
+        primary_products: item.primaryProducts,
+        secondary_brands: [],
+        secondary_products: [],
+        aliases: [],
+        is_comparison: item.isComparison,
+        confidence_score: 0.95
+      });
+
+      memoryDb.content_brands = memoryDb.content_brands.filter(cb => cb.content_id !== item.id);
+
+      for (const bName of item.primaryBrands) {
+        const bObj = brandCatalog.find(b => normalizeToken(b.name) === normalizeToken(bName));
+        if (bObj) {
+          memoryDb.content_brands.push({ content_id: item.id, brand_id: bObj.id });
+        }
+      }
+    }
+  }
+
+  console.log(`Correção da marca Bomber concluída para ${BOMBER_RECORDS.length} conteúdos.`);
+  return {
+    correctedCount: BOMBER_RECORDS.length,
+    records: BOMBER_RECORDS
+  };
 }

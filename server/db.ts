@@ -1,4 +1,5 @@
 import pg from 'pg';
+import { fixBomberBrandOnly } from './classifierService.js';
 const { Pool } = pg;
 
 export interface DbBrand {
@@ -41,7 +42,8 @@ export const INITIAL_BRANDS: Omit<DbBrand, 'id'>[] = [
   { name: 'JBL', slug: 'jbl', keywords: ['jbl', 'jbl boombox', 'jbl flip', 'jbl charge', 'jbl partybox', 'jbl tune', 'jbl go'] },
   { name: 'Basike', slug: 'basike', keywords: ['basike'] },
   { name: 'Pulse', slug: 'pulse', keywords: ['pulse'] },
-  { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] }
+  { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] },
+  { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] }
 ];
 
 // In-memory fallback store
@@ -190,6 +192,9 @@ export async function initDatabase() {
              OR external_id = 'waaw_meli_ig'
         `);
 
+        // Audit and fix Bomber brand contents
+        await fixBomberBrandOnly();
+
         return;
       } catch (e: any) {
         console.warn('Não foi possível conectar ao PostgreSQL via DATABASE_URL. Utilizando in-memory DB fallback:', e.message);
@@ -200,6 +205,7 @@ export async function initDatabase() {
 
     // Fallback to In-Memory Store
     seedMemoryDatabase();
+    await fixBomberBrandOnly();
   })();
 
   return initPromise;
