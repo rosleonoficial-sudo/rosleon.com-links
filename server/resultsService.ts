@@ -4,7 +4,8 @@ import {
   reclassifyAllDatabaseContents,
   refreshCatalog,
   cleanText,
-  normalizeToken
+  normalizeToken,
+  CANONICAL_BRANDS
 } from './classifierService.js';
 import {
   ContentItem,
@@ -331,9 +332,16 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
 
         // Check if ALL query tokens match either primaryBrands OR primaryProducts
         return queryTokens.every(token => {
-          const tToMatch = (token === 'hyperbom') ? 'hyperboom' : (token === 'tribut') ? 'tribit' : token;
+          const tToMatch = (token === 'hyperbom') ? 'hyperboom' : (token === 'tribut') ? 'tribit' : (token === 'jog') ? 'joog' : token;
 
-          const matchBrand = pBrands.some(b => b.includes(tToMatch) || normalizeToken(b).includes(normalizeToken(tToMatch)));
+          const brandKeywords = (cls.primaryBrands || []).flatMap(b => {
+            const canonical = CANONICAL_BRANDS.find(cb => cb.name.toLowerCase() === b.toLowerCase());
+            return canonical ? canonical.keywords : [b.toLowerCase()];
+          });
+
+          const matchBrand = pBrands.some(b => b.includes(tToMatch) || normalizeToken(b).includes(normalizeToken(tToMatch)))
+            || brandKeywords.some(kw => kw.toLowerCase() === tToMatch || kw.toLowerCase().includes(tToMatch) || normalizeToken(kw).includes(normalizeToken(tToMatch)));
+
           const matchProd = pProds.some(p => p.includes(tToMatch) || normalizeToken(p).includes(normalizeToken(tToMatch)));
 
           return matchBrand || matchProd;

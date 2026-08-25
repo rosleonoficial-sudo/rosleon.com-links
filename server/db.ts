@@ -37,14 +37,16 @@ export interface DbContentMetrics {
 
 // Initial seed brands - SPECIFIC keywords only, no generic words
 export const INITIAL_BRANDS: Omit<DbBrand, 'id'>[] = [
+  { name: 'AIWA', slug: 'aiwa', keywords: ['aiwa'] },
+  { name: 'Golden Pro', slug: 'golden-pro', keywords: ['golden pro', 'goldenpro', 'golden pro power box', 'golden'] },
   { name: 'WAAW', slug: 'waaw', keywords: ['waaw', 'waaw by alok', 'boombug', 'waaw300'] },
   { name: 'UOL', slug: 'uol', keywords: ['uol', 'uol meu negocio', 'uolhost', 'uol host', 'uol play', 'meunegocio'] },
   { name: 'JBL', slug: 'jbl', keywords: ['jbl', 'jbl boombox', 'jbl flip', 'jbl charge', 'jbl partybox', 'jbl tune', 'jbl go', 'jbl xtreme', 'jbl clip', 'jbl pulse', 'jbl authentic'] },
   { name: 'Basike', slug: 'basike', keywords: ['basike', 'ba-rad', 'rad289', 'rad133', 'rad304', 'rad440', 'rad439', 'rad438', 'rad 441', 'rad 439', 'rad 438', 'rad 304', 'ba rad'] },
-  { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x'] },
+  { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x', 'sp626'] },
   { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] },
   { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] },
-  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
+  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribut', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
   { name: 'Tronsmart', slug: 'tronsmart', keywords: ['tronsmart', 'tronsmart bang', 'soundfi', 'bang max'] },
   { name: 'Stage', slug: 'stage', keywords: ['stage', 'stage gofree', 'gofree 2', 'stage sound'] },
   { name: 'Xdobo', slug: 'xdobo', keywords: ['xdobo', 'xdobo prince', 'xdobo wow', 'prince 1995'] },
@@ -55,7 +57,7 @@ export const INITIAL_BRANDS: Omit<DbBrand, 'id'>[] = [
   { name: 'Mifa', slug: 'mifa', keywords: ['mifa', 'mirtune', 'mirtune s100', 'mirtune h1'] },
   { name: 'Zealot', slug: 'zealot', keywords: ['zealot', 'zealot s78', 'zealot s89'] },
   { name: 'Hopestar', slug: 'hopestar', keywords: ['hopestar', 'hopestar a60'] },
-  { name: 'Joog', slug: 'joog', keywords: ['joog', 'joog air'] },
+  { name: 'Joog', slug: 'joog', keywords: ['joog', 'jog', 'joog air', 'joog pair'] },
   { name: 'Kimaster', slug: 'kimaster', keywords: ['kimaster'] },
   { name: 'Kaidi', slug: 'kaidi', keywords: ['kaidi'] },
   { name: 'H\'Maston', slug: 'hmaston', keywords: ['hmaston', "h'maston", 'h-maston', 'h maston'] },

@@ -61,7 +61,8 @@ const COMMERCIAL_STOPWORDS = new Set([
   'dicas', 'top', 'melhor', 'melhores', 'pior', 'piores', 'escolher', 'escolha',
   'antes', 'depois', 'anos', 'meses', 'dias', 'veja', 'agora', 'hoje', 'atenção',
   'atencao', 'cuidado', 'alerta', 'segredo', 'verdade', 'muda', 'mudou', 'mudanças',
-  'qual', 'quem', 'assim', 'onde', 'como', 'tudo', 'nada', 'aqui', 'ali'
+  'qual', 'quem', 'assim', 'onde', 'como', 'tudo', 'nada', 'aqui', 'ali',
+  'abaixo', 'acima', 'reais', '2026', '2025', '2024', 'dura', 'quanto', 'pena', 'vale'
 ]);
 
 const NOISE_STOPWORDS = new Set([
@@ -114,11 +115,13 @@ export const ALIAS_TRIGGERS = [
 
 // Canonical Brands & Aliases definition
 export const CANONICAL_BRANDS = [
+  { name: 'AIWA', slug: 'aiwa', keywords: ['aiwa'] },
+  { name: 'Golden Pro', slug: 'golden-pro', keywords: ['golden pro', 'goldenpro', 'golden pro power box', 'golden'] },
   { name: 'WAAW', slug: 'waaw', keywords: ['waaw', 'waaw by alok', 'boombug', 'waaw300'] },
   { name: 'UOL', slug: 'uol', keywords: ['uol', 'uol meu negocio', 'uolhost', 'uol host', 'uol play', 'meunegocio'] },
   { name: 'JBL', slug: 'jbl', keywords: ['jbl', 'jbl boombox', 'jbl flip', 'jbl charge', 'jbl partybox', 'jbl tune', 'jbl go', 'jbl xtreme', 'jbl clip', 'jbl pulse', 'jbl authentic'] },
   { name: 'Basike', slug: 'basike', keywords: ['basike', 'ba-rad', 'rad289', 'rad133', 'rad304', 'rad440', 'rad439', 'rad438', 'rad 441', 'rad 439', 'rad 438', 'rad 304', 'ba rad'] },
-  { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x'] },
+  { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x', 'sp626'] },
   { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] },
   { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] },
   { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribut', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
@@ -132,7 +135,7 @@ export const CANONICAL_BRANDS = [
   { name: 'Mifa', slug: 'mifa', keywords: ['mifa', 'mirtune', 'mirtune s100', 'mirtune h1'] },
   { name: 'Zealot', slug: 'zealot', keywords: ['zealot', 'zealot s78', 'zealot s89'] },
   { name: 'Hopestar', slug: 'hopestar', keywords: ['hopestar', 'hopestar a60'] },
-  { name: 'Joog', slug: 'joog', keywords: ['joog', 'joog air'] },
+  { name: 'Joog', slug: 'joog', keywords: ['joog', 'jog', 'joog air', 'joog pair'] },
   { name: 'Kimaster', slug: 'kimaster', keywords: ['kimaster'] },
   { name: 'Kaidi', slug: 'kaidi', keywords: ['kaidi'] },
   { name: 'H\'Maston', slug: 'hmaston', keywords: ['hmaston', "h'maston", 'h-maston', 'h maston'] },
@@ -347,72 +350,99 @@ function extractEntitiesFromSegment(segmentText: string): { brands: string[]; pr
     }
   });
 
-  // Extract model/product specifics
-  if (extractedBrands.has('Bomber')) {
-    if (/bomber\s*premium\s*140/i.test(text)) extractedProducts.add('Bomber Premium 140');
-    if (/bo*mbe*rbass\s*plus/i.test(text)) extractedProducts.add('BomberBass Plus');
-    else if (/bomberbass\s*4/i.test(text)) extractedProducts.add('BomberBass 4');
-    else if (/bo*mbe*rbass/i.test(text)) extractedProducts.add('BomberBass');
-    if (/bo*mbe*rbox\s*pro/i.test(text) || /bo*mbe*rbox/i.test(text)) extractedProducts.add('BomberBox Pro');
-    if (/bomber\s*trolley\s*850/i.test(text) || /bomber\s*trolley/i.test(text)) extractedProducts.add('Bomber Trolley 850');
-  }
+  // Extract model/product specifics (specific overrides + generic extraction)
+  for (const bName of Array.from(extractedBrands)) {
+    if (bName === 'Bomber') {
+      if (/bomber\s*premium\s*140/i.test(text)) extractedProducts.add('Bomber Premium 140');
+      if (/bo*mbe*rbass\s*plus/i.test(text)) extractedProducts.add('BomberBass Plus');
+      else if (/bomberbass\s*4/i.test(text)) extractedProducts.add('BomberBass 4');
+      else if (/bo*mbe*rbass/i.test(text)) extractedProducts.add('BomberBass');
+      if (/bo*mbe*rbox\s*pro/i.test(text) || /bo*mbe*rbox/i.test(text)) extractedProducts.add('BomberBox Pro');
+      if (/bomber\s*trolley\s*850/i.test(text) || /bomber\s*trolley/i.test(text)) extractedProducts.add('Bomber Trolley 850');
+    }
 
-  if (extractedBrands.has('Tribit')) {
-    if (/stormbox\s*blast\s*2/i.test(text)) extractedProducts.add('Tribit StormBox Blast 2');
-    else if (/stormbox\s*blast\s*1/i.test(text) || /tribit\s*blast/i.test(text)) extractedProducts.add('Tribit StormBox Blast 1');
-    else if (/tribit\s*lava/i.test(text)) extractedProducts.add('Tribit Lava');
-    else if (/stormbox/i.test(text)) extractedProducts.add('Tribit StormBox');
-  }
+    if (bName === 'Tribit') {
+      if (/stormbox\s*blast\s*2/i.test(text)) extractedProducts.add('Tribit StormBox Blast 2');
+      else if (/stormbox\s*blast\s*1/i.test(text) || /tribit\s*blast/i.test(text)) extractedProducts.add('Tribit StormBox Blast 1');
+      else if (/tribit\s*lava/i.test(text)) extractedProducts.add('Tribit Lava');
+      else if (/stormbox/i.test(text)) extractedProducts.add('Tribit StormBox');
+    }
 
-  if (extractedBrands.has('Stage')) {
-    if (/gofree\s*2/i.test(text)) extractedProducts.add('Stage GoFree 2');
-    else if (/stage\s*sound/i.test(text)) extractedProducts.add('Stage Sound');
-  }
+    if (bName === 'Stage') {
+      if (/gofree\s*2/i.test(text)) extractedProducts.add('Stage GoFree 2');
+      else if (/stage\s*sound/i.test(text)) extractedProducts.add('Stage Sound');
+    }
 
-  if (extractedBrands.has('Mifa')) {
-    if (/mirtune\s*s100/i.test(text)) extractedProducts.add('Mifa Mirtune S100');
-    else if (/mirtune\s*h1/i.test(text)) extractedProducts.add('Mifa Mirtune H1');
-  }
+    if (bName === 'Mifa') {
+      if (/mirtune\s*s100/i.test(text)) extractedProducts.add('Mifa Mirtune S100');
+      else if (/mirtune\s*h1/i.test(text)) extractedProducts.add('Mifa Mirtune H1');
+    }
 
-  if (extractedBrands.has('Tronsmart')) {
-    if (/bang\s*max/i.test(text)) extractedProducts.add('Tronsmart Bang Max');
-    if (/soundfi\s*q20s/i.test(text) || /soundfi/i.test(text)) extractedProducts.add('Tronsmart SoundFi Q20S');
-  }
+    if (bName === 'Tronsmart') {
+      if (/bang\s*max/i.test(text)) extractedProducts.add('Tronsmart Bang Max');
+      if (/soundfi\s*q20s/i.test(text) || /soundfi/i.test(text)) extractedProducts.add('Tronsmart SoundFi Q20S');
+    }
 
-  if (extractedBrands.has('Sabala')) {
-    if (/dr-?909/i.test(text)) extractedProducts.add('Sabala DR-909');
-    if (/dr-?300/i.test(text)) extractedProducts.add('Sabala DR-300');
-    if (/dr-?107/i.test(text)) extractedProducts.add('Sabala DR-107');
-  }
+    if (bName === 'Sabala') {
+      if (/dr-?909/i.test(text)) extractedProducts.add('Sabala DR-909');
+      if (/dr-?300/i.test(text)) extractedProducts.add('Sabala DR-300');
+      if (/dr-?107/i.test(text)) extractedProducts.add('Sabala DR-107');
+    }
 
-  if (extractedBrands.has('Nuoma')) {
-    if (/ip-?501/i.test(text) || /nm-ip501/i.test(text)) extractedProducts.add('Nuoma NM-IP501');
-    if (/aip-?603/i.test(text)) extractedProducts.add('Nuoma AIP-603');
-    if (/aip-?601/i.test(text)) extractedProducts.add('Nuoma AIP-601');
-  }
+    if (bName === 'Nuoma') {
+      if (/ip-?501/i.test(text) || /nm-ip501/i.test(text)) extractedProducts.add('Nuoma NM-IP501');
+      if (/aip-?603/i.test(text)) extractedProducts.add('Nuoma AIP-603');
+      if (/aip-?601/i.test(text)) extractedProducts.add('Nuoma AIP-601');
+    }
 
-  if (extractedBrands.has('Basike')) {
-    if (/rad\s*441/i.test(text)) extractedProducts.add('Basike RAD 441');
-    if (/rad\s*439/i.test(text)) extractedProducts.add('Basike RAD 439');
-    if (/rad\s*438/i.test(text)) extractedProducts.add('Basike RAD 438');
-    if (/rad\s*304/i.test(text) || /ba\s*rad\s*304/i.test(text)) extractedProducts.add('Basike BA RAD 304');
-    if (/rad\s*289/i.test(text)) extractedProducts.add('Basike RAD 289');
-    if (/rad\s*133/i.test(text)) extractedProducts.add('Basike RAD 133');
-    if (/rad\s*252/i.test(text)) extractedProducts.add('Basike RAD 252');
-  }
+    if (bName === 'Basike') {
+      if (/rad\s*441/i.test(text)) extractedProducts.add('Basike RAD 441');
+      if (/rad\s*439/i.test(text)) extractedProducts.add('Basike RAD 439');
+      if (/rad\s*438/i.test(text)) extractedProducts.add('Basike RAD 438');
+      if (/rad\s*304/i.test(text) || /ba\s*rad\s*304/i.test(text)) extractedProducts.add('Basike BA RAD 304');
+      if (/rad\s*289/i.test(text)) extractedProducts.add('Basike RAD 289');
+      if (/rad\s*133/i.test(text)) extractedProducts.add('Basike RAD 133');
+      if (/rad\s*252/i.test(text)) extractedProducts.add('Basike RAD 252');
+    }
 
-  if (extractedBrands.has('Imenso')) {
-    if (/x75/i.test(text)) extractedProducts.add('Imenso X75');
-    if (/x73/i.test(text)) extractedProducts.add('Imenso X73');
-    if (/x39/i.test(text)) extractedProducts.add('Imenso X39');
-    if (/x38/i.test(text)) extractedProducts.add('Imenso X38');
-    if (/x32/i.test(text)) extractedProducts.add('Imenso X32');
-    if (/x26/i.test(text)) extractedProducts.add('Imenso X26');
-  }
+    if (bName === 'Imenso') {
+      if (/x75/i.test(text)) extractedProducts.add('Imenso X75');
+      if (/x73/i.test(text)) extractedProducts.add('Imenso X73');
+      if (/x39/i.test(text)) extractedProducts.add('Imenso X39');
+      if (/x38/i.test(text)) extractedProducts.add('Imenso X38');
+      if (/x32/i.test(text)) extractedProducts.add('Imenso X32');
+      if (/x26/i.test(text)) extractedProducts.add('Imenso X26');
+    }
 
-  if (extractedBrands.has('Xdobo')) {
-    if (/prince\s*1995/i.test(text)) extractedProducts.add('Xdobo Prince 1995');
-    if (/wow\s*max/i.test(text)) extractedProducts.add('Xdobo WOW MAX');
+    if (bName === 'Xdobo') {
+      if (/prince\s*1995/i.test(text)) extractedProducts.add('Xdobo Prince 1995');
+      if (/wow\s*max/i.test(text)) extractedProducts.add('Xdobo WOW MAX');
+    }
+
+    // Generic line and model code extraction
+    const lineModelMatches = text.match(/\b(boombox|hyperboom|beat|partybox|stormbox|power\s*box|pair|megasafe|gofree|mirtune|soundcore|motion|pulse\s*x|infinite|sp\d+|a\d+|dr-?\d+|rad\s*\d+|aip-?\d+|ip-?\d+|x\d+)\b(?:\s+([\w\-]+))?/gi);
+    if (lineModelMatches) {
+      for (const lm of lineModelMatches) {
+        const parts = lm.trim().split(/\s+/).filter(w => !isGenericWord(w));
+        if (parts.length > 0) {
+          const cleanLm = parts.join(' ');
+          if (cleanLm.length > 1) {
+            const capitalizedLm = cleanLm.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            extractedProducts.add(`${bName} ${capitalizedLm}`);
+          }
+        }
+      }
+    }
+
+    const codeMatches = text.match(/\b([a-z]{1,4}[- ]?\d{2,5}[a-z]?|\d{3,5}[a-z]{1,3}|gp-?\d{3,5}|mms-?\d{2}|sp\d{3})\b/gi);
+    if (codeMatches) {
+      for (const code of codeMatches) {
+        const cleanCode = code.trim().toUpperCase();
+        if (!isGenericWord(cleanCode) && cleanCode.length >= 2) {
+          extractedProducts.add(`${bName} ${cleanCode}`);
+        }
+      }
+    }
   }
 
   return {
