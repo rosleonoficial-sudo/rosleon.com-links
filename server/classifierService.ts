@@ -127,7 +127,7 @@ export const CANONICAL_BRANDS = [
   { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x'] },
   { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] },
   { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] },
-  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
+  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribut', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
   { name: 'Tronsmart', slug: 'tronsmart', keywords: ['tronsmart', 'tronsmart bang', 'soundfi', 'bang max'] },
   { name: 'Stage', slug: 'stage', keywords: ['stage', 'stage gofree', 'gofree 2', 'stage sound'] },
   { name: 'Xdobo', slug: 'xdobo', keywords: ['xdobo', 'xdobo prince', 'xdobo wow', 'prince 1995'] },
@@ -727,9 +727,8 @@ export const BOMBER_RECORDS = [
   { id: 292, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false },
   { id: 294, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass 4'], isComparison: false },
   { id: 296, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false },
-  { id: 709, primaryBrands: ['Bomber'], primaryProducts: ['BomberBox Pro'], isComparison: false },
-  { id: 774, primaryBrands: ['Bomber'], primaryProducts: ['Bomber Trolley 850'], isComparison: false },
-  { id: 792, primaryBrands: ['Bomber'], primaryProducts: ['BomberBass'], isComparison: false }
+  { id: 704, primaryBrands: ['Bomber'], primaryProducts: ['BomberBox Pro'], isComparison: false },
+  { id: 776, primaryBrands: ['Bomber'], primaryProducts: ['Bomber Trolley 850'], isComparison: false }
 ];
 
 export async function fixBomberBrandOnly() {

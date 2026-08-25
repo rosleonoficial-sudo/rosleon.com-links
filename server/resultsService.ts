@@ -302,10 +302,17 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
 
     // Brand Filter (dropdown selection)
     if (activeFilters.brand) {
-      const targetBrand = activeFilters.brand.toLowerCase();
+      const rawTarget = activeFilters.brand.toLowerCase();
+      const targetBrand = rawTarget === 'tribut' ? 'tribit' : rawTarget;
       const hasBrand = item.classification
-        ? item.classification.primaryBrands.some(b => b.toLowerCase() === targetBrand || b.toLowerCase().replace(/\s+/g, '-') === targetBrand)
-        : item.brands.some(b => b.toLowerCase() === targetBrand || b.toLowerCase().replace(/\s+/g, '-') === targetBrand);
+        ? item.classification.primaryBrands.some(b => {
+            const bLow = b.toLowerCase();
+            return bLow === targetBrand || bLow === rawTarget || bLow.replace(/\s+/g, '-') === targetBrand;
+          })
+        : item.brands.some(b => {
+            const bLow = b.toLowerCase();
+            return bLow === targetBrand || bLow === rawTarget || bLow.replace(/\s+/g, '-') === targetBrand;
+          });
       if (!hasBrand) return false;
     }
 
@@ -347,7 +354,7 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
 
         // Check if ALL query tokens match either primaryBrands OR primaryProducts
         return queryTokens.every(token => {
-          const tToMatch = (token === 'hyperbom') ? 'hyperboom' : token;
+          const tToMatch = (token === 'hyperbom') ? 'hyperboom' : (token === 'tribut') ? 'tribit' : token;
 
           const matchBrand = pBrands.some(b => b.includes(tToMatch) || normalizeToken(b).includes(normalizeToken(tToMatch)));
           const matchProd = pProds.some(p => p.includes(tToMatch) || normalizeToken(p).includes(normalizeToken(tToMatch)));
