@@ -9,6 +9,7 @@ import { HeaderHero } from './components/HeaderHero';
 import { PartnershipsCard } from './components/PartnershipsCard';
 import { YouTubeSection } from './components/YouTubeSection';
 import { SocialLinksSection } from './components/SocialLinksSection';
+import { ResultsCTA } from './components/ResultsCTA';
 import { BrazilMapSection } from './components/BrazilMapSection';
 import { SupportSection } from './components/SupportSection';
 import { AboutSection } from './components/AboutSection';
@@ -16,6 +17,8 @@ import { EditDrawer } from './components/EditDrawer';
 import { ShareModal } from './components/ShareModal';
 import { Footer } from './components/Footer';
 import { FloatingScrollDown } from './components/FloatingScrollDown';
+import { ResultsPage } from './pages/ResultsPage';
+
 
 const STORAGE_KEY = 'rosleon_site_config_v2';
 const CLICKS_STORAGE_KEY = 'rosleon_click_analytics_v1';
@@ -102,10 +105,29 @@ export default function App() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
 
+  // Router State
+  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
+
+  useEffect(() => {
+    const onPopState = () => setCurrentPath(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Update document title dynamically
   useEffect(() => {
-    document.title = config.siteTitle || 'GRUPO ROSLEON';
-  }, [config.siteTitle]);
+    if (currentPath === '/resultados') {
+      document.title = 'Consultar Vídeos e Resultados | ROSLEON';
+    } else {
+      document.title = config.siteTitle || 'GRUPO ROSLEON';
+    }
+  }, [config.siteTitle, currentPath]);
 
   // Save config to localStorage whenever it changes
   useEffect(() => {
@@ -140,6 +162,11 @@ export default function App() {
     setConfig(defaultConfig);
     localStorage.removeItem(STORAGE_KEY);
   };
+
+  // Render Results Portal Page if path is /resultados
+  if (currentPath === '/resultados' || currentPath.startsWith('/resultados')) {
+    return <ResultsPage onNavigateHome={() => navigateTo('/')} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#070a14] text-slate-100 font-sans selection:bg-cyan-500 selection:text-slate-950 relative overflow-x-hidden antialiased">
@@ -203,6 +230,9 @@ export default function App() {
           showTitle={false}
         />
 
+        {/* CTA Horizontal de Destaque - Portal de Resultados */}
+        <ResultsCTA onNavigateToResults={() => navigateTo('/resultados')} />
+
         {/* Suporte WhatsApp para Seguidores */}
         <SupportSection
           supportLink={config.whatsappSupportLink}
@@ -244,4 +274,5 @@ export default function App() {
 
     </div>
   );
+
 }

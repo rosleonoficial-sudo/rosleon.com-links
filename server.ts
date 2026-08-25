@@ -1,6 +1,9 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
+import { initDatabase } from './server/db';
+import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents } from './server/resultsService';
+import { reclassifyAllDatabaseContents } from './server/classifierService';
 
 const app = express();
 const PORT = 3000;
@@ -608,8 +611,97 @@ app.get('/api/instagram-stats', async (_req, res) => {
   });
 });
 
+// ======================================================
+// PORTAL DE RESULTADOS API ROUTES
+// ======================================================
+
+// GET /api/results & GET /api/results/search
+const handleResultsQuery = async (req: express.Request, res: express.Response) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const platform = typeof req.query.platform === 'string' ? (req.query.platform as any) : 'all';
+    const sortBy = typeof req.query.sortBy === 'string' ? (req.query.sortBy as any) : 'recent';
+    const period = typeof req.query.period === 'string' ? (req.query.period as any) : 'all';
+    const contentType = typeof req.query.contentType === 'string' ? (req.query.contentType as any) : 'all';
+    const brand = typeof req.query.brand === 'string' ? req.query.brand : undefined;
+    const minViews = req.query.minViews ? parseInt(req.query.minViews as string, 10) : undefined;
+    const startDate = typeof req.query.startDate === 'string' ? req.query.startDate : undefined;
+    const endDate = typeof req.query.endDate === 'string' ? req.query.endDate : undefined;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+
+    const results = await searchContents({
+      q,
+      platform,
+      sortBy,
+      period,
+      contentType,
+      brand,
+      minViews,
+      startDate,
+      endDate,
+      page,
+      limit
+    });
+
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.json(results);
+  } catch (err: any) {
+    console.error('Erro na rota /api/results:', err);
+    res.status(500).json({ success: false, error: 'Erro interno ao consultar resultados' });
+  }
+};
+
+app.get('/api/results', handleResultsQuery);
+app.get('/api/results/search', handleResultsQuery);
+
+// GET /api/results/status
+app.get('/api/results/status', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.json(getSyncStatus());
+});
+
+// GET /api/brands
+app.get('/api/brands', async (_req, res) => {
+  try {
+    const brands = await getAllBrands();
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.json({ success: true, brands });
+  } catch (err: any) {
+    console.error('Erro na rota /api/brands:', err);
+    res.status(500).json({ success: false, error: 'Erro ao buscar marcas' });
+  }
+});
+
+// POST /api/results/sync - Manual Sync Trigger
+app.post('/api/results/sync', async (_req, res) => {
+  syncSocialMediaContents().catch(err => console.error('Erro no sync manual:', err));
+  res.json({ success: true, message: 'Sincronização iniciada em segundo plano' });
+});
+
+// POST /api/results/reclassify - Manual Semantic Reclassification Trigger
+app.post('/api/results/reclassify', async (_req, res) => {
+  try {
+    const report = await reclassifyAllDatabaseContents();
+    res.json({ success: true, report });
+  } catch (err: any) {
+    console.error('Erro na reclassificação:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 async function startServer() {
+  // Init Database (PostgreSQL if DATABASE_URL is present, or Memory Fallback)
+  await initDatabase();
+
+  // Initial Sync in background
+  syncSocialMediaContents().catch(e => console.warn('Sync inicial falhou:', e));
+
+  // Periodical sync every 30 minutes
+  setInterval(() => {
+    syncSocialMediaContents().catch(e => console.warn('Sync periódico falhou:', e));
+  }, 30 * 60 * 1000);
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -630,3 +722,4 @@ async function startServer() {
 }
 
 startServer();
+

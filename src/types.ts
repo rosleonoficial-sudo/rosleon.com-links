@@ -181,3 +181,145 @@ export interface SiteConfig {
   
   primaryGlowColor: string;
 }
+
+// ==========================================
+// PORTAL DE RESULTADOS TYPES
+// ==========================================
+
+export interface Brand {
+  id: number | string;
+  name: string;
+  slug: string;
+  keywords: string[];
+  contentCount?: number;
+}
+
+export type PlatformType = 'youtube' | 'instagram' | 'tiktok';
+export type ContentType = 'all' | 'video' | 'shorts' | 'reels';
+export type SortOption = 'recent' | 'views' | 'likes' | 'comments' | 'shares' | 'engagement';
+export type PeriodFilter = '7d' | '30d' | '90d' | 'year' | 'all' | 'custom';
+
+export interface ContentMetrics {
+  viewsCount: number;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number | null; // null when not publicly provided (e.g. YouTube API)
+  engagementRate: number | null;
+  lastSyncedAt: string;
+}
+
+export interface ContentClassification {
+  primaryBrands: string[];
+  primaryProducts: string[];
+  secondaryBrands: string[];
+  secondaryProducts: string[];
+  aliases: string[];
+  isComparison: boolean;
+  confidenceScore: number;
+}
+
+export interface ContentItem {
+  id: number | string;
+  platform: PlatformType;
+  externalId: string;
+  title: string;
+  description: string;
+  url: string;
+  thumbnailUrl: string;
+  contentType: 'video' | 'shorts' | 'reels';
+  publishedAt: string;
+  brands: string[]; // Brand names or slugs
+  classification?: ContentClassification;
+  metrics: ContentMetrics;
+}
+
+export interface ResultsFilterState {
+  q: string;
+  platform: 'all' | PlatformType;
+  sortBy: SortOption;
+  period: PeriodFilter;
+  startDate?: string;
+  endDate?: string;
+  contentType: ContentType;
+  brand?: string;
+  minViews?: number;
+  page: number;
+  limit: number;
+}
+
+export interface PlatformSummaryBreakdown {
+  platform: PlatformType;
+  totalContents: number;
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number | null;
+}
+
+export interface BrandRankMetric {
+  rank: number;
+  totalValue: number;
+}
+
+export interface BrandRankEngagement {
+  rank: number;
+  value: number;
+}
+
+export interface BrandRankingItem {
+  brandName: string;
+  totalBrands: number;
+  ranks: {
+    views: BrandRankMetric;
+    likes: BrandRankMetric;
+    comments: BrandRankMetric;
+    shares: BrandRankMetric;
+    engagement: BrandRankEngagement;
+  };
+}
+
+export interface ResultsSummaryData {
+  totalContents: number;
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number | null;
+  avgEngagementRate: number;
+  breakdown: {
+    youtube?: PlatformSummaryBreakdown;
+    instagram?: PlatformSummaryBreakdown;
+    tiktok?: PlatformSummaryBreakdown;
+  };
+  brandRanking?: BrandRankingItem | null;
+}
+
+export interface ResultsApiResponse {
+  success: boolean;
+  contents: ContentItem[];
+  summary: ResultsSummaryData;
+  brandRanking?: BrandRankingItem | null;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  activeFilters: ResultsFilterState;
+  lastSyncedAt: string;
+  nextSyncAt: string;
+}
+
+export interface ResultsStatusResponse {
+  success: boolean;
+  lastSyncedAt: string;
+  nextSyncAt: string;
+  syncIntervalMs: number;
+  isSyncing: boolean;
+  platforms: {
+    youtube: { status: 'active' | 'error'; totalContents: number; lastSyncedAt: string };
+    instagram: { status: 'active' | 'error'; totalContents: number; lastSyncedAt: string };
+    tiktok: { status: 'in_progress'; totalContents: number; message: string };
+  };
+}
+

@@ -1,0 +1,188 @@
+import React from 'react';
+import { Youtube, Instagram, ExternalLink, Eye, ThumbsUp, MessageSquare, Share2, TrendingUp, Calendar, Tag } from 'lucide-react';
+import { ContentItem } from '../../types';
+import { ImageWithFallback } from '../ImageWithFallback';
+
+interface ContentCardProps {
+  content: ContentItem;
+}
+
+export const ContentCard: React.FC<ContentCardProps> = ({ content }) => {
+  const formatNum = (num: number) => {
+    if (num >= 1_000_000) {
+      return (num / 1_000_000).toFixed(1).replace('.', ',').replace(',0', '') + ' mi';
+    }
+    if (num >= 1_000) {
+      return (num / 1_000).toFixed(1).replace('.', ',').replace(',0', '') + ' mil';
+    }
+    return num.toLocaleString('pt-BR');
+  };
+
+  const formatDate = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return isoStr;
+    }
+  };
+
+  const isYouTube = content.platform === 'youtube';
+  const isInstagram = content.platform === 'instagram';
+
+  return (
+    <div className="bg-slate-900/90 border border-slate-800 hover:border-slate-700/80 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group">
+      
+      {/* Top Media / Thumbnail Section */}
+      <div className="relative aspect-video bg-slate-950 overflow-hidden">
+        <ImageWithFallback
+          src={content.thumbnailUrl}
+          backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_600,h_600/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
+          alt={content.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+        />
+
+        {/* Dark Overlay Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40" />
+
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 flex items-center gap-2 flex-wrap">
+          {/* Platform Badge */}
+          {isYouTube && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600/90 text-white font-black text-[11px] shadow-md uppercase tracking-wider backdrop-blur-md">
+              <Youtube className="w-3.5 h-3.5" />
+              YouTube
+            </span>
+          )}
+
+          {isInstagram && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white font-black text-[11px] shadow-md uppercase tracking-wider backdrop-blur-md">
+              <Instagram className="w-3.5 h-3.5" />
+              Instagram
+            </span>
+          )}
+
+          {/* Content Type Badge */}
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-950/80 text-slate-300 border border-slate-700/80 font-bold text-[10px] uppercase tracking-wider backdrop-blur-md">
+            {content.contentType === 'shorts' ? 'Shorts' : content.contentType === 'reels' ? 'Reels' : 'Vídeo'}
+          </span>
+        </div>
+
+        {/* Date Badge */}
+        <div className="absolute bottom-2.5 right-3 text-[10px] font-mono text-slate-300 font-bold bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1">
+          <Calendar className="w-3 h-3 text-cyan-400" />
+          {formatDate(content.publishedAt)}
+        </div>
+      </div>
+
+      {/* Body Content Info */}
+      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4 text-left">
+        
+        <div className="space-y-2">
+          {/* Brand Tags */}
+          {content.brands && content.brands.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {content.brands.map((bName, idx) => (
+                <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-[10px] font-extrabold uppercase">
+                  <Tag className="w-2.5 h-2.5 text-cyan-400" />
+                  {bName}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Title */}
+          <h4 className="text-sm sm:text-base font-extrabold text-white leading-snug line-clamp-2 group-hover:text-cyan-300 transition-colors">
+            {content.title}
+          </h4>
+        </div>
+
+        {/* Metrics Grid: 2 Rows */}
+        <div className="pt-2.5 border-t border-slate-800/80 space-y-1.5">
+          {/* Linha 1: Visualizações | Curtidas | Comentários */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+            
+            {/* Visualizações */}
+            <div 
+              title="Visualizações" 
+              className="bg-slate-950/60 py-2 px-1.5 rounded-lg border border-slate-800/80 flex items-center justify-center gap-1.5 min-w-0 transition-colors hover:border-amber-500/40 hover:bg-slate-900/80 cursor-default"
+            >
+              <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-xs font-black text-amber-400 whitespace-nowrap">
+                {formatNum(content.metrics.viewsCount)}
+              </span>
+            </div>
+
+            {/* Curtidas */}
+            <div 
+              title="Curtidas" 
+              className="bg-slate-950/60 py-2 px-1.5 rounded-lg border border-slate-800/80 flex items-center justify-center gap-1.5 min-w-0 transition-colors hover:border-rose-500/40 hover:bg-slate-900/80 cursor-default"
+            >
+              <ThumbsUp className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span className="text-xs font-black text-rose-400 whitespace-nowrap">
+                {formatNum(content.metrics.likesCount)}
+              </span>
+            </div>
+
+            {/* Comentários */}
+            <div 
+              title="Comentários" 
+              className="bg-slate-950/60 py-2 px-1.5 rounded-lg border border-slate-800/80 flex items-center justify-center gap-1.5 min-w-0 transition-colors hover:border-sky-500/40 hover:bg-slate-900/80 cursor-default"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span className="text-xs font-black text-sky-400 whitespace-nowrap">
+                {formatNum(content.metrics.commentsCount)}
+              </span>
+            </div>
+
+          </div>
+
+          {/* Linha 2: Compartilhamentos | Engajamento */}
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center">
+
+            {/* Compartilhamentos */}
+            <div 
+              title="Compartilhamentos" 
+              className="bg-slate-950/60 py-2 px-1.5 rounded-lg border border-slate-800/80 flex items-center justify-center gap-1.5 min-w-0 transition-colors hover:border-emerald-500/40 hover:bg-slate-900/80 cursor-default"
+            >
+              <Share2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className={`text-xs font-black whitespace-nowrap ${content.metrics.sharesCount !== null ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {content.metrics.sharesCount !== null ? formatNum(content.metrics.sharesCount) : '—'}
+              </span>
+            </div>
+
+            {/* Engajamento */}
+            <div 
+              title="Engajamento" 
+              className="bg-slate-950/60 py-2 px-1.5 rounded-lg border border-slate-800/80 flex items-center justify-center gap-1.5 min-w-0 transition-colors hover:border-purple-500/40 hover:bg-slate-900/80 cursor-default"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="text-xs font-black text-purple-400 whitespace-nowrap">
+                {content.metrics.engagementRate !== null ? `${content.metrics.engagementRate.toString().replace('.', ',')}%` : '—'}
+              </span>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Action Link Button */}
+        <a
+          href={content.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white transition-all duration-200 border cursor-pointer active:scale-95 ${
+            isYouTube
+              ? 'bg-red-600/90 hover:bg-red-600 border-red-500/40 hover:shadow-lg hover:shadow-red-600/20'
+              : 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:opacity-95 border-pink-500/40 hover:shadow-lg hover:shadow-pink-600/20'
+          }`}
+        >
+          <span>{isYouTube ? 'VER NO YOUTUBE' : 'VER NO INSTAGRAM'}</span>
+          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+        </a>
+
+      </div>
+
+    </div>
+  );
+};
