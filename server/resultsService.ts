@@ -188,9 +188,7 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
         `);
 
         rawList = res.rows.map(row => {
-          const parsedPrimaryBrands = row.primary_brands 
-            ? (Array.isArray(row.primary_brands) ? row.primary_brands : JSON.parse(row.primary_brands || '[]')) 
-            : null;
+          const cls = classifyContent(row.title, row.description || '', row.content_type || 'video', row.platform);
 
           return {
             id: row.id,
@@ -202,16 +200,8 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
             thumbnailUrl: row.thumbnail_url || '',
             contentType: row.content_type || 'video',
             publishedAt: row.published_at ? new Date(row.published_at).toISOString() : new Date().toISOString(),
-            brands: parsedPrimaryBrands || row.brand_names || [],
-            classification: row.primary_brands ? {
-              primaryBrands: parsedPrimaryBrands || [],
-              primaryProducts: Array.isArray(row.primary_products) ? row.primary_products : JSON.parse(row.primary_products || '[]'),
-              secondaryBrands: Array.isArray(row.secondary_brands) ? row.secondary_brands : JSON.parse(row.secondary_brands || '[]'),
-              secondaryProducts: Array.isArray(row.secondary_products) ? row.secondary_products : JSON.parse(row.secondary_products || '[]'),
-              aliases: Array.isArray(row.aliases) ? row.aliases : JSON.parse(row.aliases || '[]'),
-              isComparison: Boolean(row.is_comparison),
-              confidenceScore: Number(row.confidence_score || 1.0)
-            } : undefined,
+            brands: cls.primaryBrands,
+            classification: cls,
             metrics: {
               viewsCount: Number(row.views_count || 0),
               likesCount: Number(row.likes_count || 0),
@@ -242,9 +232,7 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
         last_synced_at: new Date().toISOString()
       };
 
-      const bIds = memoryDb.content_brands.filter(cb => cb.content_id === c.id).map(cb => cb.brand_id);
-      const bNames = memoryDb.brands.filter(b => bIds.includes(Number(b.id))).map(b => b.name);
-      const cCls = (memoryDb as any).content_classifications?.get(c.id);
+      const cls = classifyContent(c.title, c.description || '', c.content_type || 'video', c.platform);
 
       return {
         id: c.id,
@@ -256,16 +244,8 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
         thumbnailUrl: c.thumbnail_url || '',
         contentType: c.content_type || 'video',
         publishedAt: c.published_at,
-        brands: bNames,
-        classification: cCls ? {
-          primaryBrands: cCls.primary_brands,
-          primaryProducts: cCls.primary_products,
-          secondaryBrands: cCls.secondary_brands,
-          secondaryProducts: cCls.secondary_products,
-          aliases: cCls.aliases,
-          isComparison: cCls.is_comparison,
-          confidenceScore: cCls.confidence_score
-        } : undefined,
+        brands: cls.primaryBrands,
+        classification: cls,
         metrics: {
           viewsCount: metrics.views_count,
           likesCount: metrics.likes_count,
@@ -344,10 +324,7 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
 
     if (queryTokens.length > 0) {
       filtered = filtered.filter(item => {
-        let cls = item.classification;
-        if (!cls) {
-          cls = classifyContent(item.title, item.description, item.contentType, item.platform);
-        }
+        const cls = classifyContent(item.title, item.description, item.contentType, item.platform);
 
         const pBrands = (cls.primaryBrands || []).map(b => b.toLowerCase());
         const pProds = (cls.primaryProducts || []).map(p => p.toLowerCase());

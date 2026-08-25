@@ -73,50 +73,44 @@ const NOISE_STOPWORDS = new Set([
 ]);
 
 // Secondary / Alias Phrase Triggers
-const ALIAS_TRIGGERS = [
-  'mais conhecida como',
-  'também conhecida como',
-  'tambem conhecida como',
-  'conhecida como',
-  'vendida como',
-  'nome internacional',
-  'outro nome',
-  'equivalente a',
-  'similar a',
-  'mesma que',
-  'versão brasileira de',
-  'versao brasileira de',
-  'versão de',
-  'versao de',
-  'substituta de',
-  'substituta da',
-  'substituta do',
-  'substitui a',
-  'substitui o',
-  'substitui',
-  'será que substitui',
-  'sera que substitui',
-  'sucessora de',
-  'sucessora da',
-  'sucessora do',
-  'sucessor de',
-  'novo nome de',
-  'novo nome da',
-  'baseada em',
-  'parecida com',
-  'cópia de',
-  'copia de',
-  'outra cópia',
-  'outra copia',
-  'concorrente da',
-  'concorrente do',
-  'concorrente de',
-  'mesmo projeto da',
-  'mesmo projeto do',
-  'mesma caixa da',
-  'mesma caixa do',
-  'oem de'
-];
+export const ALIAS_TRIGGERS = [
+  'mais conhecida como', 'mais conhecido como',
+  'também conhecida como', 'também conhecido como',
+  'tambem conhecida como', 'tambem conhecido como',
+  'conhecida como', 'conhecido como',
+  'vendida como', 'vendido como',
+  'nome internacional', 'outro nome', 'nome comercial',
+  'com referência a', 'com referencia a',
+  'com referência da', 'com referencia da',
+  'com referência do', 'com referencia do',
+  'com referência', 'com referencia', 'com ref.', 'com ref',
+  'referência a', 'referencia a',
+  'referência da', 'referencia da',
+  'referência do', 'referencia do',
+  'referência', 'referencia', 'ref.', 'ref',
+  'equivalente a', 'equivalente da', 'equivalente do', 'equivalentes', 'equivalente',
+  'similar a', 'similar da', 'similar do', 'similares', 'similar',
+  'mesmo projeto de', 'mesmo projeto da', 'mesmo projeto do', 'mesmo projeto',
+  'mesma caixa de', 'mesma caixa da', 'mesma caixa do', 'mesma caixa',
+  'mesma que', 'mesmo que',
+  'white label de', 'white label da', 'white label do', 'white label',
+  'whitelabel de', 'whitelabel da', 'whitelabel do', 'whitelabel',
+  'oem de', 'oem da', 'oem do', 'oem',
+  'versão brasileira de', 'versao brasileira de', 'versão de', 'versao de',
+  'substituta de', 'substituta da', 'substituta do', 'substitui a', 'substitui o', 'substitui',
+  'será que substitui', 'sera que substitui',
+  'sucessora de', 'sucessora da', 'sucessora do', 'sucessor de',
+  'novo nome de', 'novo nome da', 'novo nome do',
+  'baseada em', 'baseado em',
+  'parecida com', 'parecido com', 'parece com',
+  'a nova', 'a nova caixa', 'é a nova', 'e a nova',
+  'estilo', 'formato', 'tipo',
+  'cópia de', 'copia de', 'cópia da', 'copia da', 'cópia do', 'copia do', 'outra cópia', 'outra copia',
+  'concorrente da', 'concorrente do', 'concorrente de',
+  'destruidora de', 'destruidora da', 'destruidora do',
+  'matadora de', 'matadora da', 'matadora do', 'mata jbl',
+  'réplica de', 'replica de', 'réplica da', 'replica da', 'réplica do', 'replica do'
+].sort((a, b) => b.length - a.length);
 
 // Canonical Brands & Aliases definition
 export const CANONICAL_BRANDS = [
@@ -409,7 +403,10 @@ function extractEntitiesFromSegment(segmentText: string): { brands: string[]; pr
 
   if (extractedBrands.has('Imenso')) {
     if (/x75/i.test(text)) extractedProducts.add('Imenso X75');
+    if (/x73/i.test(text)) extractedProducts.add('Imenso X73');
     if (/x39/i.test(text)) extractedProducts.add('Imenso X39');
+    if (/x38/i.test(text)) extractedProducts.add('Imenso X38');
+    if (/x32/i.test(text)) extractedProducts.add('Imenso X32');
     if (/x26/i.test(text)) extractedProducts.add('Imenso X26');
   }
 
@@ -456,7 +453,7 @@ export function classifyContent(
   const secondaryParts: string[] = [];
 
   // 1. EXTRACT PARENTHESES
-  primaryText = primaryText.replace(/\(([^)]+)\)/g, (match, inner) => {
+  primaryText = primaryText.replace(/\(([^)]+)\)/g, (_match, inner) => {
     const trimmed = inner.trim();
     if (trimmed && trimmed.length >= 2) {
       secondaryParts.push(trimmed);
@@ -464,15 +461,40 @@ export function classifyContent(
     return ' ';
   }).replace(/\s+/g, ' ').trim();
 
-  // 2. CHECK FOR ALIAS / SECONDARY TRIGGERS
+  // 2. CHECK TAIL SEPARATOR SEGMENTS ( - , | ) WHEN BEFORE SEPARATOR HAS A PRIMARY SUBJECT
+  if (/\s+[-|]\s+/.test(primaryText)) {
+    const segments = primaryText.split(/\s+[-|]\s+/);
+    if (segments.length >= 2) {
+      const seg0Res = extractEntitiesFromSegment(segments[0]);
+      if (seg0Res.brands.length > 0 || seg0Res.products.length > 0) {
+        primaryText = segments[0].trim();
+        for (let i = 1; i < segments.length; i++) {
+          const segTrim = segments[i].trim();
+          if (segTrim) secondaryParts.push(segTrim);
+        }
+      }
+    }
+  }
+
+  // 3. CHECK FOR ALIAS / SECONDARY TRIGGERS
   for (const trigger of ALIAS_TRIGGERS) {
     const lowerP = primaryText.toLowerCase();
     const idx = lowerP.indexOf(trigger);
     if (idx !== -1) {
       const mainPart = primaryText.slice(0, idx).trim();
       const secPart = primaryText.slice(idx + trigger.length).trim();
-      primaryText = mainPart;
-      if (secPart) secondaryParts.push(secPart);
+      if (mainPart) {
+        primaryText = mainPart;
+        if (secPart) secondaryParts.push(secPart);
+      } else if (secPart) {
+        const secSegments = secPart.split(/\s+[-|/]\s+/);
+        if (secSegments.length >= 2) {
+          primaryText = secSegments.slice(1).join(' ').trim();
+          secondaryParts.push(secSegments[0].trim());
+        } else {
+          primaryText = secPart;
+        }
+      }
       break;
     }
   }
