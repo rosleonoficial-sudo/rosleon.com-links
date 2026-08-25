@@ -1,3 +1,4 @@
+import { initDatabase } from '../../server/db.js';
 import { getSyncStatus } from '../../server/resultsService.js';
 
 export default async function handler(req: any, res: any) {
@@ -11,6 +12,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    await initDatabase();
     const status = getSyncStatus();
     return res.status(200).json(status);
   } catch (err: any) {

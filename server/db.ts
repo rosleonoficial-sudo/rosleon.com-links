@@ -65,129 +65,144 @@ const memoryDb: MemoryStore = {
 
 let pool: pg.Pool | null = null;
 let isPgAvailable = false;
+let initPromise: Promise<void> | null = null;
 
 export async function initDatabase() {
-  const databaseUrl = process.env.DATABASE_URL;
-
-  if (databaseUrl) {
-    try {
-      pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
-        connectionTimeoutMillis: 5000
-      });
-
-      // Test connection
-      const client = await pool.connect();
-      client.release();
-      isPgAvailable = true;
-      console.log('PostgreSQL Database conectado com sucesso via DATABASE_URL');
-
-      // Create Tables
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS brands (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL UNIQUE,
-          slug VARCHAR(255) NOT NULL UNIQUE,
-          keywords JSONB NOT NULL DEFAULT '[]'::jsonb,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS contents (
-          id SERIAL PRIMARY KEY,
-          platform VARCHAR(50) NOT NULL,
-          external_id VARCHAR(255) NOT NULL,
-          title TEXT NOT NULL,
-          description TEXT,
-          url TEXT NOT NULL,
-          thumbnail_url TEXT,
-          content_type VARCHAR(50) DEFAULT 'video',
-          published_at TIMESTAMP WITH TIME ZONE,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT uq_platform_external_id UNIQUE(platform, external_id)
-        );
-
-        CREATE TABLE IF NOT EXISTS content_brands (
-          content_id INT REFERENCES contents(id) ON DELETE CASCADE,
-          brand_id INT REFERENCES brands(id) ON DELETE CASCADE,
-          PRIMARY KEY (content_id, brand_id)
-        );
-
-        CREATE TABLE IF NOT EXISTS content_metrics (
-          content_id INT PRIMARY KEY REFERENCES contents(id) ON DELETE CASCADE,
-          views_count BIGINT DEFAULT 0,
-          likes_count BIGINT DEFAULT 0,
-          comments_count BIGINT DEFAULT 0,
-          shares_count BIGINT DEFAULT NULL,
-          engagement_rate REAL DEFAULT 0,
-          last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS products (
-          id SERIAL PRIMARY KEY,
-          brand_id INT REFERENCES brands(id) ON DELETE CASCADE,
-          name VARCHAR(255) NOT NULL,
-          slug VARCHAR(255) NOT NULL UNIQUE,
-          model_code VARCHAR(100),
-          aliases JSONB NOT NULL DEFAULT '[]'::jsonb,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS content_classifications (
-          content_id INT PRIMARY KEY REFERENCES contents(id) ON DELETE CASCADE,
-          primary_brands JSONB NOT NULL DEFAULT '[]'::jsonb,
-          primary_products JSONB NOT NULL DEFAULT '[]'::jsonb,
-          secondary_brands JSONB NOT NULL DEFAULT '[]'::jsonb,
-          secondary_products JSONB NOT NULL DEFAULT '[]'::jsonb,
-          aliases JSONB NOT NULL DEFAULT '[]'::jsonb,
-          is_comparison BOOLEAN DEFAULT FALSE,
-          confidence_score REAL DEFAULT 1.0,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_contents_published_at ON contents(published_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_contents_platform ON contents(platform);
-        CREATE INDEX IF NOT EXISTS idx_brands_slug ON brands(slug);
-        CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
-        CREATE INDEX IF NOT EXISTS idx_classifications_comparison ON content_classifications(is_comparison);
-      `);
-
-      // Seed & update Postgres brands with clean keywords
-      for (const b of INITIAL_BRANDS) {
-        await pool.query(
-          `INSERT INTO brands (name, slug, keywords) VALUES ($1, $2, $3)
-           ON CONFLICT (name) DO UPDATE SET keywords = EXCLUDED.keywords`,
-          [b.name, b.slug, JSON.stringify(b.keywords)]
-        );
-      }
-
-      // PURGE ALL MOCK/DEMO CONTENTS FROM POSTGRES IF THEY EXIST
-      await pool.query(`
-        DELETE FROM contents 
-        WHERE external_id LIKE '%_yt' 
-           OR external_id LIKE '%_ig' 
-           OR external_id = 'OmoZTIh7DCs'
-           OR external_id = 'waaw_hyper100_yt'
-           OR external_id = 'jbl_vs_waaw_yt'
-           OR external_id = 'uol_meunegocio_ig'
-           OR external_id = 'basike_fone_ig'
-           OR external_id = 'jbl_partybox_ig'
-           OR external_id = 'waaw_vibe100_shorts'
-           OR external_id = 'waaw_meli_ig'
-      `);
-
-      return;
-    } catch (e: any) {
-      console.warn('Não foi possível conectar ao PostgreSQL via DATABASE_URL. Utilizando in-memory DB fallback:', e.message);
-      isPgAvailable = false;
-    }
+  if (isPgAvailable && pool) {
+    return;
+  }
+  if (initPromise) {
+    return initPromise;
   }
 
-  // Fallback to In-Memory Store
-  seedMemoryDatabase();
+  initPromise = (async () => {
+    const databaseUrl = process.env.DATABASE_URL;
+
+    if (databaseUrl) {
+      try {
+        if (!pool) {
+          pool = new Pool({
+            connectionString: databaseUrl,
+            ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+            connectionTimeoutMillis: 5000
+          });
+        }
+
+        // Test connection
+        const client = await pool.connect();
+        client.release();
+        isPgAvailable = true;
+        console.log('PostgreSQL Database conectado com sucesso via DATABASE_URL');
+
+        // Create Tables
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS brands (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL UNIQUE,
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            keywords JSONB NOT NULL DEFAULT '[]'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE TABLE IF NOT EXISTS contents (
+            id SERIAL PRIMARY KEY,
+            platform VARCHAR(50) NOT NULL,
+            external_id VARCHAR(255) NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            url TEXT NOT NULL,
+            thumbnail_url TEXT,
+            content_type VARCHAR(50) DEFAULT 'video',
+            published_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_platform_external_id UNIQUE(platform, external_id)
+          );
+
+          CREATE TABLE IF NOT EXISTS content_brands (
+            content_id INT REFERENCES contents(id) ON DELETE CASCADE,
+            brand_id INT REFERENCES brands(id) ON DELETE CASCADE,
+            PRIMARY KEY (content_id, brand_id)
+          );
+
+          CREATE TABLE IF NOT EXISTS content_metrics (
+            content_id INT PRIMARY KEY REFERENCES contents(id) ON DELETE CASCADE,
+            views_count BIGINT DEFAULT 0,
+            likes_count BIGINT DEFAULT 0,
+            comments_count BIGINT DEFAULT 0,
+            shares_count BIGINT DEFAULT NULL,
+            engagement_rate REAL DEFAULT 0,
+            last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE TABLE IF NOT EXISTS products (
+            id SERIAL PRIMARY KEY,
+            brand_id INT REFERENCES brands(id) ON DELETE CASCADE,
+            name VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            model_code VARCHAR(100),
+            aliases JSONB NOT NULL DEFAULT '[]'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE TABLE IF NOT EXISTS content_classifications (
+            content_id INT PRIMARY KEY REFERENCES contents(id) ON DELETE CASCADE,
+            primary_brands JSONB NOT NULL DEFAULT '[]'::jsonb,
+            primary_products JSONB NOT NULL DEFAULT '[]'::jsonb,
+            secondary_brands JSONB NOT NULL DEFAULT '[]'::jsonb,
+            secondary_products JSONB NOT NULL DEFAULT '[]'::jsonb,
+            aliases JSONB NOT NULL DEFAULT '[]'::jsonb,
+            is_comparison BOOLEAN DEFAULT FALSE,
+            confidence_score REAL DEFAULT 1.0,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_contents_published_at ON contents(published_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_contents_platform ON contents(platform);
+          CREATE INDEX IF NOT EXISTS idx_brands_slug ON brands(slug);
+          CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+          CREATE INDEX IF NOT EXISTS idx_classifications_comparison ON content_classifications(is_comparison);
+        `);
+
+        // Seed & update Postgres brands with clean keywords
+        for (const b of INITIAL_BRANDS) {
+          await pool.query(
+            `INSERT INTO brands (name, slug, keywords) VALUES ($1, $2, $3)
+             ON CONFLICT (name) DO UPDATE SET keywords = EXCLUDED.keywords`,
+            [b.name, b.slug, JSON.stringify(b.keywords)]
+          );
+        }
+
+        // PURGE ALL MOCK/DEMO CONTENTS FROM POSTGRES IF THEY EXIST
+        await pool.query(`
+          DELETE FROM contents 
+          WHERE external_id LIKE '%_yt' 
+             OR external_id LIKE '%_ig' 
+             OR external_id = 'OmoZTIh7DCs'
+             OR external_id = 'waaw_hyper100_yt'
+             OR external_id = 'jbl_vs_waaw_yt'
+             OR external_id = 'uol_meunegocio_ig'
+             OR external_id = 'basike_fone_ig'
+             OR external_id = 'jbl_partybox_ig'
+             OR external_id = 'waaw_vibe100_shorts'
+             OR external_id = 'waaw_meli_ig'
+        `);
+
+        return;
+      } catch (e: any) {
+        console.warn('Não foi possível conectar ao PostgreSQL via DATABASE_URL. Utilizando in-memory DB fallback:', e.message);
+        isPgAvailable = false;
+        initPromise = null;
+      }
+    }
+
+    // Fallback to In-Memory Store
+    seedMemoryDatabase();
+  })();
+
+  return initPromise;
 }
 
 function seedMemoryDatabase() {

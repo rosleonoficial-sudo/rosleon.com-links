@@ -1,8 +1,9 @@
-import { searchContents, getSyncStatus } from '../server/resultsService.js';
+import { initDatabase } from '../server/db.js';
+import { searchContents, getSyncStatus, syncSocialMediaContents } from '../server/resultsService.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
 
@@ -10,12 +11,24 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  // Handle status route if routed here
-  if (req.url?.includes('/status')) {
-    return res.status(200).json(getSyncStatus());
-  }
-
   try {
+    await initDatabase();
+
+    // Handle subroutes if routed to this catch-all
+    if (req.url?.includes('/status')) {
+      return res.status(200).json(getSyncStatus());
+    }
+
+    if (req.url?.includes('/sync')) {
+      await syncSocialMediaContents();
+      const status = getSyncStatus();
+      return res.status(200).json({
+        success: true,
+        message: 'Sincronização concluída com sucesso',
+        status
+      });
+    }
+
     const q = typeof req.query?.q === 'string' ? req.query.q : '';
     const platform = typeof req.query?.platform === 'string' ? req.query.platform : 'all';
     const sortBy = typeof req.query?.sortBy === 'string' ? req.query.sortBy : 'recent';

@@ -672,10 +672,23 @@ app.get(['/api/brands', '/brands'], async (_req, res) => {
   }
 });
 
-// POST /api/results/sync - Manual Sync Trigger
-app.post('/api/results/sync', async (_req, res) => {
-  syncSocialMediaContents().catch(err => console.error('Erro no sync manual:', err));
-  res.json({ success: true, message: 'Sincronização iniciada em segundo plano' });
+// POST /api/results/sync & POST /results/sync - Manual Sync Trigger
+app.post(['/api/results/sync', '/results/sync'], async (_req, res) => {
+  try {
+    await initDatabase();
+    await syncSocialMediaContents();
+    const status = getSyncStatus();
+    res.json({
+      success: true,
+      message: 'Sincronização concluída com sucesso',
+      status,
+      youtube: status.platforms.youtube,
+      instagram: status.platforms.instagram
+    });
+  } catch (err: any) {
+    console.error('Erro no sync manual:', err);
+    res.status(500).json({ success: false, error: err.message || 'Erro ao sincronizar' });
+  }
 });
 
 // POST /api/results/reclassify - Manual Semantic Reclassification Trigger

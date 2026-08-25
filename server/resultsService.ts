@@ -593,10 +593,16 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
   };
 }
 
+let activeSyncPromise: Promise<void> | null = null;
+
 export async function syncSocialMediaContents() {
-  if (globalIsSyncing) return;
+  if (globalIsSyncing && activeSyncPromise) {
+    return activeSyncPromise;
+  }
   globalIsSyncing = true;
-  console.log('Iniciando sincronização e backfill completo de conteúdos sociais...');
+
+  activeSyncPromise = (async () => {
+    console.log('Iniciando sincronização e backfill completo de conteúdos sociais...');
 
   const ytKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
   const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
@@ -868,10 +874,14 @@ export async function syncSocialMediaContents() {
   // 3. Reprocess brand associations cleanly for all contents
   await reprocessAllContentBrands();
 
-  globalLastSyncedAt = new Date().toISOString();
-  globalNextSyncAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-  globalIsSyncing = false;
-  console.log(`Sincronização e Backfill concluídos. YouTube: ${ytCount} itens, Instagram: ${igCount} itens.`);
+    globalLastSyncedAt = new Date().toISOString();
+    globalNextSyncAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    globalIsSyncing = false;
+    activeSyncPromise = null;
+    console.log(`Sincronização e Backfill concluídos. YouTube: ${ytCount} itens, Instagram: ${igCount} itens.`);
+  })();
+
+  return activeSyncPromise;
 }
 
 interface UpsertPayload {
