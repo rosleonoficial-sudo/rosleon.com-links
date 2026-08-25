@@ -200,11 +200,17 @@ export async function initDatabase() {
 
         // Seed & update Postgres brands with clean keywords
         for (const b of INITIAL_BRANDS) {
-          await pool.query(
-            `INSERT INTO brands (name, slug, keywords) VALUES ($1, $2, $3)
-             ON CONFLICT (name) DO UPDATE SET keywords = EXCLUDED.keywords`,
-            [b.name, b.slug, JSON.stringify(b.keywords)]
+          const res = await pool.query(
+            `UPDATE brands SET keywords = $1 WHERE name = $2 OR slug = $3`,
+            [JSON.stringify(b.keywords), b.name, b.slug]
           );
+          if ((res.rowCount ?? 0) === 0) {
+            await pool.query(
+              `INSERT INTO brands (name, slug, keywords) VALUES ($1, $2, $3)
+               ON CONFLICT DO NOTHING`,
+              [b.name, b.slug, JSON.stringify(b.keywords)]
+            );
+          }
         }
 
         // PURGE ALL MOCK/DEMO CONTENTS FROM POSTGRES IF THEY EXIST
