@@ -118,8 +118,49 @@ const ALIAS_TRIGGERS = [
   'oem de'
 ];
 
+// Canonical Brands & Aliases definition
+export const CANONICAL_BRANDS = [
+  { name: 'WAAW', slug: 'waaw', keywords: ['waaw', 'waaw by alok', 'boombug', 'waaw300'] },
+  { name: 'UOL', slug: 'uol', keywords: ['uol', 'uol meu negocio', 'uolhost', 'uol host', 'uol play', 'meunegocio'] },
+  { name: 'JBL', slug: 'jbl', keywords: ['jbl', 'jbl boombox', 'jbl flip', 'jbl charge', 'jbl partybox', 'jbl tune', 'jbl go', 'jbl xtreme', 'jbl clip', 'jbl pulse', 'jbl authentic'] },
+  { name: 'Basike', slug: 'basike', keywords: ['basike', 'ba-rad', 'rad289', 'rad133', 'rad304', 'rad440', 'rad439', 'rad438', 'rad 441', 'rad 439', 'rad 438', 'rad 304', 'ba rad'] },
+  { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x'] },
+  { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] },
+  { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] },
+  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
+  { name: 'Tronsmart', slug: 'tronsmart', keywords: ['tronsmart', 'tronsmart bang', 'soundfi', 'bang max'] },
+  { name: 'Stage', slug: 'stage', keywords: ['stage', 'stage gofree', 'gofree 2', 'stage sound'] },
+  { name: 'Xdobo', slug: 'xdobo', keywords: ['xdobo', 'xdobo prince', 'xdobo wow', 'prince 1995'] },
+  { name: 'Sabala', slug: 'sabala', keywords: ['sabala', 'sabala dr', 'dr-909', 'dr-300', 'dr909', 'dr300', 'dr107'] },
+  { name: 'Nuoma', slug: 'nuoma', keywords: ['nuoma', 'nm-ip501', 'aip603', 'aip601', 'aip-603', 'aip-601'] },
+  { name: 'Imenso', slug: 'imenso', keywords: ['imenso', 'imenso x39', 'imenso x26', 'imenso x75'] },
+  { name: 'Anker', slug: 'anker', keywords: ['anker', 'soundcore', 'motion boom', 'motion+'] },
+  { name: 'Mifa', slug: 'mifa', keywords: ['mifa', 'mirtune', 'mirtune s100', 'mirtune h1'] },
+  { name: 'Zealot', slug: 'zealot', keywords: ['zealot', 'zealot s78', 'zealot s89'] },
+  { name: 'Hopestar', slug: 'hopestar', keywords: ['hopestar', 'hopestar a60'] },
+  { name: 'Joog', slug: 'joog', keywords: ['joog', 'joog air'] },
+  { name: 'Kimaster', slug: 'kimaster', keywords: ['kimaster'] },
+  { name: 'Kaidi', slug: 'kaidi', keywords: ['kaidi'] },
+  { name: 'H\'Maston', slug: 'hmaston', keywords: ['hmaston', "h'maston", 'h-maston', 'h maston'] },
+  { name: 'FAM', slug: 'fam', keywords: ['fam'] },
+  { name: 'Agold', slug: 'agold', keywords: ['agold'] },
+  { name: 'Danx', slug: 'danx', keywords: ['danx'] },
+  { name: 'AOC', slug: 'aoc', keywords: ['aoc'] },
+  { name: 'Realme', slug: 'realme', keywords: ['realme'] },
+  { name: 'LG', slug: 'lg', keywords: ['lg', 'xboom'] },
+  { name: 'Beats', slug: 'beats', keywords: ['beats'] },
+  { name: 'W-King', slug: 'w-king', keywords: ['w-king', 'wking', 'w king'] },
+  { name: 'MLove', slug: 'mlove', keywords: ['mlove'] },
+  { name: 'Fifine', slug: 'fifine', keywords: ['fifine'] },
+  { name: 'Armer', slug: 'armer', keywords: ['armer'] },
+  { name: 'Byintek', slug: 'byintek', keywords: ['byintek'] },
+  { name: 'Bigme', slug: 'bigme', keywords: ['bigme'] },
+  { name: 'Infinix', slug: 'infinix', keywords: ['infinix'] },
+  { name: 'OEK', slug: 'oek', keywords: ['oek'] }
+];
+
 // Explicit Comparison Regex (strict match for real comparisons only)
-const EXPLICIT_COMPARISON_REGEX = /\b(vs\.?|versus|\b\s+x\s+|\bvs\b|\bvc\b|\bou\b|qual é melhor|qual e melhor|qual escolher|um ou outro|duelo|batalha|teste lado a lado|quem leva a melhor|disputa)\b/i;
+const EXPLICIT_COMPARISON_REGEX = /\b(vs\.?|versus|\b\s+x\s+|\bvs\b|\bvc\b|qual é melhor|qual e melhor|qual escolher|um ou outro|duelo|batalha|teste lado a lado|quem leva a melhor|disputa)\b/i;
 
 // Regex for model codes (e.g., RAD-441, RAD 441, NM-IP501, NM IP501, S78, DR-908, X39, GP13000, ZE41, ACS6331, IP-601M)
 const MODEL_CODE_REGEX = /\b([a-z]{1,4}[- ]?\d{2,5}[a-z]?|\d{3,5}[a-z]{1,3}|[a-z]{2,5}\d{1,4}[a-z]?)\b/i;
@@ -301,124 +342,80 @@ function extractEntitiesFromSegment(segmentText: string): { brands: string[]; pr
   const extractedBrands = new Set<string>();
   const extractedProducts = new Set<string>();
 
-  // Explicit Bomber brand & product extraction rule
-  if (/\b(bomber|bomberbass|bomberbox|bombertrolley|boomberbass|boomberbox)\b/i.test(text)) {
-    extractedBrands.add('Bomber');
-
-    if (/bomber\s*premium\s*140/i.test(text)) {
-      extractedProducts.add('Bomber Premium 140');
-    }
-    if (/bo*mbe*rbass\s*plus/i.test(text)) {
-      extractedProducts.add('BomberBass Plus');
-    } else if (/bomberbass\s*4/i.test(text)) {
-      extractedProducts.add('BomberBass 4');
-    } else if (/bo*mbe*rbass/i.test(text)) {
-      extractedProducts.add('BomberBass');
-    }
-
-    if (/bo*mbe*rbox\s*pro/i.test(text) || /bo*mbe*rbox/i.test(text)) {
-      extractedProducts.add('BomberBox Pro');
-    }
-
-    if (/bomber\s*trolley\s*850/i.test(text) || /bomber\s*trolley/i.test(text)) {
-      extractedProducts.add('Bomber Trolley 850');
-    }
-  }
-
-  // 1. Check existing Catalog Brands first
-  for (const b of brandCatalog) {
-    const normB = normalizeToken(b.name);
-    if (!normB) continue;
-
-    // Boundary check for brand name in text
-    const regex = new RegExp(`\\b${b.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\b`, 'i');
-    if (regex.test(text)) {
-      extractedBrands.add(b.name);
-    }
-  }
-
-  // 2. Look for Model Code patterns in the text
-  const words = text.split(/\s+/);
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i].replace(/[:,\(\)!\?]/g, '');
-    const modelMatch = word.match(MODEL_CODE_REGEX);
-
-    if (modelMatch && !isGenericWord(word)) {
-      const modelCode = modelMatch[0];
-      const normModelCode = normalizeModelCode(modelCode);
-
-      // Check if previous word or two words prior is a brand
-      let brandFound: string | null = null;
-      if (i > 0) {
-        const prev1 = words[i - 1].replace(/[:,\(\)!\?]/g, '');
-        if (!isGenericWord(prev1) && prev1.length >= 2) {
-          brandFound = prev1;
-        }
-      }
-      if (!brandFound && i > 1) {
-        const prev2 = words[i - 2].replace(/[:,\(\)!\?]/g, '');
-        const prev1 = words[i - 1].replace(/[:,\(\)!\?]/g, '');
-        const combo = `${prev2} ${prev1}`;
-        if (!isGenericWord(prev2) && !isGenericWord(prev1)) {
-          brandFound = combo;
-        }
-      }
-
-      // If brand was not immediately preceding, check modelToBrandMap from catalog
-      if (!brandFound && modelToBrandMap.has(normModelCode)) {
-        brandFound = modelToBrandMap.get(normModelCode)!;
-      }
-
-      if (brandFound && !isGenericWord(brandFound)) {
-        // Capitalize brand cleanly
-        const brandClean = brandFound.charAt(0).toUpperCase() + brandFound.slice(1);
-        extractedBrands.add(brandClean);
-
-        const prodName = `${brandClean} ${modelCode.toUpperCase()}`;
-        extractedProducts.add(prodName);
-
-        // Auto-register brand and product to catalog
-        registerBrandAndProduct(brandClean, modelCode, prodName);
-      } else {
-        // Model code alone found without explicit brand
-        extractedProducts.add(modelCode.toUpperCase());
-      }
-    }
-  }
-
-  // 3. Look for Known Product Line patterns (e.g., Hyperboom 1000, Infinite 100, Boombox 4, Stormbox Blast)
-  const lineMatch = text.match(KNOWN_LINE_REGEX);
-  if (lineMatch) {
-    const lineName = lineMatch[0];
-    // Check if brand is nearby
-    let matchedBrand: string | null = null;
-    for (const b of brandCatalog) {
-      const regex = new RegExp(`\\b${b.name}\\b`, 'i');
+  CANONICAL_BRANDS.forEach(b => {
+    for (const kw of b.keywords) {
+      const escaped = kw.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const regex = new RegExp(`(?:^|[^a-zA-Z0-9_])${escaped}(?:$|[^a-zA-Z0-9_])`, 'i');
       if (regex.test(text)) {
-        matchedBrand = b.name;
+        extractedBrands.add(b.name);
         break;
       }
     }
+  });
 
-    if (matchedBrand) {
-      extractedBrands.add(matchedBrand);
-      const fullProd = `${matchedBrand} ${lineName.charAt(0).toUpperCase() + lineName.slice(1)}`;
-      extractedProducts.add(fullProd);
-    } else {
-      extractedProducts.add(lineName.charAt(0).toUpperCase() + lineName.slice(1));
-    }
+  // Extract model/product specifics
+  if (extractedBrands.has('Bomber')) {
+    if (/bomber\s*premium\s*140/i.test(text)) extractedProducts.add('Bomber Premium 140');
+    if (/bo*mbe*rbass\s*plus/i.test(text)) extractedProducts.add('BomberBass Plus');
+    else if (/bomberbass\s*4/i.test(text)) extractedProducts.add('BomberBass 4');
+    else if (/bo*mbe*rbass/i.test(text)) extractedProducts.add('BomberBass');
+    if (/bo*mbe*rbox\s*pro/i.test(text) || /bo*mbe*rbox/i.test(text)) extractedProducts.add('BomberBox Pro');
+    if (/bomber\s*trolley\s*850/i.test(text) || /bomber\s*trolley/i.test(text)) extractedProducts.add('Bomber Trolley 850');
   }
 
-  // 4. Standalone Brand Detection (if a brand is named without a specific model)
-  for (const word of words) {
-    const cleanW = word.replace(/[:,\(\)!\?]/g, '');
-    if (!isGenericWord(cleanW) && cleanW.length >= 3 && /^[A-Z][a-zA-Z0-9]+$/.test(cleanW)) {
-      // Check if it matches an existing catalog brand
-      const matchingCatalog = brandCatalog.find(b => normalizeToken(b.name) === normalizeToken(cleanW));
-      if (matchingCatalog) {
-        extractedBrands.add(matchingCatalog.name);
-      }
-    }
+  if (extractedBrands.has('Tribit')) {
+    if (/stormbox\s*blast\s*2/i.test(text)) extractedProducts.add('Tribit StormBox Blast 2');
+    else if (/stormbox\s*blast\s*1/i.test(text) || /tribit\s*blast/i.test(text)) extractedProducts.add('Tribit StormBox Blast 1');
+    else if (/tribit\s*lava/i.test(text)) extractedProducts.add('Tribit Lava');
+    else if (/stormbox/i.test(text)) extractedProducts.add('Tribit StormBox');
+  }
+
+  if (extractedBrands.has('Stage')) {
+    if (/gofree\s*2/i.test(text)) extractedProducts.add('Stage GoFree 2');
+    else if (/stage\s*sound/i.test(text)) extractedProducts.add('Stage Sound');
+  }
+
+  if (extractedBrands.has('Mifa')) {
+    if (/mirtune\s*s100/i.test(text)) extractedProducts.add('Mifa Mirtune S100');
+    else if (/mirtune\s*h1/i.test(text)) extractedProducts.add('Mifa Mirtune H1');
+  }
+
+  if (extractedBrands.has('Tronsmart')) {
+    if (/bang\s*max/i.test(text)) extractedProducts.add('Tronsmart Bang Max');
+    if (/soundfi\s*q20s/i.test(text) || /soundfi/i.test(text)) extractedProducts.add('Tronsmart SoundFi Q20S');
+  }
+
+  if (extractedBrands.has('Sabala')) {
+    if (/dr-?909/i.test(text)) extractedProducts.add('Sabala DR-909');
+    if (/dr-?300/i.test(text)) extractedProducts.add('Sabala DR-300');
+    if (/dr-?107/i.test(text)) extractedProducts.add('Sabala DR-107');
+  }
+
+  if (extractedBrands.has('Nuoma')) {
+    if (/ip-?501/i.test(text) || /nm-ip501/i.test(text)) extractedProducts.add('Nuoma NM-IP501');
+    if (/aip-?603/i.test(text)) extractedProducts.add('Nuoma AIP-603');
+    if (/aip-?601/i.test(text)) extractedProducts.add('Nuoma AIP-601');
+  }
+
+  if (extractedBrands.has('Basike')) {
+    if (/rad\s*441/i.test(text)) extractedProducts.add('Basike RAD 441');
+    if (/rad\s*439/i.test(text)) extractedProducts.add('Basike RAD 439');
+    if (/rad\s*438/i.test(text)) extractedProducts.add('Basike RAD 438');
+    if (/rad\s*304/i.test(text) || /ba\s*rad\s*304/i.test(text)) extractedProducts.add('Basike BA RAD 304');
+    if (/rad\s*289/i.test(text)) extractedProducts.add('Basike RAD 289');
+    if (/rad\s*133/i.test(text)) extractedProducts.add('Basike RAD 133');
+    if (/rad\s*252/i.test(text)) extractedProducts.add('Basike RAD 252');
+  }
+
+  if (extractedBrands.has('Imenso')) {
+    if (/x75/i.test(text)) extractedProducts.add('Imenso X75');
+    if (/x39/i.test(text)) extractedProducts.add('Imenso X39');
+    if (/x26/i.test(text)) extractedProducts.add('Imenso X26');
+  }
+
+  if (extractedBrands.has('Xdobo')) {
+    if (/prince\s*1995/i.test(text)) extractedProducts.add('Xdobo Prince 1995');
+    if (/wow\s*max/i.test(text)) extractedProducts.add('Xdobo WOW MAX');
   }
 
   return {
@@ -458,41 +455,16 @@ export function classifyContent(
   let primaryText = cleanT;
   const secondaryParts: string[] = [];
 
-  // 1. EXTRACT PARENTHESES (e.g. "(Xdobo WOW MAX)" or "(Imenso X75)")
+  // 1. EXTRACT PARENTHESES
   primaryText = primaryText.replace(/\(([^)]+)\)/g, (match, inner) => {
     const trimmed = inner.trim();
-    if (trimmed) {
-      const isGenericInside = trimmed.split(/\s+/).every(w => isGenericWord(w) || /^\d+w?$/i.test(w));
-      if (!isGenericInside && trimmed.length >= 2) {
-        secondaryParts.push(trimmed);
-      }
+    if (trimmed && trimmed.length >= 2) {
+      secondaryParts.push(trimmed);
     }
     return ' ';
   }).replace(/\s+/g, ' ').trim();
 
-  // 2. CHECK FOR HOOK PATTERN "Fim da <Sec>? Agora <Pri>!" or "Fim do <Sec>?"
-  const fimDaMatch = primaryText.match(/^fim\s+d[aoe]s?\s+([^?!]+)[?!]+\s*(?:agora\s+)?(.*)$/i);
-  if (fimDaMatch && fimDaMatch[2].trim()) {
-    secondaryParts.push(fimDaMatch[1].trim());
-    primaryText = fimDaMatch[2].trim();
-  }
-
-  // 3. CHECK FOR HOOK PATTERNS "a nova <Sec>?" or "o novo <Sec>?" AT END OF TITLE
-  const hookPhrases = [' a nova ', ' o novo ', ' nova '];
-  for (const hp of hookPhrases) {
-    const lowerP = primaryText.toLowerCase();
-    const lastIdx = lowerP.lastIndexOf(hp);
-    if (lastIdx > 0) {
-      const afterHook = primaryText.slice(lastIdx + hp.length).replace(/\?$/, '').trim();
-      if (afterHook) {
-        secondaryParts.push(afterHook);
-        primaryText = primaryText.slice(0, lastIdx).trim();
-        break;
-      }
-    }
-  }
-
-  // 4. SPLIT BY ALIAS / SECONDARY TRIGGERS (e.g. "mais conhecida como", "substituta da", "versão de")
+  // 2. CHECK FOR ALIAS / SECONDARY TRIGGERS
   for (const trigger of ALIAS_TRIGGERS) {
     const lowerP = primaryText.toLowerCase();
     const idx = lowerP.indexOf(trigger);
@@ -505,69 +477,49 @@ export function classifyContent(
     }
   }
 
-  // 5. HANDLE HYPHEN '-' OR SLASH '/' IN TITLE
-  // Check if primaryText has an explicit comparison trigger
-  const hasExplicitComp = EXPLICIT_COMPARISON_REGEX.test(primaryText);
+  // 3. CHECK FOR EXPLICIT HOOK PATTERN "Fim da <Sec>? Agora <Pri>!"
+  const fimDaMatch = primaryText.match(/^fim\s+d[aoe]s?\s+([^?!]+)[?!]+\s*(?:agora\s+)?(.*)$/i);
+  if (fimDaMatch && fimDaMatch[2].trim()) {
+    secondaryParts.push(fimDaMatch[1].trim());
+    primaryText = fimDaMatch[2].trim();
+  }
 
-  if (hasExplicitComp) {
-    // Check if there is a trailing clause after '-' (e.g., "Hopestar A60 Ultra vs Nuoma IP-501 - Imenso X75/Xdobo WOW MAX")
-    const dashIdx = primaryText.indexOf(' - ');
-    if (dashIdx > 0) {
-      const beforeDash = primaryText.slice(0, dashIdx).trim();
-      const afterDash = primaryText.slice(dashIdx + 3).trim();
-      // If the explicit comparison word is BEFORE the dash, then afterDash is secondary
-      if (EXPLICIT_COMPARISON_REGEX.test(beforeDash)) {
-        primaryText = beforeDash;
-        if (afterDash) secondaryParts.push(afterDash);
-      }
-    }
-  } else {
-    // NO explicit comparison trigger. Check if '-' separates a primary subject from a secondary reference
-    // Example: "Teste de Bateria Basike RAD 289 - Imenso x39 e Basike RAD 133 Vol: 100%"
-    if (primaryText.includes(' - ')) {
-      const parts = primaryText.split(' - ').map(s => s.trim()).filter(Boolean);
-      if (parts.length >= 2) {
-        const sideA = extractEntitiesFromSegment(parts[0]);
-        if (sideA.brands.length > 0 || sideA.products.length > 0) {
-          primaryText = parts[0];
-          for (let i = 1; i < parts.length; i++) {
-            secondaryParts.push(parts[i]);
-          }
-        }
+  // 4. CHECK EXPLICIT COMPARISON
+  let isComparison = EXPLICIT_COMPARISON_REGEX.test(primaryText);
+  if (!isComparison) {
+    // Check if ' ou ' is present between brand/product segments
+    if (/\b\s+ou\s+\b/i.test(primaryText)) {
+      const parts = primaryText.split(/\b\s+ou\s+\b/i);
+      const sideA = extractEntitiesFromSegment(parts[0]);
+      const sideB = extractEntitiesFromSegment(parts.slice(1).join(' ou '));
+      if ((sideA.brands.length > 0 || sideA.products.length > 0) && (sideB.brands.length > 0 || sideB.products.length > 0)) {
+        isComparison = true;
       }
     }
   }
-
-  // 6. EVALUATE IS_COMPARISON (STRICT MATCH FOR REAL COMPARISONS ONLY)
-  const isComparison = EXPLICIT_COMPARISON_REGEX.test(primaryText);
 
   const primaryBrandsSet = new Set<string>();
   const primaryProductsSet = new Set<string>();
 
   if (isComparison) {
-    // Split primary text into comparison sides
-    const sides = primaryText.split(/\b(?:vs\.?|versus|\b\s+x\s+|\bvs\b|ou|duelo|batalha)\b/i).map(s => s.trim()).filter(Boolean);
-
+    const sides = primaryText.split(/\b(?:vs\.?|versus|\b\s+x\s+|\bvs\b|\bvc\b|\bou\b|duelo|batalha)\b/i).map(s => s.trim()).filter(Boolean);
     for (const side of sides) {
       const res = extractEntitiesFromSegment(side);
       res.brands.forEach(b => primaryBrandsSet.add(b));
       res.products.forEach(p => primaryProductsSet.add(p));
     }
   } else {
-    // Single Primary Clause
     const res = extractEntitiesFromSegment(primaryText);
     res.brands.forEach(b => primaryBrandsSet.add(b));
     res.products.forEach(p => primaryProductsSet.add(p));
   }
 
-  // 7. EXTRACT SECONDARY / ALIAS ENTITIES
   const secondaryBrandsSet = new Set<string>();
   const secondaryProductsSet = new Set<string>();
-  const aliasesSet = new Set<string>();
 
-  const secondaryCombinedText = secondaryParts.join(' ').trim();
-  if (secondaryCombinedText) {
-    const secRes = extractEntitiesFromSegment(secondaryCombinedText);
+  const secText = secondaryParts.join(' ').trim();
+  if (secText) {
+    const secRes = extractEntitiesFromSegment(secText);
     secRes.brands.forEach(b => {
       if (!primaryBrandsSet.has(b)) {
         secondaryBrandsSet.add(b);
@@ -576,25 +528,18 @@ export function classifyContent(
     secRes.products.forEach(p => {
       if (!primaryProductsSet.has(p)) {
         secondaryProductsSet.add(p);
-        aliasesSet.add(p);
       }
     });
-    if (secRes.products.length === 0 && secondaryCombinedText.length > 2) {
-      aliasesSet.add(cleanText(secondaryCombinedText));
-    }
   }
-
-  // 8. CONFIDENCE SCORE CALCULATION
-  const confidenceScore = (primaryBrandsSet.size > 0 || primaryProductsSet.size > 0) ? 0.95 : 1.0;
 
   return {
     primaryBrands: Array.from(primaryBrandsSet),
     primaryProducts: Array.from(primaryProductsSet),
     secondaryBrands: Array.from(secondaryBrandsSet),
     secondaryProducts: Array.from(secondaryProductsSet),
-    aliases: Array.from(aliasesSet),
+    aliases: Array.from(secondaryBrandsSet),
     isComparison,
-    confidenceScore
+    confidenceScore: primaryBrandsSet.size > 0 ? 0.95 : 0.6
   };
 }
 
