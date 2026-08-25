@@ -652,17 +652,16 @@ const handleResultsQuery = async (req: express.Request, res: express.Response) =
   }
 };
 
-app.get('/api/results', handleResultsQuery);
-app.get('/api/results/search', handleResultsQuery);
+app.get(['/api/results', '/api/results/search', '/results', '/results/search'], handleResultsQuery);
 
-// GET /api/results/status
-app.get('/api/results/status', (_req, res) => {
+// GET /api/results/status & GET /results/status
+app.get(['/api/results/status', '/results/status'], (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.json(getSyncStatus());
 });
 
-// GET /api/brands
-app.get('/api/brands', async (_req, res) => {
+// GET /api/brands & GET /brands
+app.get(['/api/brands', '/brands'], async (_req, res) => {
   try {
     const brands = await getAllBrands();
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
