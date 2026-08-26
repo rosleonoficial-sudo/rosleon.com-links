@@ -1,5 +1,5 @@
 import { initDatabase } from '../server/db.js';
-import { getAllBrands } from '../server/resultsService.js';
+import { getAllBrands, getBrandRanking } from '../server/resultsService.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,6 +13,14 @@ export default async function handler(req: any, res: any) {
 
   try {
     await initDatabase();
+    await syncSocialMediaContents();
+
+    if (req.url?.includes('/ranking')) {
+      const metric = typeof req.query?.metric === 'string' ? req.query.metric : 'views';
+      const rankingResult = await getBrandRanking(metric);
+      return res.status(200).json(rankingResult);
+    }
+
     const brands = await getAllBrands();
     return res.status(200).json(brands);
   } catch (err: any) {

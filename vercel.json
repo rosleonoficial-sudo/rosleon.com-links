@@ -30,6 +30,8 @@
     { "source": "/api/youtube-stats", "destination": "/api/youtube-stats.ts" },
     { "source": "/api/instagram-stats", "destination": "/api/instagram-stats.ts" },
     { "source": "/api/media-kit", "destination": "/api/media-kit.ts" },
+    { "source": "/api/brands/ranking", "destination": "/api/brands/ranking.ts" },
+    { "source": "/brands/ranking", "destination": "/api/brands/ranking.ts" },
     { "source": "/api/brands", "destination": "/api/brands.ts" },
     { "source": "/brands", "destination": "/api/brands.ts" },
     { "source": "/api/results/sync", "destination": "/api/results/sync.ts" },
