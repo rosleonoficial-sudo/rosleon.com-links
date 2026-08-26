@@ -5,9 +5,10 @@ import { ImageWithFallback } from '../ImageWithFallback';
 
 interface ContentCardProps {
   content: ContentItem;
+  rankPosition?: number;
 }
 
-export const ContentCard: React.FC<ContentCardProps> = ({ content }) => {
+export const ContentCard: React.FC<ContentCardProps> = ({ content, rankPosition }) => {
   const formatNum = (num: number) => {
     if (num >= 1_000_000) {
       return (num / 1_000_000).toFixed(1).replace('.', ',').replace(',0', '') + ' mi';
@@ -30,8 +31,56 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content }) => {
   const isYouTube = content.platform === 'youtube';
   const isInstagram = content.platform === 'instagram';
 
+  // Rank Badge Helper
+  const renderRankBadge = () => {
+    if (!rankPosition) return null;
+    if (rankPosition === 1) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-[11px] shadow-lg border border-amber-300">
+          🥇 1º LUGAR
+        </span>
+      );
+    }
+    if (rankPosition === 2) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-300 text-slate-950 font-black text-[11px] shadow-lg border border-white">
+          🥈 2º LUGAR
+        </span>
+      );
+    }
+    if (rankPosition === 3) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-700 text-amber-100 font-black text-[11px] shadow-lg border border-amber-500">
+          🥉 3º LUGAR
+        </span>
+      );
+    }
+    if (rankPosition === 4) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-950 text-cyan-300 font-black text-[11px] shadow-lg border border-cyan-500/50">
+          4º LUGAR
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-950/90 text-slate-400 font-extrabold text-[10px] border border-slate-800">
+        #{rankPosition}
+      </span>
+    );
+  };
+
+  const cardBorderClass = rankPosition === 1
+    ? 'border-2 border-amber-500/80 shadow-amber-500/10'
+    : rankPosition === 2
+    ? 'border-2 border-slate-300/60'
+    : rankPosition === 3
+    ? 'border-2 border-amber-700/60'
+    : rankPosition === 4
+    ? 'border border-cyan-500/40'
+    : 'border border-slate-800 hover:border-slate-700/80';
+
   return (
-    <div className="bg-slate-900/90 border border-slate-800 hover:border-slate-700/80 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group">
+    <div className={`bg-slate-900/90 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group ${cardBorderClass}`}>
       
       {/* Top Media / Thumbnail Section */}
       <div className="relative aspect-video bg-slate-950 overflow-hidden">
@@ -67,6 +116,16 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content }) => {
           <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-950/80 text-slate-300 border border-slate-700/80 font-bold text-[10px] uppercase tracking-wider backdrop-blur-md">
             {content.contentType === 'shorts' ? 'Shorts' : content.contentType === 'reels' ? 'Reels' : 'Vídeo'}
           </span>
+        </div>
+
+        {/* Top Right Rank Badge & Score */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          {renderRankBadge()}
+          {content.performanceScore !== undefined && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-950/90 text-cyan-300 font-mono font-black text-[10px] border border-cyan-500/30">
+              Score: {content.performanceScore}
+            </span>
+          )}
         </div>
 
         {/* Date Badge */}

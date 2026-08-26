@@ -113,29 +113,29 @@ export const ALIAS_TRIGGERS = [
   'réplica de', 'replica de', 'réplica da', 'replica da', 'réplica do', 'replica do'
 ].sort((a, b) => b.length - a.length);
 
-// Canonical Brands & Aliases definition
+// Canonical Brands & Aliases definition - Brand names and brand variations only
 export const CANONICAL_BRANDS = [
   { name: 'AIWA', slug: 'aiwa', keywords: ['aiwa'] },
   { name: 'Golden Pro', slug: 'golden-pro', keywords: ['golden pro', 'goldenpro', 'golden pro power box', 'golden'] },
-  { name: 'WAAW', slug: 'waaw', keywords: ['waaw', 'waaw by alok', 'boombug', 'waaw300'] },
+  { name: 'WAAW', slug: 'waaw', keywords: ['waaw', 'waaw by alok'] },
   { name: 'UOL', slug: 'uol', keywords: ['uol', 'uol meu negocio', 'uolhost', 'uol host', 'uol play', 'meunegocio'] },
-  { name: 'JBL', slug: 'jbl', keywords: ['jbl', 'jbl boombox', 'jbl flip', 'jbl charge', 'jbl partybox', 'jbl tune', 'jbl go', 'jbl xtreme', 'jbl clip', 'jbl pulse', 'jbl authentic'] },
-  { name: 'Basike', slug: 'basike', keywords: ['basike', 'ba-rad', 'rad289', 'rad133', 'rad304', 'rad440', 'rad439', 'rad438', 'rad 441', 'rad 439', 'rad 438', 'rad 304', 'ba rad'] },
-  { name: 'Pulse', slug: 'pulse', keywords: ['pulse', 'pulse x', 'sp626'] },
+  { name: 'JBL', slug: 'jbl', keywords: ['jbl'] },
+  { name: 'Basike', slug: 'basike', keywords: ['basike', 'ba-rad', 'ba rad'] },
+  { name: 'Pulse', slug: 'pulse', keywords: ['pulse'] },
   { name: 'Mercado Livre', slug: 'mercado-livre', keywords: ['mercado livre', 'mercadolivre', 'meli'] },
-  { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'bomber trolley', 'bomber bass', 'bomber box', 'boomberbass', 'boomberbox', 'boomber'] },
-  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribut', 'tribit stormbox', 'tribit blast', 'tribit lava'] },
-  { name: 'Tronsmart', slug: 'tronsmart', keywords: ['tronsmart', 'tronsmart bang', 'soundfi', 'bang max'] },
-  { name: 'Stage', slug: 'stage', keywords: ['stage', 'stage gofree', 'gofree 2', 'stage sound'] },
-  { name: 'Xdobo', slug: 'xdobo', keywords: ['xdobo', 'xdobo prince', 'xdobo wow', 'prince 1995'] },
-  { name: 'Sabala', slug: 'sabala', keywords: ['sabala', 'sabala dr', 'dr-909', 'dr-300', 'dr909', 'dr300', 'dr107'] },
-  { name: 'Nuoma', slug: 'nuoma', keywords: ['nuoma', 'nm-ip501', 'aip603', 'aip601', 'aip-603', 'aip-601'] },
-  { name: 'Imenso', slug: 'imenso', keywords: ['imenso', 'imenso x39', 'imenso x26', 'imenso x75'] },
-  { name: 'Anker', slug: 'anker', keywords: ['anker', 'soundcore', 'motion boom', 'motion+'] },
-  { name: 'Mifa', slug: 'mifa', keywords: ['mifa', 'mirtune', 'mirtune s100', 'mirtune h1'] },
-  { name: 'Zealot', slug: 'zealot', keywords: ['zealot', 'zealot s78', 'zealot s89'] },
-  { name: 'Hopestar', slug: 'hopestar', keywords: ['hopestar', 'hopestar a60'] },
-  { name: 'Joog', slug: 'joog', keywords: ['joog', 'jog', 'joog air', 'joog pair'] },
+  { name: 'Bomber', slug: 'bomber', keywords: ['bomber', 'bomberbass', 'bomberbox', 'bombertrolley', 'boomber'] },
+  { name: 'Tribit', slug: 'tribit', keywords: ['tribit', 'tribut'] },
+  { name: 'Tronsmart', slug: 'tronsmart', keywords: ['tronsmart'] },
+  { name: 'Stage', slug: 'stage', keywords: ['stage', 'stage gofree'] },
+  { name: 'Xdobo', slug: 'xdobo', keywords: ['xdobo'] },
+  { name: 'Sabala', slug: 'sabala', keywords: ['sabala'] },
+  { name: 'Nuoma', slug: 'nuoma', keywords: ['nuoma'] },
+  { name: 'Imenso', slug: 'imenso', keywords: ['imenso'] },
+  { name: 'Anker', slug: 'anker', keywords: ['anker', 'soundcore'] },
+  { name: 'Mifa', slug: 'mifa', keywords: ['mifa'] },
+  { name: 'Zealot', slug: 'zealot', keywords: ['zealot'] },
+  { name: 'Hopestar', slug: 'hopestar', keywords: ['hopestar'] },
+  { name: 'Joog', slug: 'joog', keywords: ['joog', 'jog'] },
   { name: 'Kimaster', slug: 'kimaster', keywords: ['kimaster'] },
   { name: 'Kaidi', slug: 'kaidi', keywords: ['kaidi'] },
   { name: 'H\'Maston', slug: 'hmaston', keywords: ['hmaston', "h'maston", 'h-maston', 'h maston'] },
@@ -165,6 +165,112 @@ const MODEL_CODE_REGEX = /\b([a-z]{1,4}[- ]?\d{2,5}[a-z]?|\d{3,5}[a-z]{1,3}|[a-z
 // Standard Product Line names
 const KNOWN_LINE_REGEX = /\b(boombox\s*\d*|hyperboom\s*\d*|infinite\s*\d+|beat\s*\d+|partybox\s*\d*|stormbox\s*\w+|power\s*box\s*\d*|premium\s*\d+|go\s*free\s*\d*|sound\s*outdoor|mirtune\s*\w+|charge\s*\d*|flip\s*\d*|xtreme\s*\d*)\b/i;
 
+// Canonical Model Code to Brand Map (canonical dictionary)
+export const CANONICAL_MODEL_TO_BRAND: Record<string, string> = {
+  // BASIKE MODELS
+  'RAD441': 'Basike', 'RAD-441': 'Basike', 'BARAD441': 'Basike', 'BA-RAD441': 'Basike', 'BARAD-441': 'Basike',
+  'RAD439': 'Basike', 'RAD-439': 'Basike', 'BARAD439': 'Basike', 'BA-RAD439': 'Basike',
+  'RAD438': 'Basike', 'RAD-438': 'Basike', 'BARAD438': 'Basike', 'BA-RAD438': 'Basike',
+  'RAD304': 'Basike', 'RAD-304': 'Basike', 'BARAD304': 'Basike', 'BA-RAD304': 'Basike',
+  'RAD289': 'Basike', 'RAD-289': 'Basike', 'BARAD289': 'Basike', 'BA-RAD289': 'Basike',
+  'RAD133': 'Basike', 'RAD-133': 'Basike', 'BARAD133': 'Basike', 'BA-RAD133': 'Basike',
+  'RAD252': 'Basike', 'RAD-252': 'Basike', 'BARAD252': 'Basike', 'BA-RAD252': 'Basike',
+  'BARAD171': 'Basike', 'BA-RAD171': 'Basike', 'RAD171': 'Basike', 'RAD-171': 'Basike',
+  'RAD8633': 'Basike', 'RAD-8633': 'Basike', 'RAD8636': 'Basike', 'RAD-8636': 'Basike',
+  'FN17': 'Basike', 'FN-17': 'Basike',
+
+  // SABALA MODELS
+  'DR909': 'Sabala', 'DR-909': 'Sabala',
+  'DR908': 'Sabala', 'DR-908': 'Sabala',
+  'DR300': 'Sabala', 'DR-300': 'Sabala',
+  'DR107': 'Sabala', 'DR-107': 'Sabala',
+  'DR52': 'Sabala', 'DR-52': 'Sabala',
+  'DR58': 'Sabala', 'DR-58': 'Sabala',
+
+  // IMENSO MODELS
+  'X75': 'Imenso', 'X-75': 'Imenso', 'IMSX75': 'Imenso', 'IMS-X75': 'Imenso',
+  'X73': 'Imenso', 'X-73': 'Imenso', 'IMSX73': 'Imenso', 'IMS-X73': 'Imenso',
+  'X64': 'Imenso', 'X-64': 'Imenso', 'IMSX64': 'Imenso', 'IMS-X64': 'Imenso',
+  'X56': 'Imenso', 'X-56': 'Imenso', 'IMSX56': 'Imenso', 'IMS-X56': 'Imenso',
+  'X41': 'Imenso', 'X-41': 'Imenso', 'IMSX41': 'Imenso', 'IMS-X41': 'Imenso',
+  'X39': 'Imenso', 'X-39': 'Imenso', 'IMSX39': 'Imenso', 'IMS-X39': 'Imenso',
+  'X38': 'Imenso', 'X-38': 'Imenso', 'IMSX38': 'Imenso', 'IMS-X38': 'Imenso',
+  'X32': 'Imenso', 'X-32': 'Imenso', 'IMSX32': 'Imenso', 'IMS-X32': 'Imenso',
+  'X29': 'Imenso', 'X-29': 'Imenso', 'IMSX29': 'Imenso', 'IMS-X29': 'Imenso',
+  'X26': 'Imenso', 'X-26': 'Imenso', 'IMSX26': 'Imenso', 'IMS-X26': 'Imenso',
+  'X22': 'Imenso', 'X-22': 'Imenso', 'IMSX22': 'Imenso', 'IMS-X22': 'Imenso',
+  'X82': 'Imenso', 'X-82': 'Imenso', 'IMSX82': 'Imenso', 'IMS-X82': 'Imenso',
+
+  // NUOMA MODELS
+  'NMIP501': 'Nuoma', 'NM-IP501': 'Nuoma', 'IP501': 'Nuoma', 'IP-501': 'Nuoma',
+  'AIP603': 'Nuoma', 'AIP-603': 'Nuoma', 'NMAIP603': 'Nuoma', 'NM-AIP603': 'Nuoma',
+  'AIP601': 'Nuoma', 'AIP-601': 'Nuoma', 'NMAIP601': 'Nuoma', 'NM-AIP601': 'Nuoma',
+  'IP601M': 'Nuoma', 'IP-601M': 'Nuoma',
+
+  // ZEALOT MODELS
+  'S78': 'Zealot', 'S-78': 'Zealot',
+  'S89': 'Zealot', 'S-89': 'Zealot',
+  'S67': 'Zealot', 'S-67': 'Zealot',
+  'S53': 'Zealot', 'S-53': 'Zealot',
+  'S32': 'Zealot', 'S-32': 'Zealot',
+  'S51': 'Zealot', 'S-51': 'Zealot',
+  'S97': 'Zealot', 'S-97': 'Zealot',
+  'ZE41': 'Zealot', 'ZE-41': 'Zealot',
+
+  // XDOBO MODELS
+  'WOWMAX': 'Xdobo', 'PRINCE1995': 'Xdobo', 'WING2020': 'Xdobo', 'KING1995': 'Xdobo',
+
+  // GOLDEN PRO MODELS
+  'GP13000': 'Golden Pro', 'GP-13000': 'Golden Pro', 'BOX19': 'Golden Pro',
+
+  // AOC MODELS
+  'ACS6331': 'AOC', 'ACS-6331': 'AOC',
+
+  // WAAW MODELS
+  'INFINITE100': 'WAAW', 'INFINITE200': 'WAAW', 'BEAT1000': 'WAAW',
+
+  // BOMBER MODELS
+  'BOMBERBOXPRO': 'Bomber', 'BOMBERBASS': 'Bomber', 'BOMBERBASSPLUS': 'Bomber', 'BOMBERTROLLEY850': 'Bomber',
+
+  // TRIBIT MODELS
+  'STORMBOXBLAST': 'Tribit', 'STORMBOXBLAST2': 'Tribit', 'STORMBOXBLAST1': 'Tribit',
+
+  // PULSE MODELS
+  'SP614': 'Pulse', 'SP626': 'Pulse',
+
+  // KIMASTER MODELS
+  'K400': 'Kimaster', 'K-400': 'Kimaster', 'K450': 'Kimaster', 'K-450': 'Kimaster', 'TWS100': 'Kimaster',
+
+  // HMASTON
+  'LY101': "H'Maston", 'LY101PRO': "H'Maston",
+
+  // FAM
+  'A022': 'FAM', 'A20': 'FAM', 'A11': 'FAM', 'A042': 'FAM'
+};
+
+/**
+ * Resolve brand name for a given model code via dictionary or regex patterns
+ */
+export function resolveBrandForModelCode(rawCode: string): string | null {
+  if (!rawCode) return null;
+  const norm = normalizeModelCode(rawCode);
+  if (CANONICAL_MODEL_TO_BRAND[norm]) {
+    return CANONICAL_MODEL_TO_BRAND[norm];
+  }
+  if (CANONICAL_MODEL_TO_BRAND[rawCode.toUpperCase()]) {
+    return CANONICAL_MODEL_TO_BRAND[rawCode.toUpperCase()];
+  }
+
+  // Regex pattern rules
+  if (/^(BARAD|RAD)\d+/i.test(norm)) return 'Basike';
+  if (/^DR\d{2,4}$/i.test(norm)) return 'Sabala';
+  if (/^(IMS)?X(75|73|64|56|41|39|38|32|29|26|22|82)$/i.test(norm)) return 'Imenso';
+  if (/^(NM)?(IP|AIP)\d{3}[A-Z]?$/i.test(norm)) return 'Nuoma';
+  if (/^S(78|89|67|53|32|51|97)$/i.test(norm) || /^ZE41$/i.test(norm)) return 'Zealot';
+
+  return modelToBrandMap.get(norm) || null;
+}
+
 // Global catalog of known brands and models
 let brandCatalog: { id: number; name: string; keywords: string[] }[] = [];
 let modelToBrandMap: Map<string, string> = new Map(); // normalized model code -> Brand name
@@ -182,6 +288,7 @@ export function normalizeModelCode(code: string): string {
 export function isGenericWord(word: string): boolean {
   const norm = normalizeToken(word);
   if (!norm || norm.length <= 1) return true;
+  if (/^\d+$/.test(norm)) return true;
   return CATEGORY_STOPWORDS.has(norm) || COMMERCIAL_STOPWORDS.has(norm) || NOISE_STOPWORDS.has(norm);
 }
 
@@ -339,7 +446,24 @@ function extractEntitiesFromSegment(segmentText: string): { brands: string[]; pr
   const extractedBrands = new Set<string>();
   const extractedProducts = new Set<string>();
 
-  CANONICAL_BRANDS.forEach(b => {
+  // 1. Check known brands in CANONICAL_BRANDS and brandCatalog
+  const allKnownBrands = [
+    ...CANONICAL_BRANDS.map(b => ({ name: b.name, keywords: b.keywords })),
+    ...brandCatalog.map(b => ({ name: b.name, keywords: b.keywords }))
+  ];
+
+  for (const b of allKnownBrands) {
+    // Handling Portuguese adjective "imenso"
+    if (b.name === 'Imenso') {
+      const isAdjectiveImenso = /\b(?:grave|graves|som|soms|potência|potencia|sucesso|tamanho|paixão|paixao|desconto|valor|custo)\s+imenso\b/i.test(text)
+        || /\bimenso\s+(?:grave|graves|som|soms|potência|potencia|sucesso|tamanho|desconto|valor|custo)\b/i.test(text);
+      const hasImensoModel = /\b(?:ims[- ]?)?x(75|73|64|56|41|39|38|32|29|26|22|82)\b/i.test(text) || /@imensobr/i.test(text);
+
+      if (isAdjectiveImenso && !hasImensoModel) {
+        continue; // Skip treating "imenso" as a brand name when used as an adjective
+      }
+    }
+
     for (const kw of b.keywords) {
       const escaped = kw.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
       const regex = new RegExp(`(?:^|[^a-zA-Z0-9_])${escaped}(?:$|[^a-zA-Z0-9_])`, 'i');
@@ -348,101 +472,46 @@ function extractEntitiesFromSegment(segmentText: string): { brands: string[]; pr
         break;
       }
     }
-  });
+  }
 
-  // Extract model/product specifics (specific overrides + generic extraction)
-  for (const bName of Array.from(extractedBrands)) {
-    if (bName === 'Bomber') {
-      if (/bomber\s*premium\s*140/i.test(text)) extractedProducts.add('Bomber Premium 140');
-      if (/bo*mbe*rbass\s*plus/i.test(text)) extractedProducts.add('BomberBass Plus');
-      else if (/bomberbass\s*4/i.test(text)) extractedProducts.add('BomberBass 4');
-      else if (/bo*mbe*rbass/i.test(text)) extractedProducts.add('BomberBass');
-      if (/bo*mbe*rbox\s*pro/i.test(text) || /bo*mbe*rbox/i.test(text)) extractedProducts.add('BomberBox Pro');
-      if (/bomber\s*trolley\s*850/i.test(text) || /bomber\s*trolley/i.test(text)) extractedProducts.add('Bomber Trolley 850');
-    }
+  // 2. Generic & Specific Model Code Matching
+  const modelCodeMatches = text.match(/\b([a-zA-Z]{1,4}(?:-[a-zA-Z]{1,4})?[- ]?\d{1,5}[a-zA-Z0-9]*|\d{2,5}[a-zA-Z]{1,4})\b/gi);
+  if (modelCodeMatches) {
+    for (const rawCode of modelCodeMatches) {
+      const cleanCode = rawCode.trim().toUpperCase();
+      const normCode = normalizeToken(cleanCode);
+      if (!normCode || isGenericWord(normCode)) continue;
 
-    if (bName === 'Tribit') {
-      if (/stormbox\s*blast\s*2/i.test(text)) extractedProducts.add('Tribit StormBox Blast 2');
-      else if (/stormbox\s*blast\s*1/i.test(text) || /tribit\s*blast/i.test(text)) extractedProducts.add('Tribit StormBox Blast 1');
-      else if (/tribit\s*lava/i.test(text)) extractedProducts.add('Tribit Lava');
-      else if (/stormbox/i.test(text)) extractedProducts.add('Tribit StormBox');
-    }
+      // Skip wattage, specification, year patterns
+      if (/^\d+\s*(w|watt|watts|rms|mah)$/i.test(rawCode)) continue;
+      if (/^(2024|2025|2026|2027|2028)$/.test(cleanCode)) continue;
 
-    if (bName === 'Stage') {
-      if (/gofree\s*2/i.test(text)) extractedProducts.add('Stage GoFree 2');
-      else if (/stage\s*sound/i.test(text)) extractedProducts.add('Stage Sound');
-    }
-
-    if (bName === 'Mifa') {
-      if (/mirtune\s*s100/i.test(text)) extractedProducts.add('Mifa Mirtune S100');
-      else if (/mirtune\s*h1/i.test(text)) extractedProducts.add('Mifa Mirtune H1');
-    }
-
-    if (bName === 'Tronsmart') {
-      if (/bang\s*max/i.test(text)) extractedProducts.add('Tronsmart Bang Max');
-      if (/soundfi\s*q20s/i.test(text) || /soundfi/i.test(text)) extractedProducts.add('Tronsmart SoundFi Q20S');
-    }
-
-    if (bName === 'Sabala') {
-      if (/dr-?909/i.test(text)) extractedProducts.add('Sabala DR-909');
-      if (/dr-?300/i.test(text)) extractedProducts.add('Sabala DR-300');
-      if (/dr-?107/i.test(text)) extractedProducts.add('Sabala DR-107');
-    }
-
-    if (bName === 'Nuoma') {
-      if (/ip-?501/i.test(text) || /nm-ip501/i.test(text)) extractedProducts.add('Nuoma NM-IP501');
-      if (/aip-?603/i.test(text)) extractedProducts.add('Nuoma AIP-603');
-      if (/aip-?601/i.test(text)) extractedProducts.add('Nuoma AIP-601');
-    }
-
-    if (bName === 'Basike') {
-      if (/rad\s*441/i.test(text)) extractedProducts.add('Basike RAD 441');
-      if (/rad\s*439/i.test(text)) extractedProducts.add('Basike RAD 439');
-      if (/rad\s*438/i.test(text)) extractedProducts.add('Basike RAD 438');
-      if (/rad\s*304/i.test(text) || /ba\s*rad\s*304/i.test(text)) extractedProducts.add('Basike BA RAD 304');
-      if (/rad\s*289/i.test(text)) extractedProducts.add('Basike RAD 289');
-      if (/rad\s*133/i.test(text)) extractedProducts.add('Basike RAD 133');
-      if (/rad\s*252/i.test(text)) extractedProducts.add('Basike RAD 252');
-    }
-
-    if (bName === 'Imenso') {
-      if (/x75/i.test(text)) extractedProducts.add('Imenso X75');
-      if (/x73/i.test(text)) extractedProducts.add('Imenso X73');
-      if (/x39/i.test(text)) extractedProducts.add('Imenso X39');
-      if (/x38/i.test(text)) extractedProducts.add('Imenso X38');
-      if (/x32/i.test(text)) extractedProducts.add('Imenso X32');
-      if (/x26/i.test(text)) extractedProducts.add('Imenso X26');
-    }
-
-    if (bName === 'Xdobo') {
-      if (/prince\s*1995/i.test(text)) extractedProducts.add('Xdobo Prince 1995');
-      if (/wow\s*max/i.test(text)) extractedProducts.add('Xdobo WOW MAX');
-    }
-
-    // Generic line and model code extraction
-    const lineModelMatches = text.match(/\b(boombox|hyperboom|beat|partybox|stormbox|power\s*box|pair|megasafe|gofree|mirtune|soundcore|motion|pulse\s*x|infinite|sp\d+|a\d+|dr-?\d+|rad\s*\d+|aip-?\d+|ip-?\d+|x\d+)\b(?:\s+([\w\-]+))?/gi);
-    if (lineModelMatches) {
-      for (const lm of lineModelMatches) {
-        const parts = lm.trim().split(/\s+/).filter(w => !isGenericWord(w));
-        if (parts.length > 0) {
-          const cleanLm = parts.join(' ');
-          if (cleanLm.length > 1) {
-            const capitalizedLm = cleanLm.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            extractedProducts.add(`${bName} ${capitalizedLm}`);
-          }
-        }
+      // Check if this model code resolves to a canonical brand
+      const resolvedBrand = resolveBrandForModelCode(cleanCode);
+      if (resolvedBrand) {
+        extractedBrands.add(resolvedBrand);
+        extractedProducts.add(`${resolvedBrand} ${cleanCode}`);
+      } else {
+        extractedProducts.add(cleanCode);
       }
     }
+  }
 
-    const codeMatches = text.match(/\b([a-z]{1,4}[- ]?\d{2,5}[a-z]?|\d{3,5}[a-z]{1,3}|gp-?\d{3,5}|mms-?\d{2}|sp\d{3})\b/gi);
-    if (codeMatches) {
-      for (const code of codeMatches) {
-        const cleanCode = code.trim().toUpperCase();
-        if (!isGenericWord(cleanCode) && cleanCode.length >= 2) {
-          extractedProducts.add(`${bName} ${cleanCode}`);
-        }
-      }
+  // 3. Known product line matching for identified or implicit brands
+  const lowerText = text.toLowerCase();
+  if (lowerText.includes('boombox')) {
+    if (extractedBrands.has('JBL') || lowerText.includes('jbl')) {
+      extractedBrands.add('JBL');
+      extractedProducts.add('JBL Boombox');
     }
+  }
+  if (lowerText.includes('stormbox')) {
+    extractedBrands.add('Tribit');
+    extractedProducts.add('Tribit StormBox');
+  }
+  if (lowerText.includes('partybox')) {
+    extractedBrands.add('JBL');
+    extractedProducts.add('JBL Partybox');
   }
 
   return {
@@ -491,14 +560,32 @@ export function classifyContent(
     return ' ';
   }).replace(/\s+/g, ' ').trim();
 
-  // 2. CHECK TAIL SEPARATOR SEGMENTS ( - , | ) WHEN BEFORE SEPARATOR HAS A PRIMARY SUBJECT
+  // 2. CHECK TAIL SEPARATOR SEGMENTS ( - , | )
   if (/\s+[-|]\s+/.test(primaryText)) {
     const segments = primaryText.split(/\s+[-|]\s+/);
     if (segments.length >= 2) {
+      const isSeg0Comparison = EXPLICIT_COMPARISON_REGEX.test(segments[0]) || /\b(?:vs\.?|versus|\b\s+x\s+|\bvs\b|\bvc\b|\bou\b|duelo|batalha)\b/i.test(segments[0]);
       const seg0Res = extractEntitiesFromSegment(segments[0]);
-      if (seg0Res.brands.length > 0 || seg0Res.products.length > 0) {
+      const seg1Res = extractEntitiesFromSegment(segments[1]);
+
+      if (isSeg0Comparison) {
         primaryText = segments[0].trim();
         for (let i = 1; i < segments.length; i++) {
+          const segTrim = segments[i].trim();
+          if (segTrim) secondaryParts.push(segTrim);
+        }
+      } else if (seg0Res.brands.length > 0 || seg0Res.products.length > 0) {
+        if (seg1Res.brands.length === 0 && seg1Res.products.length === 0) {
+          primaryText = segments[0].trim();
+          for (let i = 1; i < segments.length; i++) {
+            const segTrim = segments[i].trim();
+            if (segTrim) secondaryParts.push(segTrim);
+          }
+        }
+      } else if (seg1Res.brands.length > 0 || seg1Res.products.length > 0) {
+        primaryText = segments[1].trim();
+        secondaryParts.push(segments[0].trim());
+        for (let i = 2; i < segments.length; i++) {
           const segTrim = segments[i].trim();
           if (segTrim) secondaryParts.push(segTrim);
         }

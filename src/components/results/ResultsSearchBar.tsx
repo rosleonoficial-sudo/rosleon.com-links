@@ -76,11 +76,11 @@ export const ResultsSearchBar: React.FC<ResultsSearchBarProps> = ({
             className="py-3.5 px-4 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-200 text-xs sm:text-sm font-bold focus:border-cyan-400 outline-none cursor-pointer"
           >
             <option value="recent">Ordenar: Mais Recentes</option>
+            <option value="engagement">Ordenar: Performance Score</option>
             <option value="views">Ordenar: Mais Visualizados</option>
             <option value="likes">Ordenar: Mais Curtidos</option>
             <option value="comments">Ordenar: Mais Comentados</option>
             <option value="shares">Ordenar: Mais Compartilhados</option>
-            <option value="engagement">Ordenar: Maior Engajamento</option>
           </select>
 
           {/* More Filters Modal Trigger Button */}

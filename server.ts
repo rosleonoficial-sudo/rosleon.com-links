@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
-import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents } from './server/resultsService.js';
+import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
 
 const app = express();
@@ -669,6 +669,19 @@ app.get(['/api/brands', '/brands'], async (_req, res) => {
   } catch (err: any) {
     console.error('Erro na rota /api/brands:', err);
     res.status(500).json({ success: false, error: 'Erro ao buscar marcas' });
+  }
+});
+
+// GET /api/brands/ranking & GET /brands/ranking
+app.get(['/api/brands/ranking', '/brands/ranking'], async (req, res) => {
+  try {
+    const metric = typeof req.query.metric === 'string' ? req.query.metric : 'views';
+    const rankingResult = await getBrandRanking(metric);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.json(rankingResult);
+  } catch (err: any) {
+    console.error('Erro na rota /api/brands/ranking:', err);
+    res.status(500).json({ success: false, error: 'Erro ao buscar ranking de marcas' });
   }
 });
 

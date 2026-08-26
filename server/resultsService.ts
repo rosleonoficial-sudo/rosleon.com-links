@@ -44,6 +44,60 @@ export function getSyncStatus() {
 }
 
 // Strict token boundary matching helper
+export function calculatePerformanceScore(item: {
+  metrics: {
+    viewsCount: number;
+    likesCount: number;
+    commentsCount: number;
+    sharesCount: number | null;
+    engagementRate: number | null;
+  };
+  contentType: string;
+  platform: string;
+  publishedAt: string;
+}): number {
+  const v = Math.max(0, item.metrics.viewsCount || 0);
+  const l = Math.max(0, item.metrics.likesCount || 0);
+  const c = Math.max(0, item.metrics.commentsCount || 0);
+  const s = Math.max(0, item.metrics.sharesCount || 0);
+
+  let er = item.metrics.engagementRate;
+  if (er === null || er === undefined) {
+    er = v > 0 ? parseFloat((((l + c + s) / v) * 100).toFixed(2)) : 0;
+  }
+
+  // 1. Log-scale view score (30%) - Benchmarking against 500k max views
+  const vScore = Math.min(100, (Math.log10(v + 1) / Math.log10(500000 + 1)) * 100);
+
+  // 2. Log-scale quality action score (35%) - Likes (1x), Comments (3x), Shares (4x), benchmarked against 50k
+  const weightedActions = l + (3.0 * c) + (4.0 * s);
+  const aScore = Math.min(100, (Math.log10(weightedActions + 1) / Math.log10(50000 + 1)) * 100);
+
+  // 3. Normalized engagement rate score (20%) - Expected ER: 7.5% for video, 10.0% for shorts/reels
+  const expectedER = item.contentType === 'video' ? 7.5 : 10.0;
+  const eScore = Math.min(100, (er / expectedER) * 100);
+
+  // 4. Recency factor (15%) - Exponential half-life decay of 730 days (2 years)
+  const pubTime = new Date(item.publishedAt).getTime();
+  const ageDays = Math.max(0, (Date.now() - pubTime) / (1000 * 60 * 60 * 24));
+  const rScore = Math.min(100, 100 * Math.exp(-ageDays / 730));
+
+  const finalScore = Math.round(0.30 * vScore + 0.35 * aScore + 0.20 * eScore + 0.15 * rScore);
+  return Math.max(0, Math.min(100, finalScore));
+}
+
+export function determineEditorialLevel(item: ContentItem, query?: string): number {
+  if (item.classification?.isComparison) {
+    return 3; // LEVEL 3: COMPARATIVOS
+  }
+
+  if (item.contentType === 'video') {
+    return 1; // LEVEL 1: DEDICADO PRINCIPAL (Vídeo longo)
+  }
+
+  return 2; // LEVEL 2: OUTROS DEDICADOS (Shorts / Reels)
+}
+
 export function matchKeywordInText(keyword: string, text: string): boolean {
   if (!text || !keyword) return false;
   const kw = keyword.trim().toLowerCase();
@@ -147,23 +201,7 @@ export async function reprocessAllContentBrands() {
   return await reclassifyAllDatabaseContents();
 }
 
-export async function searchContents(filters: Partial<ResultsFilterState>): Promise<ResultsApiResponse> {
-  const page = Math.max(1, filters.page || 1);
-  const limit = Math.max(1, Math.min(100, filters.limit || 20));
-  const activeFilters: ResultsFilterState = {
-    q: (filters.q || '').trim(),
-    platform: filters.platform || 'all',
-    sortBy: filters.sortBy || 'recent',
-    period: filters.period || 'all',
-    startDate: filters.startDate,
-    endDate: filters.endDate,
-    contentType: filters.contentType || 'all',
-    brand: filters.brand || '',
-    minViews: typeof filters.minViews === 'number' ? filters.minViews : undefined,
-    page,
-    limit
-  };
-
+export async function getAllCatalogContents(): Promise<ContentItem[]> {
   let rawList: ContentItem[] = [];
 
   if (isPostgresActive()) {
@@ -173,19 +211,9 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
         const res = await pool.query(`
           SELECT 
             c.id, c.platform, c.external_id, c.title, c.description, c.url, c.thumbnail_url, c.content_type, c.published_at,
-            m.views_count, m.likes_count, m.comments_count, m.shares_count, m.engagement_rate, m.last_synced_at,
-            COALESCE(
-              json_agg(b.name) FILTER (WHERE b.name IS NOT NULL),
-              '[]'
-            ) as brand_names,
-            cl.primary_brands, cl.primary_products, cl.secondary_brands, cl.secondary_products, cl.aliases, cl.is_comparison, cl.confidence_score
+            m.views_count, m.likes_count, m.comments_count, m.shares_count, m.engagement_rate, m.last_synced_at
           FROM contents c
           LEFT JOIN content_metrics m ON c.id = m.content_id
-          LEFT JOIN content_brands cb ON c.id = cb.content_id
-          LEFT JOIN brands b ON cb.brand_id = b.id
-          LEFT JOIN content_classifications cl ON c.id = cl.content_id
-          GROUP BY c.id, m.views_count, m.likes_count, m.comments_count, m.shares_count, m.engagement_rate, m.last_synced_at,
-                   cl.primary_brands, cl.primary_products, cl.secondary_brands, cl.secondary_products, cl.aliases, cl.is_comparison, cl.confidence_score
         `);
 
         rawList = res.rows.map(row => {
@@ -207,14 +235,14 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
               viewsCount: Number(row.views_count || 0),
               likesCount: Number(row.likes_count || 0),
               commentsCount: Number(row.comments_count || 0),
-              sharesCount: row.shares_count !== null ? Number(row.shares_count) : null,
-              engagementRate: row.engagement_rate !== null ? Number(row.engagement_rate) : null,
+              sharesCount: row.shares_count !== null && row.shares_count !== undefined ? Number(row.shares_count) : null,
+              engagementRate: row.engagement_rate !== null && row.engagement_rate !== undefined ? Number(row.engagement_rate) : null,
               lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at).toISOString() : new Date().toISOString()
             }
           };
         });
       } catch (e) {
-        console.warn('Erro ao consultar conteúdos no Postgres:', e);
+        console.warn('Erro ao consultar catálogo no Postgres:', e);
       }
     }
   }
@@ -248,16 +276,154 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
         brands: cls.primaryBrands,
         classification: cls,
         metrics: {
-          viewsCount: metrics.views_count,
-          likesCount: metrics.likes_count,
-          commentsCount: metrics.comments_count,
-          sharesCount: metrics.shares_count,
-          engagementRate: metrics.engagement_rate,
+          viewsCount: Number(metrics.views_count || 0),
+          likesCount: Number(metrics.likes_count || 0),
+          commentsCount: Number(metrics.comments_count || 0),
+          sharesCount: metrics.shares_count !== null && metrics.shares_count !== undefined ? Number(metrics.shares_count) : null,
+          engagementRate: metrics.engagement_rate !== null && metrics.engagement_rate !== undefined ? Number(metrics.engagement_rate) : null,
           lastSyncedAt: metrics.last_synced_at
         }
       };
     });
   }
+
+  // Deduplication by platform + external_id (or platform + id)
+  const uniqueMap = new Map<string, ContentItem>();
+  for (const item of rawList) {
+    const key = `${item.platform}:${item.externalId || item.id}`;
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, item);
+    }
+  }
+  const deduplicatedList = Array.from(uniqueMap.values());
+
+  // Attach performanceScore
+  deduplicatedList.forEach(item => {
+    const score = calculatePerformanceScore(item);
+    item.performanceScore = score;
+    item.metrics.performanceScore = score;
+  });
+
+  return deduplicatedList;
+}
+
+export interface UnifiedBrandStats {
+  brand: string;
+  contentCount: number;
+  totalViews: number;
+  ytViews: number;
+  igViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  engagementRate: number; // Formula: (likes + comments + shares) / views * 100
+}
+
+export async function getGlobalBrandStats(): Promise<Map<string, UnifiedBrandStats>> {
+  const contents = await getAllCatalogContents();
+
+  // Map canonical brand lookup: lowercased keyword/slug/name -> Canonical Name
+  const canonicalLookupMap = new Map<string, string>();
+  for (const b of CANONICAL_BRANDS) {
+    canonicalLookupMap.set(b.name.toLowerCase(), b.name);
+    canonicalLookupMap.set(b.slug.toLowerCase(), b.name);
+    for (const kw of b.keywords) {
+      canonicalLookupMap.set(kw.toLowerCase(), b.name);
+    }
+  }
+
+  const brandStatsMap = new Map<string, UnifiedBrandStats>();
+  for (const b of CANONICAL_BRANDS) {
+    brandStatsMap.set(b.name, {
+      brand: b.name,
+      contentCount: 0,
+      totalViews: 0,
+      ytViews: 0,
+      igViews: 0,
+      totalLikes: 0,
+      totalComments: 0,
+      totalShares: 0,
+      engagementRate: 0
+    });
+  }
+
+  for (const item of contents) {
+    const cls = item.classification || classifyContent(item.title, item.description, item.contentType, item.platform);
+    const primaryBrands = cls.primaryBrands || item.brands || [];
+
+    const matchedCanonicalNames = new Set<string>();
+    for (const rawB of primaryBrands) {
+      if (!rawB || !rawB.trim()) continue;
+      const cleanB = rawB.trim().toLowerCase();
+      if (canonicalLookupMap.has(cleanB)) {
+        matchedCanonicalNames.add(canonicalLookupMap.get(cleanB)!);
+      }
+    }
+
+    for (const brandName of Array.from(matchedCanonicalNames)) {
+      let st = brandStatsMap.get(brandName);
+      if (!st) {
+        st = {
+          brand: brandName,
+          contentCount: 0,
+          totalViews: 0,
+          ytViews: 0,
+          igViews: 0,
+          totalLikes: 0,
+          totalComments: 0,
+          totalShares: 0,
+          engagementRate: 0
+        };
+        brandStatsMap.set(brandName, st);
+      }
+
+      st.contentCount += 1;
+      const v = Math.max(0, item.metrics.viewsCount || 0);
+      const l = Math.max(0, item.metrics.likesCount || 0);
+      const c = Math.max(0, item.metrics.commentsCount || 0);
+      const s = item.metrics.sharesCount !== null && item.metrics.sharesCount !== undefined ? Math.max(0, item.metrics.sharesCount) : 0;
+
+      st.totalViews += v;
+      if (item.platform === 'youtube') st.ytViews += v;
+      if (item.platform === 'instagram') st.igViews += v;
+
+      st.totalLikes += l;
+      st.totalComments += c;
+      st.totalShares += s;
+    }
+  }
+
+  // Calculate engagementRate weighted for each brand using the explicit formula: (likes + comments + shares) / views * 100
+  for (const st of brandStatsMap.values()) {
+    if (st.totalViews > 0) {
+      const totalInteractions = st.totalLikes + st.totalComments + st.totalShares;
+      st.engagementRate = parseFloat(((totalInteractions / st.totalViews) * 100).toFixed(2));
+    } else {
+      st.engagementRate = 0;
+    }
+  }
+
+  return brandStatsMap;
+}
+
+export async function searchContents(filters: Partial<ResultsFilterState>): Promise<ResultsApiResponse> {
+  const page = Math.max(1, filters.page || 1);
+  const limit = Math.max(1, Math.min(100, filters.limit || 20));
+  const activeFilters: ResultsFilterState = {
+    q: (filters.q || '').trim(),
+    platform: filters.platform || 'all',
+    sortBy: filters.sortBy || 'recent',
+    period: filters.period || 'all',
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    contentType: filters.contentType || 'all',
+    brand: filters.brand || '',
+    minViews: typeof filters.minViews === 'number' ? filters.minViews : undefined,
+    page,
+    limit
+  };
+
+  const rawList: ContentItem[] = await getAllCatalogContents();
 
   // FILTERING
   let filtered = rawList.filter(item => {
@@ -352,21 +518,60 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
 
   // SORTING
   filtered.sort((a, b) => {
+    // 1. "Mais recentes" mode: strictly publishedAt DESC globally across all platforms
+    if (activeFilters.sortBy === 'recent') {
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    }
+
+    // 2. Ranking / Metric Modes:
+    // ALWAYS apply Editorial Level Hierarchy FIRST (Level 1 < Level 2 < Level 3)
+    const searchTarget = activeFilters.q || activeFilters.brand || '';
+    const aLevel = determineEditorialLevel(a, searchTarget);
+    const bLevel = determineEditorialLevel(b, searchTarget);
+
+    if (aLevel !== bLevel) {
+      return aLevel - bLevel; // Level 1 (Dedicado Principal) < Level 2 (Outros Dedicados) < Level 3 (Comparativos)
+    }
+
+    // Within the same Editorial Level:
     switch (activeFilters.sortBy) {
       case 'views':
-        return b.metrics.viewsCount - a.metrics.viewsCount;
+        if (b.metrics.viewsCount !== a.metrics.viewsCount) {
+          return b.metrics.viewsCount - a.metrics.viewsCount;
+        }
+        break;
       case 'likes':
-        return b.metrics.likesCount - a.metrics.likesCount;
+        if (b.metrics.likesCount !== a.metrics.likesCount) {
+          return b.metrics.likesCount - a.metrics.likesCount;
+        }
+        break;
       case 'comments':
-        return b.metrics.commentsCount - a.metrics.commentsCount;
-      case 'shares':
-        return (b.metrics.sharesCount || 0) - (a.metrics.sharesCount || 0);
+        if (b.metrics.commentsCount !== a.metrics.commentsCount) {
+          return b.metrics.commentsCount - a.metrics.commentsCount;
+        }
+        break;
+      case 'shares': {
+        const aShares = a.metrics.sharesCount || 0;
+        const bShares = b.metrics.sharesCount || 0;
+        if (bShares !== aShares) {
+          return bShares - aShares;
+        }
+        break;
+      }
       case 'engagement':
-        return (b.metrics.engagementRate || 0) - (a.metrics.engagementRate || 0);
-      case 'recent':
       default:
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        // Ranking mode: performanceScore DESC
+        break;
     }
+
+    // Primary score sorting: performanceScore DESC
+    const scoreDiff = (b.performanceScore || 0) - (a.performanceScore || 0);
+    if (scoreDiff !== 0) {
+      return scoreDiff;
+    }
+
+    // Tertiary tiebreaker: publishedAt DESC
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
   });
 
   // SUMMARY CALCULATION (Calculated across ALL filtered contents)
@@ -422,138 +627,78 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
     };
   }
 
-  // BRAND RANKING AUTOMATION
-  let targetBrandName: string | null = null;
-  const allPrimaryBrandsSet = new Set<string>();
-  for (const item of rawList) {
-    const pBs = item.classification?.primaryBrands || item.brands || [];
-    for (const pb of pBs) {
-      if (pb && pb.trim()) {
-        allPrimaryBrandsSet.add(pb.trim());
-      }
-    }
-  }
-  const knownPrimaryBrands = Array.from(allPrimaryBrandsSet);
+  // BRAND RANKING AUTOMATION (Using unified getGlobalBrandStats)
+  const brandStatsMap = await getGlobalBrandStats();
+  const allBrandsStatsList = Array.from(brandStatsMap.values()).filter(st => st.contentCount > 0);
+  const totalBrandsInCatalog = allBrandsStatsList.length;
 
+  let targetBrandName: string | null = null;
   if (activeFilters.brand) {
-    const matched = knownPrimaryBrands.find(b => b.toLowerCase() === activeFilters.brand.toLowerCase().trim());
-    targetBrandName = matched || activeFilters.brand.trim();
+    const matched = allBrandsStatsList.find(b => b.brand.toLowerCase() === activeFilters.brand.toLowerCase().trim());
+    targetBrandName = matched ? matched.brand : activeFilters.brand.trim();
   } else if (activeFilters.q) {
     const qClean = activeFilters.q.trim().replace(/^[#@]+/, '').toLowerCase();
-    const directMatch = knownPrimaryBrands.find(b => b.toLowerCase() === qClean);
+    const directMatch = allBrandsStatsList.find(b => b.brand.toLowerCase() === qClean);
     if (directMatch) {
-      targetBrandName = directMatch;
-    } else {
-      // Check if query uniquely resolves to 1 primary brand (e.g. model name "Infinite 100")
-      if (filtered.length > 0) {
-        const brandCounts: Record<string, number> = {};
-        for (const item of filtered) {
-          const pBs = item.classification?.primaryBrands || item.brands || [];
-          for (const pb of pBs) {
-            if (pb && pb.trim()) {
-              const canonicalPb = knownPrimaryBrands.find(k => k.toLowerCase() === pb.trim().toLowerCase()) || pb.trim();
-              brandCounts[canonicalPb] = (brandCounts[canonicalPb] || 0) + 1;
-            }
+      targetBrandName = directMatch.brand;
+    } else if (filtered.length > 0) {
+      const brandCounts: Record<string, number> = {};
+      for (const item of filtered) {
+        const pBs = item.classification?.primaryBrands || item.brands || [];
+        for (const pb of pBs) {
+          if (pb && pb.trim()) {
+            const canonicalPb = allBrandsStatsList.find(k => k.brand.toLowerCase() === pb.trim().toLowerCase())?.brand || pb.trim();
+            brandCounts[canonicalPb] = (brandCounts[canonicalPb] || 0) + 1;
           }
         }
-        const sortedEntries = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]);
-        if (sortedEntries.length === 1) {
+      }
+      const sortedEntries = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]);
+      if (sortedEntries.length === 1) {
+        targetBrandName = sortedEntries[0][0];
+      } else if (sortedEntries.length > 1) {
+        const topCount = sortedEntries[0][1];
+        const totalOccurrences = sortedEntries.reduce((acc, e) => acc + e[1], 0);
+        if (topCount / totalOccurrences >= 0.8) {
           targetBrandName = sortedEntries[0][0];
-        } else if (sortedEntries.length > 1) {
-          const topCount = sortedEntries[0][1];
-          const totalOccurrences = sortedEntries.reduce((acc, e) => acc + e[1], 0);
-          if (topCount / totalOccurrences >= 0.8) {
-            targetBrandName = sortedEntries[0][0];
-          }
         }
       }
     }
   }
-
-  // Filter catalog by active platform for ranking
-  const platformCatalog = activeFilters.platform === 'all'
-    ? rawList
-    : rawList.filter(item => item.platform === activeFilters.platform);
-
-  interface BrandAgg {
-    brandName: string;
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalContents: number;
-    avgEngagementRate: number;
-  }
-
-  const brandAggMap: Record<string, BrandAgg> = {};
-
-  for (const item of platformCatalog) {
-    const pBrands = item.classification?.primaryBrands || item.brands || [];
-    for (const pb of pBrands) {
-      if (!pb || !pb.trim()) continue;
-      const canonicalName = knownPrimaryBrands.find(k => k.toLowerCase() === pb.trim().toLowerCase()) || pb.trim();
-      const key = canonicalName.toLowerCase();
-
-      if (!brandAggMap[key]) {
-        brandAggMap[key] = {
-          brandName: canonicalName,
-          totalViews: 0,
-          totalLikes: 0,
-          totalComments: 0,
-          totalShares: 0,
-          totalContents: 0,
-          avgEngagementRate: 0
-        };
-      }
-
-      brandAggMap[key].totalViews += item.metrics.viewsCount || 0;
-      brandAggMap[key].totalLikes += item.metrics.likesCount || 0;
-      brandAggMap[key].totalComments += item.metrics.commentsCount || 0;
-      brandAggMap[key].totalShares += (item.metrics.sharesCount || 0);
-      brandAggMap[key].totalContents += 1;
-    }
-  }
-
-  const allBrandAggs = Object.values(brandAggMap).map(agg => {
-    const engagementRate = agg.totalViews > 0
-      ? parseFloat((((agg.totalLikes + agg.totalComments + agg.totalShares) / agg.totalViews) * 100).toFixed(2))
-      : 0;
-    return {
-      ...agg,
-      avgEngagementRate: engagementRate
-    };
-  });
-
-  const totalBrands = allBrandAggs.length;
-
-  const sortedByViews = [...allBrandAggs].sort((a, b) => b.totalViews - a.totalViews);
-  const sortedByLikes = [...allBrandAggs].sort((a, b) => b.totalLikes - a.totalLikes);
-  const sortedByComments = [...allBrandAggs].sort((a, b) => b.totalComments - a.totalComments);
-  const sortedByShares = [...allBrandAggs].sort((a, b) => b.totalShares - a.totalShares);
-  const sortedByEngagement = [...allBrandAggs].sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
 
   let brandRanking: any = null;
 
-  if (targetBrandName && totalBrands > 0) {
+  if (targetBrandName && totalBrandsInCatalog > 0) {
     const targetKey = targetBrandName.toLowerCase();
-    const targetAgg = allBrandAggs.find(a => a.brandName.toLowerCase() === targetKey);
+    const targetAgg = allBrandsStatsList.find(a => a.brand.toLowerCase() === targetKey);
 
     if (targetAgg) {
-      const viewsRank = sortedByViews.findIndex(a => a.brandName.toLowerCase() === targetKey) + 1;
-      const likesRank = sortedByLikes.findIndex(a => a.brandName.toLowerCase() === targetKey) + 1;
-      const commentsRank = sortedByComments.findIndex(a => a.brandName.toLowerCase() === targetKey) + 1;
-      const sharesRank = sortedByShares.findIndex(a => a.brandName.toLowerCase() === targetKey) + 1;
-      const engagementRank = sortedByEngagement.findIndex(a => a.brandName.toLowerCase() === targetKey) + 1;
+      const sortedByViews = [...allBrandsStatsList].sort((a, b) => b.totalViews - a.totalViews);
+      const sortedByLikes = [...allBrandsStatsList].sort((a, b) => b.totalLikes - a.totalLikes);
+      const sortedByComments = [...allBrandsStatsList].sort((a, b) => b.totalComments - a.totalComments);
+      const sortedByShares = [...allBrandsStatsList].sort((a, b) => b.totalShares - a.totalShares);
+      const sortedByEngagement = [...allBrandsStatsList].sort((a, b) => b.engagementRate - a.engagementRate);
+
+      const viewsRank = sortedByViews.findIndex(a => a.brand.toLowerCase() === targetKey) + 1;
+      const likesRank = sortedByLikes.findIndex(a => a.brand.toLowerCase() === targetKey) + 1;
+      const commentsRank = sortedByComments.findIndex(a => a.brand.toLowerCase() === targetKey) + 1;
+      const sharesRank = sortedByShares.findIndex(a => a.brand.toLowerCase() === targetKey) + 1;
+      const engagementRank = sortedByEngagement.findIndex(a => a.brand.toLowerCase() === targetKey) + 1;
 
       brandRanking = {
-        brandName: targetAgg.brandName,
-        totalBrands,
+        brandName: targetAgg.brand,
+        totalBrands: totalBrandsInCatalog,
+        contentCount: targetAgg.contentCount,
+        totalViews: targetAgg.totalViews,
+        totalLikes: targetAgg.totalLikes,
+        totalComments: targetAgg.totalComments,
+        totalShares: targetAgg.totalShares,
+        avgEngagementRate: targetAgg.engagementRate,
         ranks: {
           views: { rank: viewsRank, totalValue: targetAgg.totalViews },
           likes: { rank: likesRank, totalValue: targetAgg.totalLikes },
           comments: { rank: commentsRank, totalValue: targetAgg.totalComments },
           shares: { rank: sharesRank, totalValue: targetAgg.totalShares },
-          engagement: { rank: engagementRank, value: targetAgg.avgEngagementRate }
+          engagement: { rank: engagementRank, value: targetAgg.engagementRate }
         }
       };
     }
@@ -1022,4 +1167,91 @@ async function upsertContentToDb(data: UpsertPayload) {
     is_comparison: classification.isComparison,
     confidence_score: classification.confidenceScore
   });
+}
+
+export interface BrandRankingItem {
+  rank: number;
+  brand: string;
+  contentCount: number;
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  engagementScore: number;
+  displayValue: string;
+}
+
+export async function getBrandRanking(metric: string = 'views'): Promise<{
+  success: boolean;
+  metric: string;
+  top4: BrandRankingItem[];
+  ranking: BrandRankingItem[];
+}> {
+  const brandStatsMap = await getGlobalBrandStats();
+
+  const brandList = Array.from(brandStatsMap.values())
+    .filter(st => st.contentCount > 0);
+
+  const activeMetric = ['views', 'likes', 'comments', 'shares', 'engagement'].includes(metric) ? metric : 'views';
+
+  brandList.sort((a, b) => {
+    if (activeMetric === 'likes') {
+      if (b.totalLikes !== a.totalLikes) return b.totalLikes - a.totalLikes;
+    } else if (activeMetric === 'comments') {
+      if (b.totalComments !== a.totalComments) return b.totalComments - a.totalComments;
+    } else if (activeMetric === 'shares') {
+      if (b.totalShares !== a.totalShares) return b.totalShares - a.totalShares;
+    } else if (activeMetric === 'engagement') {
+      if (b.engagementRate !== a.engagementRate) return b.engagementRate - a.engagementRate;
+    } else {
+      if (b.totalViews !== a.totalViews) return b.totalViews - a.totalViews;
+    }
+    // Tie breaker: totalViews DESC, then brand name ASC
+    if (b.totalViews !== a.totalViews) return b.totalViews - a.totalViews;
+    return a.brand.localeCompare(b.brand);
+  });
+
+  const formatNum = (num: number) => {
+    if (num >= 1_000_000) {
+      return (num / 1_000_000).toFixed(1).replace('.', ',').replace(',0', '') + ' mi';
+    }
+    if (num >= 1_000) {
+      return (num / 1_000).toFixed(1).replace('.', ',').replace(',0', '') + ' mil';
+    }
+    return num.toLocaleString('pt-BR');
+  };
+
+  const ranking: BrandRankingItem[] = brandList.map((st, index) => {
+    let displayValue = '';
+    if (activeMetric === 'likes') {
+      displayValue = `${formatNum(st.totalLikes)} curtidas`;
+    } else if (activeMetric === 'comments') {
+      displayValue = `${formatNum(st.totalComments)} comentários`;
+    } else if (activeMetric === 'shares') {
+      displayValue = `${formatNum(st.totalShares)} compartilhamentos`;
+    } else if (activeMetric === 'engagement') {
+      displayValue = `${st.engagementRate.toFixed(2).replace('.', ',')}% engajamento`;
+    } else {
+      displayValue = `${formatNum(st.totalViews)} visualizações`;
+    }
+
+    return {
+      rank: index + 1,
+      brand: st.brand,
+      contentCount: st.contentCount,
+      totalViews: st.totalViews,
+      totalLikes: st.totalLikes,
+      totalComments: st.totalComments,
+      totalShares: st.totalShares,
+      engagementScore: st.engagementRate,
+      displayValue
+    };
+  });
+
+  return {
+    success: true,
+    metric: activeMetric,
+    top4: ranking.slice(0, 4),
+    ranking
+  };
 }

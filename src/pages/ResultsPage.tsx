@@ -3,6 +3,7 @@ import { ResultsHeader } from '../components/results/ResultsHeader';
 import { ResultsSearchBar } from '../components/results/ResultsSearchBar';
 import { ResultsFilterModal } from '../components/results/ResultsFilterModal';
 import { ResultsSummary } from '../components/results/ResultsSummary';
+import { BrandRankingWidget } from '../components/results/BrandRankingWidget';
 import { ContentCard } from '../components/results/ContentCard';
 import {
   ResultsApiResponse,
@@ -190,61 +191,89 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ onNavigateHome }) => {
             />
           )}
 
-          {/* Content Items Grid */}
-          {loading && !loadingMore ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
-              <p className="text-sm font-bold text-slate-300">Consultando banco de conteúdos e métricas...</p>
-            </div>
-          ) : accumulatedContents.length > 0 ? (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {accumulatedContents.map((item, idx) => (
-                  <ContentCard key={`${item.id}-${idx}`} content={item} />
-                ))}
-              </div>
+          {/* Ranking de Marcas Component */}
+          <BrandRankingWidget />
 
-              {/* Pagination / Load More */}
-              {data?.pagination?.hasMore && (
-                <div className="flex justify-center pt-4">
-                  <button
-                    onClick={() => handleFilterChange({ page: filters.page + 1 })}
-                    disabled={loadingMore}
-                    className="inline-flex items-center gap-2 py-3.5 px-8 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 border border-slate-700 text-cyan-400 font-extrabold text-xs sm:text-sm shadow-xl active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                        <span>Carregando mais...</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 text-cyan-400" />
-                        <span>CARREGAR MAIS RESULTADOS</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+          {/* Content Items Feed Header & Grid */}
+          <div className="space-y-6 pt-2">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base sm:text-lg font-black text-slate-200">
+                {filters.sortBy === 'recent'
+                  ? 'CONTEÚDOS MAIS RECENTES'
+                  : filters.sortBy === 'engagement'
+                  ? 'CONTEÚDOS (PERFORMANCE SCORE)'
+                  : filters.sortBy === 'views'
+                  ? 'CONTEÚDOS MAIS VISUALIZADOS'
+                  : filters.sortBy === 'likes'
+                  ? 'CONTEÚDOS MAIS CURTIDOS'
+                  : filters.sortBy === 'comments'
+                  ? 'CONTEÚDOS MAIS COMENTADOS'
+                  : filters.sortBy === 'shares'
+                  ? 'CONTEÚDOS MAIS COMPARTILHADOS'
+                  : 'CONTEÚDOS DO CATÁLOGO'}
+              </h3>
+              {data?.pagination && (
+                <span className="text-xs text-slate-400 font-medium">
+                  {accumulatedContents.length} de {data.pagination.total} conteúdos
+                </span>
               )}
             </div>
-          ) : (
-            /* Empty State */
-            filters.platform !== 'tiktok' && (
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-12 text-center space-y-4 max-w-lg mx-auto shadow-xl">
-                <SearchX className="w-12 h-12 text-slate-500 mx-auto" />
-                <h3 className="text-lg font-black text-white">Nenhum conteúdo encontrado</h3>
-                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                  Não encontramos vídeos ou postagens correspondentes aos termos ou filtros selecionados. Tente buscar por outros termos como <strong className="text-cyan-400">WAAW, JBL, UOL</strong> ou limpar os filtros.
-                </p>
-                <button
-                  onClick={handleResetFilters}
-                  className="py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs border border-slate-700 transition-all cursor-pointer"
-                >
-                  Limpar Filtros e Pesquisa
-                </button>
+
+            {loading && !loadingMore ? (
+              <div className="py-16 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
+                <p className="text-sm font-bold text-slate-300">Consultando banco de conteúdos e métricas...</p>
               </div>
-            )
-          )}
+            ) : accumulatedContents.length > 0 ? (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {accumulatedContents.map((item, idx) => (
+                    <ContentCard key={`${item.id}-${idx}`} content={item} />
+                  ))}
+                </div>
+
+                {/* Pagination / Load More */}
+                {data?.pagination?.hasMore && (
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={() => handleFilterChange({ page: filters.page + 1 })}
+                      disabled={loadingMore}
+                      className="inline-flex items-center gap-2 py-3.5 px-8 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 border border-slate-700 text-cyan-400 font-extrabold text-xs sm:text-sm shadow-xl active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                          <span>Carregando mais...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 text-cyan-400" />
+                          <span>CARREGAR MAIS RESULTADOS</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Empty State */
+              filters.platform !== 'tiktok' && (
+                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-12 text-center space-y-4 max-w-lg mx-auto shadow-xl">
+                  <SearchX className="w-12 h-12 text-slate-500 mx-auto" />
+                  <h3 className="text-lg font-black text-white">Nenhum conteúdo encontrado</h3>
+                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    Não encontramos vídeos ou postagens correspondentes aos termos ou filtros selecionados. Tente buscar por outros termos como <strong className="text-cyan-400">WAAW, JBL, UOL</strong> ou limpar os filtros.
+                  </p>
+                  <button
+                    onClick={handleResetFilters}
+                    className="py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs border border-slate-700 transition-all cursor-pointer"
+                  >
+                    Limpar Filtros e Pesquisa
+                  </button>
+                </div>
+              )
+            )}
+          </div>
 
         </main>
 

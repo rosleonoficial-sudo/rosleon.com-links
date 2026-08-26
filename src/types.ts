@@ -205,6 +205,7 @@ export interface ContentMetrics {
   commentsCount: number;
   sharesCount: number | null; // null when not publicly provided (e.g. YouTube API)
   engagementRate: number | null;
+  performanceScore?: number;
   lastSyncedAt: string;
 }
 
@@ -231,6 +232,7 @@ export interface ContentItem {
   brands: string[]; // Brand names or slugs
   classification?: ContentClassification;
   metrics: ContentMetrics;
+  performanceScore?: number;
 }
 
 export interface ResultsFilterState {
