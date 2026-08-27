@@ -1,4 +1,5 @@
-import { getTikTokAuthUrl } from '../../server/tiktokService.js';
+import { getTikTokAuthUrl, saveOAuthState } from '../../server/tiktokService.js';
+import { initDatabase } from '../../server/db.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,16 +12,25 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    await initDatabase();
     const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    // Save state to PostgreSQL table (persists across serverless instances)
+    await saveOAuthState(state);
+
+    // Save state in HttpOnly, Secure, SameSite=Lax cookie (max-age 10 minutes)
+    res.setHeader('Set-Cookie', `tiktok_oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
+
     const authUrl = getTikTokAuthUrl(state);
 
     if (req.query?.json === 'true' || req.headers?.accept?.includes('application/json')) {
-      return res.status(200).json({ success: true, authUrl });
+      return res.status(200).json({ success: true, authUrl, state });
     }
 
     return res.redirect(302, authUrl);
   } catch (err: any) {
     console.error('Erro na rota /api/tiktok/login:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Erro ao iniciar login TikTok' });
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=login_init_failed');
   }
 }
+

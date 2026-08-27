@@ -1,5 +1,16 @@
 import { initDatabase } from '../../server/db.js';
-import { handleTikTokCallback } from '../../server/tiktokService.js';
+import { handleTikTokCallback, validateAndDeleteOAuthState } from '../../server/tiktokService.js';
+
+function parseCookie(cookieHeader?: string, name?: string): string | null {
+  if (!cookieHeader || !name) return null;
+  const cookies = cookieHeader.split(';').map(c => c.trim());
+  for (const c of cookies) {
+    if (c.startsWith(`${name}=`)) {
+      return decodeURIComponent(c.substring(name.length + 1));
+    }
+  }
+  return null;
+}
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,25 +23,55 @@ export default async function handler(req: any, res: any) {
   }
 
   const code = req.query?.code || req.query?.auth_code;
+  const state = req.query?.state;
   const error = req.query?.error;
   const errorDescription = req.query?.error_description;
 
+  // Clear state cookie on callback
+  res.setHeader('Set-Cookie', 'tiktok_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+
   if (error) {
     console.error('Erro retornado pelo TikTok OAuth:', error, errorDescription);
-    return res.redirect(302, '/resultados?tiktok=error&msg=' + encodeURIComponent(errorDescription || error));
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=provider_rejected');
   }
 
   if (!code) {
-    return res.status(400).json({ success: false, error: 'Parâmetro code é obrigatório' });
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=missing_code');
+  }
+
+  if (!state) {
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=state_invalid');
   }
 
   try {
     await initDatabase();
+
+    // Read state from cookie or request header
+    const cookieState = req.cookies?.tiktok_oauth_state || parseCookie(req.headers?.cookie, 'tiktok_oauth_state');
+
+    // Validate state against cookie and DB
+    const isValidState = await validateAndDeleteOAuthState(String(state), cookieState);
+    if (!isValidState) {
+      console.error('State de OAuth inválido ou expirado:', { queryState: state, cookieState });
+      return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=state_invalid');
+    }
+
+    // Process code exchange & token persistence
     await handleTikTokCallback(String(code));
 
-    return res.redirect(302, '/resultados?tiktok=connected');
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=connected');
   } catch (err: any) {
     console.error('Erro na rota /api/tiktok/callback:', err);
-    return res.redirect(302, '/resultados?tiktok=error&msg=' + encodeURIComponent(err.message || 'Erro ao processar callback'));
+    
+    let reason = 'token_exchange_failed';
+    const msg = err.message || '';
+    if (msg.includes('database')) {
+      reason = 'database_error';
+    } else if (msg.includes('account') || msg.includes('user_info')) {
+      reason = 'account_fetch_failed';
+    }
+
+    return res.redirect(302, `https://links.gruporosleon.com.br/resultados?tiktok=error&reason=${reason}`);
   }
 }
+

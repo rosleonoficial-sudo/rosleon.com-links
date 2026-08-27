@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
 import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
-import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents } from './server/tiktokService.js';
+import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState } from './server/tiktokService.js';
 
 const app = express();
 const PORT = 3000;
@@ -718,37 +718,73 @@ app.post('/api/results/reclassify', async (_req, res) => {
 });
 
 // GET /api/tiktok/login
-app.get('/api/tiktok/login', (req, res) => {
+app.get('/api/tiktok/login', async (req, res) => {
   try {
-    const state = Math.random().toString(36).substring(2, 15);
+    await initDatabase();
+    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    await saveOAuthState(state);
+    res.setHeader('Set-Cookie', `tiktok_oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
+
     const authUrl = getTikTokAuthUrl(state);
     if (req.query?.json === 'true' || req.headers?.accept?.includes('application/json')) {
-      return res.json({ success: true, authUrl });
+      return res.json({ success: true, authUrl, state });
     }
     return res.redirect(302, authUrl);
   } catch (err: any) {
     console.error('Erro /api/tiktok/login:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=login_init_failed');
   }
 });
 
 // GET /api/tiktok/callback
 app.get('/api/tiktok/callback', async (req, res) => {
   const code = req.query?.code || req.query?.auth_code;
+  const state = req.query?.state;
   const error = req.query?.error;
+
+  res.setHeader('Set-Cookie', 'tiktok_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+
   if (error) {
-    return res.redirect(302, '/resultados?tiktok=error&msg=' + encodeURIComponent(String(error)));
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=provider_rejected');
   }
   if (!code) {
-    return res.status(400).json({ success: false, error: 'Parâmetro code é obrigatório' });
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=missing_code');
   }
+  if (!state) {
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=state_invalid');
+  }
+
   try {
     await initDatabase();
+
+    const cookieHeader = req.headers?.cookie;
+    let cookieState: string | null = null;
+    if (cookieHeader) {
+      const match = cookieHeader.split(';').map((c: string) => c.trim()).find((c: string) => c.startsWith('tiktok_oauth_state='));
+      if (match) cookieState = decodeURIComponent(match.substring('tiktok_oauth_state='.length));
+    }
+
+    const isValidState = await validateAndDeleteOAuthState(String(state), cookieState);
+    if (!isValidState) {
+      console.error('State inválido ou expirado:', { queryState: state, cookieState });
+      return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=state_invalid');
+    }
+
     await handleTikTokCallback(String(code));
-    return res.redirect(302, '/resultados?tiktok=connected');
+    return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=connected');
   } catch (err: any) {
     console.error('Erro /api/tiktok/callback:', err);
-    return res.redirect(302, '/resultados?tiktok=error&msg=' + encodeURIComponent(err.message));
+
+    let reason = 'token_exchange_failed';
+    const msg = err.message || '';
+    if (msg.includes('database')) {
+      reason = 'database_error';
+    } else if (msg.includes('account') || msg.includes('user_info')) {
+      reason = 'account_fetch_failed';
+    }
+
+    return res.redirect(302, `https://links.gruporosleon.com.br/resultados?tiktok=error&reason=${reason}`);
   }
 });
 

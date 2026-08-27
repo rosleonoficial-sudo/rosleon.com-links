@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { fixBomberBrandOnly } from './classifierService.js';
+import { initTikTokTable } from './tiktokService.js';
 const { Pool } = pg;
 
 export interface DbBrand {
@@ -232,6 +233,9 @@ export async function initDatabase() {
 
         // Audit and fix Bomber brand contents
         await fixBomberBrandOnly();
+
+        // Ensure TikTok tables (tiktok_tokens, tiktok_oauth_states) exist
+        await initTikTokTable();
 
         return;
       } catch (e: any) {
