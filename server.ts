@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
 import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
-import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState } from './server/tiktokService.js';
+import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState, HANDLER_VERSION, BUILD_MARKER } from './server/tiktokService.js';
 
 const app = express();
 const PORT = 3000;
@@ -777,10 +777,10 @@ app.get('/api/tiktok/callback', async (req, res) => {
 
     let reason = 'token_exchange_failed';
     const msg = err.message || '';
-    if (['missing_client_key', 'missing_client_secret', 'missing_redirect_uri'].includes(msg)) {
+    if (['missing_client_key', 'missing_client_secret', 'missing_redirect_uri', 'token_persistence_failed', 'state_invalid'].includes(msg)) {
       reason = msg;
-    } else if (msg.includes('database')) {
-      reason = 'database_error';
+    } else if (msg.includes('database') || msg.includes('persistence')) {
+      reason = 'token_persistence_failed';
     } else if (msg.includes('account') || msg.includes('user_info')) {
       reason = 'account_fetch_failed';
     }
@@ -794,7 +794,13 @@ app.get('/api/tiktok/status', async (_req, res) => {
   try {
     await initDatabase();
     const status = await getTikTokStatus();
-    res.json({ success: true, ...status });
+    res.json({
+      success: true,
+      handlerVersion: HANDLER_VERSION,
+      handlerSource: 'server.ts',
+      buildMarker: BUILD_MARKER,
+      ...status
+    });
   } catch (err: any) {
     console.error('Erro /api/tiktok/status:', err);
     res.status(500).json({ success: false, error: 'Erro ao consultar status TikTok' });

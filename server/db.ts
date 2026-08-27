@@ -1,4 +1,5 @@
 import pg from 'pg';
+import crypto from 'crypto';
 import { fixBomberBrandOnly } from './classifierService.js';
 import { initTikTokTable } from './tiktokService.js';
 const { Pool } = pg;
@@ -98,6 +99,41 @@ const memoryDb: MemoryStore = {
   nextContentId: 1
 };
 
+export function getDatabaseUrl(): string | null {
+  return (
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    null
+  );
+}
+
+export function getDatabaseInfoSafe() {
+  return getSafeDatabaseIdentity();
+}
+
+export function getSafeDatabaseIdentity() {
+  const dbUrl = getDatabaseUrl();
+  if (!dbUrl) {
+    return { hostHash: null, database: null, schema: 'public', configured: false };
+  }
+  try {
+    const parsed = new URL(dbUrl);
+    const host = parsed.hostname || '';
+    const database = parsed.pathname ? parsed.pathname.replace(/^\//, '') : '';
+    const hostHash = host ? crypto.createHash('sha256').update(host).digest('hex').substring(0, 12) : null;
+    return {
+      hostHash,
+      database: database || 'default',
+      schema: 'public',
+      configured: true
+    };
+  } catch (e) {
+    return { hostHash: 'configured', database: 'configured', schema: 'public', configured: true };
+  }
+}
+
 let pool: pg.Pool | null = null;
 let isPgAvailable = false;
 let initPromise: Promise<void> | null = null;
@@ -111,7 +147,7 @@ export async function initDatabase() {
   }
 
   initPromise = (async () => {
-    const databaseUrl = process.env.DATABASE_URL;
+    const databaseUrl = getDatabaseUrl();
 
     if (databaseUrl) {
       try {
@@ -270,10 +306,22 @@ function seedMemoryDatabase() {
 }
 
 export function isPostgresActive(): boolean {
-  return isPgAvailable;
+  return isPgAvailable || Boolean(getDatabaseUrl());
 }
 
 export function getPool(): pg.Pool | null {
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) {
+    return null;
+  }
+  if (!pool) {
+    pool = new Pool({
+      connectionString: databaseUrl,
+      ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 5000
+    });
+    isPgAvailable = true;
+  }
   return pool;
 }
 

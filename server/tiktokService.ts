@@ -1,4 +1,4 @@
-import { getPool, isPostgresActive, getMemoryStore } from './db.js';
+import { getPool, isPostgresActive, getMemoryStore, getDatabaseInfoSafe } from './db.js';
 import { upsertContentToDb, reprocessAllContentBrands } from './resultsService.js';
 
 export interface TikTokTokenRecord {
@@ -21,9 +21,6 @@ export interface TikTokTokenRecord {
   updated_at?: string;
 }
 
-// In-memory token storage for local development fallback
-let memoryTikTokToken: TikTokTokenRecord | null = null;
-
 export interface TikTokDiagnosticError {
   stage: string;
   httpStatus: number;
@@ -37,7 +34,31 @@ export interface TikTokDiagnosticError {
   timeBeforeTokenExchangeMs?: number;
 }
 
+export const BUILD_MARKER = 'build-20260827-v4-persistence-commit';
+export const HANDLER_VERSION = 'tiktok-persistence-v4';
+
 let lastOAuthDiagnostic: TikTokDiagnosticError | null = null;
+
+export async function saveOAuthDiagnosticToDb(diag: TikTokDiagnosticError) {
+  lastOAuthDiagnostic = diag;
+  const pool = getPool();
+  if (!pool) return;
+  try {
+    await pool.query(`
+      INSERT INTO tiktok_oauth_diagnostics (stage, safe_code, message, http_status, log_id, build_marker, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [
+      diag.stage,
+      diag.code,
+      diag.message,
+      diag.httpStatus || 0,
+      diag.logId || null,
+      BUILD_MARKER
+    ]);
+  } catch (e: any) {
+    console.warn('Aviso ao salvar diagnóstico OAuth no banco:', e.message);
+  }
+}
 
 export function getClientCredentials() {
   const clientKey = (process.env.TIKTOK_CLIENT_KEY || process.env.VITE_TIKTOK_CLIENT_KEY || '').trim();
@@ -48,45 +69,54 @@ export function getClientCredentials() {
 }
 
 /**
- * Initialize tiktok_tokens and tiktok_oauth_states tables in Postgres if not exists
+ * Initialize tiktok_tokens, tiktok_oauth_states and tiktok_oauth_diagnostics tables in Postgres if not exists
  */
 export async function initTikTokTable() {
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      try {
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS tiktok_tokens (
-            id SERIAL PRIMARY KEY,
-            open_id VARCHAR(255) UNIQUE NOT NULL,
-            display_name VARCHAR(255),
-            avatar_url TEXT,
-            access_token TEXT NOT NULL,
-            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-            refresh_token TEXT NOT NULL,
-            refresh_expires_at TIMESTAMP WITH TIME ZONE,
-            scope TEXT,
-            followers_count BIGINT DEFAULT 0,
-            following_count BIGINT DEFAULT 0,
-            likes_count BIGINT DEFAULT 0,
-            video_count BIGINT DEFAULT 0,
-            last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            last_error TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-          );
+  const pool = getPool();
+  if (pool) {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS tiktok_tokens (
+          id SERIAL PRIMARY KEY,
+          open_id VARCHAR(255) UNIQUE NOT NULL,
+          display_name VARCHAR(255),
+          avatar_url TEXT,
+          access_token TEXT NOT NULL,
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+          refresh_token TEXT NOT NULL,
+          refresh_expires_at TIMESTAMP WITH TIME ZONE,
+          scope TEXT,
+          followers_count BIGINT DEFAULT 0,
+          following_count BIGINT DEFAULT 0,
+          likes_count BIGINT DEFAULT 0,
+          video_count BIGINT DEFAULT 0,
+          last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          last_error TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
 
-          ALTER TABLE tiktok_tokens ADD COLUMN IF NOT EXISTS last_error TEXT;
+        ALTER TABLE tiktok_tokens ADD COLUMN IF NOT EXISTS last_error TEXT;
 
-          CREATE TABLE IF NOT EXISTS tiktok_oauth_states (
-            state VARCHAR(255) PRIMARY KEY,
-            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-      } catch (err: any) {
-        console.warn('Aviso ao criar tabelas do TikTok no Postgres:', err.message);
-      }
+        CREATE TABLE IF NOT EXISTS tiktok_oauth_states (
+          state VARCHAR(255) PRIMARY KEY,
+          expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS tiktok_oauth_diagnostics (
+          id SERIAL PRIMARY KEY,
+          stage VARCHAR(100) NOT NULL,
+          safe_code VARCHAR(100),
+          message TEXT,
+          http_status INT DEFAULT 0,
+          log_id VARCHAR(255),
+          build_marker VARCHAR(100),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    } catch (err: any) {
+      console.warn('Aviso ao criar tabelas do TikTok no Postgres:', err.message);
     }
   }
 }
@@ -96,18 +126,16 @@ export async function initTikTokTable() {
  */
 export async function saveOAuthState(state: string) {
   await initTikTokTable();
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      try {
-        await pool.query(`
-          INSERT INTO tiktok_oauth_states (state, expires_at)
-          VALUES ($1, NOW() + INTERVAL '10 minutes')
-          ON CONFLICT (state) DO UPDATE SET expires_at = NOW() + INTERVAL '10 minutes'
-        `, [state]);
-      } catch (err: any) {
-        console.warn('Aviso ao salvar OAuth state no Postgres:', err.message);
-      }
+  const pool = getPool();
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO tiktok_oauth_states (state, expires_at)
+        VALUES ($1, NOW() + INTERVAL '10 minutes')
+        ON CONFLICT (state) DO UPDATE SET expires_at = NOW() + INTERVAL '10 minutes'
+      `, [state]);
+    } catch (err: any) {
+      console.warn('Aviso ao salvar OAuth state no Postgres:', err.message);
     }
   }
 }
@@ -124,7 +152,7 @@ export async function validateAndDeleteOAuthState(queryState: string, cookieStat
   }
 
   // 2. Database persistence validation without table creation blocking
-  if (!isValid && isPostgresActive()) {
+  if (!isValid) {
     const pool = getPool();
     if (pool) {
       try {
@@ -142,14 +170,12 @@ export async function validateAndDeleteOAuthState(queryState: string, cookieStat
   }
 
   // Clean up state from DB asynchronously if Postgres active
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      pool.query(
-        `DELETE FROM tiktok_oauth_states WHERE state = $1 OR expires_at < NOW()`,
-        [queryState]
-      ).catch(() => {});
-    }
+  const pool = getPool();
+  if (pool) {
+    pool.query(
+      `DELETE FROM tiktok_oauth_states WHERE state = $1 OR expires_at < NOW()`,
+      [queryState]
+    ).catch(() => {});
   }
 
   return isValid;
@@ -174,56 +200,91 @@ export function getTikTokAuthUrl(state: string): string {
 }
 
 /**
- * Store or Update TikTok Token in DB / Memory
+ * Store or Update TikTok Token in PostgreSQL with IMMEDIATE read-back verification
  */
-export async function saveTikTokTokenRecord(record: TikTokTokenRecord) {
-  memoryTikTokToken = record;
+export async function saveTikTokTokenRecord(record: TikTokTokenRecord): Promise<boolean> {
+  const pool = getPool();
+  if (!pool) {
+    console.error('ERRO CRÍTICO: PostgreSQL não disponível para persistir token do TikTok');
+    throw new Error('database_not_configured');
+  }
 
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      try {
-        await pool.query(`
-          INSERT INTO tiktok_tokens (
-            open_id, display_name, avatar_url, access_token, expires_at,
-            refresh_token, refresh_expires_at, scope, followers_count,
-            following_count, likes_count, video_count, last_error, last_synced_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
-          ON CONFLICT (open_id) DO UPDATE SET
-            display_name = EXCLUDED.display_name,
-            avatar_url = EXCLUDED.avatar_url,
-            access_token = EXCLUDED.access_token,
-            expires_at = EXCLUDED.expires_at,
-            refresh_token = EXCLUDED.refresh_token,
-            refresh_expires_at = EXCLUDED.refresh_expires_at,
-            scope = EXCLUDED.scope,
-            followers_count = EXCLUDED.followers_count,
-            following_count = EXCLUDED.following_count,
-            likes_count = EXCLUDED.likes_count,
-            video_count = EXCLUDED.video_count,
-            last_error = EXCLUDED.last_error,
-            last_synced_at = NOW(),
-            updated_at = NOW();
-        `, [
-          record.open_id,
-          record.display_name,
-          record.avatar_url,
-          record.access_token,
-          record.expires_at,
-          record.refresh_token,
-          record.refresh_expires_at,
-          record.scope,
-          record.followers_count,
-          record.following_count,
-          record.likes_count,
-          record.video_count,
-          record.last_error || null
-        ]);
-      } catch (err: any) {
-        console.error('Erro de banco ao salvar token TikTok no Postgres:', err.message);
-        throw new Error(`database_error: ${err.message}`);
-      }
+  await initTikTokTable();
+
+  // 1. Transaction ON CONNECTION A with EXPLICIT COMMIT
+  const clientA = await pool.connect();
+  try {
+    await clientA.query('BEGIN');
+
+    const upsertRes = await clientA.query(`
+      INSERT INTO tiktok_tokens (
+        open_id, display_name, avatar_url, access_token, expires_at,
+        refresh_token, refresh_expires_at, scope, followers_count,
+        following_count, likes_count, video_count, last_error, last_synced_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      ON CONFLICT (open_id) DO UPDATE SET
+        display_name = EXCLUDED.display_name,
+        avatar_url = EXCLUDED.avatar_url,
+        access_token = EXCLUDED.access_token,
+        expires_at = EXCLUDED.expires_at,
+        refresh_token = EXCLUDED.refresh_token,
+        refresh_expires_at = EXCLUDED.refresh_expires_at,
+        scope = EXCLUDED.scope,
+        followers_count = EXCLUDED.followers_count,
+        following_count = EXCLUDED.following_count,
+        likes_count = EXCLUDED.likes_count,
+        video_count = EXCLUDED.video_count,
+        last_error = EXCLUDED.last_error,
+        last_synced_at = NOW(),
+        updated_at = NOW();
+    `, [
+      record.open_id,
+      record.display_name,
+      record.avatar_url,
+      record.access_token,
+      record.expires_at,
+      record.refresh_token,
+      record.refresh_expires_at,
+      record.scope,
+      record.followers_count,
+      record.following_count,
+      record.likes_count,
+      record.video_count,
+      record.last_error || null
+    ]);
+
+    await clientA.query('COMMIT');
+    clientA.release();
+
+    if ((upsertRes.rowCount ?? 0) === 0) {
+      console.warn('[TikTok Persistence] Avisos: rowCount de UPSERT retornou 0');
     }
+
+    // 2. MANDATORY READ-BACK CONFIRMATION FROM SEPARATE CONNECTION B
+    const clientB = await pool.connect();
+    try {
+      const checkRes = await clientB.query(
+        `SELECT open_id, access_token, updated_at FROM tiktok_tokens WHERE open_id = $1`,
+        [record.open_id]
+      );
+
+      if (checkRes.rows.length === 0 || !checkRes.rows[0].access_token) {
+        console.error('FALHA DE PERSISTÊNCIA: Registro do TikTok não encontrado no PostgreSQL após COMMIT!');
+        throw new Error('token_persistence_verification_failed');
+      }
+
+      console.log(`[TikTok Persistence] Token CONFIRMADO e VERIFICADO em NOVA CONEXÃO para open_id=${record.open_id}`);
+      return true;
+    } finally {
+      clientB.release();
+    }
+  } catch (err: any) {
+    try {
+      await clientA.query('ROLLBACK');
+    } catch (e) {}
+    clientA.release();
+    console.error('Erro de banco ao salvar token TikTok no Postgres:', err.message);
+    throw new Error(`database_error: ${err.message}`);
   }
 }
 
@@ -231,61 +292,55 @@ export async function saveTikTokTokenRecord(record: TikTokTokenRecord) {
  * Update error status for TikTok sync
  */
 export async function updateTikTokSyncError(openId: string, errorMsg: string | null) {
-  if (memoryTikTokToken && memoryTikTokToken.open_id === openId) {
-    memoryTikTokToken.last_error = errorMsg;
-  }
-
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      try {
-        await pool.query(
-          `UPDATE tiktok_tokens SET last_error = $1, updated_at = NOW() WHERE open_id = $2`,
-          [errorMsg, openId]
-        );
-      } catch (e) {}
-    }
+  const pool = getPool();
+  if (pool) {
+    try {
+      await pool.query(
+        `UPDATE tiktok_tokens SET last_error = $1, updated_at = NOW() WHERE open_id = $2`,
+        [errorMsg, openId]
+      );
+    } catch (e) {}
   }
 }
 
 /**
- * Get active TikTok token record
+ * Get active TikTok token record DIRECTLY from PostgreSQL (NO IN-MEMORY FALLBACK)
  */
 export async function getTikTokTokenRecord(): Promise<TikTokTokenRecord | null> {
-  await initTikTokTable();
-
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      try {
-        const res = await pool.query(`SELECT * FROM tiktok_tokens ORDER BY updated_at DESC LIMIT 1`);
-        if (res.rows[0]) {
-          const r = res.rows[0];
-          return {
-            id: r.id,
-            open_id: r.open_id,
-            display_name: r.display_name || 'ROSLEON TikTok',
-            avatar_url: r.avatar_url || '',
-            access_token: r.access_token,
-            expires_at: new Date(r.expires_at).toISOString(),
-            refresh_token: r.refresh_token,
-            refresh_expires_at: r.refresh_expires_at ? new Date(r.refresh_expires_at).toISOString() : new Date().toISOString(),
-            scope: r.scope || '',
-            followers_count: Number(r.followers_count || 0),
-            following_count: Number(r.following_count || 0),
-            likes_count: Number(r.likes_count || 0),
-            video_count: Number(r.video_count || 0),
-            last_synced_at: r.last_synced_at ? new Date(r.last_synced_at).toISOString() : new Date().toISOString(),
-            last_error: r.last_error || null
-          };
-        }
-      } catch (err: any) {
-        console.warn('Erro ao buscar token do TikTok do Postgres:', err.message);
-      }
-    }
+  const pool = getPool();
+  if (!pool) {
+    return null;
   }
 
-  return memoryTikTokToken;
+  await initTikTokTable();
+
+  try {
+    const res = await pool.query(`SELECT * FROM tiktok_tokens ORDER BY updated_at DESC LIMIT 1`);
+    if (res.rows[0]) {
+      const r = res.rows[0];
+      return {
+        id: r.id,
+        open_id: r.open_id,
+        display_name: r.display_name || 'ROSLEON TikTok',
+        avatar_url: r.avatar_url || '',
+        access_token: r.access_token,
+        expires_at: new Date(r.expires_at).toISOString(),
+        refresh_token: r.refresh_token,
+        refresh_expires_at: r.refresh_expires_at ? new Date(r.refresh_expires_at).toISOString() : new Date().toISOString(),
+        scope: r.scope || '',
+        followers_count: Number(r.followers_count || 0),
+        following_count: Number(r.following_count || 0),
+        likes_count: Number(r.likes_count || 0),
+        video_count: Number(r.video_count || 0),
+        last_synced_at: r.last_synced_at ? new Date(r.last_synced_at).toISOString() : new Date().toISOString(),
+        last_error: r.last_error || null
+      };
+    }
+  } catch (err: any) {
+    console.warn('Erro ao buscar token do TikTok do Postgres:', err.message);
+  }
+
+  return null;
 }
 
 /**
@@ -479,7 +534,7 @@ export async function handleTikTokCallback(code: string, callbackReceivedAtMs?: 
 
     const logId = tokenJson.log_id || data?.log_id || tokenJson.error?.log_id || undefined;
 
-    lastOAuthDiagnostic = {
+    const diag = {
       stage: 'token_exchange',
       httpStatus,
       code: String(rawCode),
@@ -492,12 +547,13 @@ export async function handleTikTokCallback(code: string, callbackReceivedAtMs?: 
       timeBeforeTokenExchangeMs
     };
 
-    console.error('[OAuth TikTok] Erro no token exchange:', lastOAuthDiagnostic);
+    await saveOAuthDiagnosticToDb(diag);
+    console.error('[OAuth TikTok] Erro no token exchange:', diag);
     throw new Error('token_exchange_failed');
   }
 
   // Record success diagnostic timing
-  lastOAuthDiagnostic = {
+  await saveOAuthDiagnosticToDb({
     stage: 'token_exchange_success',
     httpStatus,
     code: 'success',
@@ -507,7 +563,7 @@ export async function handleTikTokCallback(code: string, callbackReceivedAtMs?: 
     tokenExchangeFinishedAt: tokenExchangeFinishedAtStr,
     tokenExchangeDurationMs,
     timeBeforeTokenExchangeMs
-  };
+  });
 
   const accessToken = data.access_token;
   const refreshToken = data.refresh_token || '';
@@ -536,7 +592,23 @@ export async function handleTikTokCallback(code: string, callbackReceivedAtMs?: 
 
   // Ensure DB tables exist now (after successful token exchange)
   await initTikTokTable();
-  await saveTikTokTokenRecord(tokenRecord);
+  try {
+    await saveTikTokTokenRecord(tokenRecord);
+  } catch (persistErr: any) {
+    console.error('Falha de persistência no PostgreSQL ao salvar token TikTok:', persistErr.message);
+    lastOAuthDiagnostic = {
+      stage: 'token_persistence',
+      httpStatus: 0,
+      code: 'token_persistence_failed',
+      message: persistErr.message || 'Falha de persistência no PostgreSQL',
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: tokenExchangeFinishedAtStr,
+      tokenExchangeDurationMs,
+      timeBeforeTokenExchangeMs
+    };
+    throw new Error('token_persistence_failed');
+  }
 
   // 3. FETCH USER PROFILE INFO (AFTER TOKEN SAVED)
   try {
@@ -578,32 +650,44 @@ export async function handleTikTokCallback(code: string, callbackReceivedAtMs?: 
  */
 export async function getTikTokStatus() {
   await initTikTokTable();
+  const dbInfo = getDatabaseInfoSafe();
 
   // Count imported TikTok videos from DB
   let videosCount = 0;
   let dbLastSync: string | null = null;
 
-  if (isPostgresActive()) {
-    const pool = getPool();
-    if (pool) {
-      try {
-        const countRes = await pool.query(`
-          SELECT COUNT(*)::int as count, MAX(cm.last_synced_at) as last_sync
-          FROM contents c
-          LEFT JOIN content_metrics cm ON c.id = cm.content_id
-          WHERE c.platform = 'tiktok'
-        `);
-        videosCount = countRes.rows[0]?.count || 0;
-        if (countRes.rows[0]?.last_sync) {
-          dbLastSync = new Date(countRes.rows[0].last_sync).toISOString();
-        }
-      } catch (e) {}
-    }
+  const pool = getPool();
+  if (pool) {
+    try {
+      const countRes = await pool.query(`
+        SELECT COUNT(*)::int as count, MAX(cm.last_synced_at) as last_sync
+        FROM contents c
+        LEFT JOIN content_metrics cm ON c.id = cm.content_id
+        WHERE c.platform = 'tiktok'
+      `);
+      videosCount = countRes.rows[0]?.count || 0;
+      if (countRes.rows[0]?.last_sync) {
+        dbLastSync = new Date(countRes.rows[0].last_sync).toISOString();
+      }
+    } catch (e) {}
   }
 
   const record = await getTikTokTokenRecord();
 
   if (!record) {
+    let persistentDiagnostic: any = lastOAuthDiagnostic;
+    if (!persistentDiagnostic && pool) {
+      try {
+        const diagRes = await pool.query(
+          `SELECT stage, safe_code as code, message, http_status as "httpStatus", log_id as "logId", build_marker as "buildMarker", created_at as "timestamp"
+           FROM tiktok_oauth_diagnostics ORDER BY created_at DESC LIMIT 1`
+        );
+        if (diagRes.rows[0]) {
+          persistentDiagnostic = diagRes.rows[0];
+        }
+      } catch (e) {}
+    }
+
     return {
       success: true,
       connected: false,
@@ -611,7 +695,8 @@ export async function getTikTokStatus() {
       lastSync: dbLastSync,
       videosCount: videosCount,
       tokenStatus: 'not_connected',
-      lastError: lastOAuthDiagnostic
+      dbInfo,
+      lastError: persistentDiagnostic
     };
   }
 
@@ -644,6 +729,7 @@ export async function getTikTokStatus() {
     lastSync: record.last_synced_at || dbLastSync,
     videosCount: Math.max(record.video_count || 0, videosCount),
     tokenStatus: tokenStatus,
+    dbInfo,
     lastError: lastOAuthDiagnostic || (record.last_error ? { stage: 'sync', httpStatus: 0, code: 'sync_error', message: record.last_error } : null)
   };
 }

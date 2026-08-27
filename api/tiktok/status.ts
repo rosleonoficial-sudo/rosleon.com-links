@@ -1,5 +1,5 @@
 import { initDatabase } from '../../server/db.js';
-import { getTikTokStatus } from '../../server/tiktokService.js';
+import { getTikTokStatus, HANDLER_VERSION, BUILD_MARKER } from '../../server/tiktokService.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +14,13 @@ export default async function handler(req: any, res: any) {
   try {
     await initDatabase();
     const status = await getTikTokStatus();
-    return res.status(200).json({ success: true, ...status });
+    return res.status(200).json({
+      success: true,
+      handlerVersion: HANDLER_VERSION,
+      handlerSource: 'api/tiktok/status.ts',
+      buildMarker: BUILD_MARKER,
+      ...status
+    });
   } catch (err: any) {
     console.error('Erro na rota /api/tiktok/status:', err);
     return res.status(500).json({ success: false, error: 'Erro ao consultar status do TikTok' });

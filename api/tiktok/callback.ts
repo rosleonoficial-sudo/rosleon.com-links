@@ -64,10 +64,10 @@ export default async function handler(req: any, res: any) {
     
     let reason = 'token_exchange_failed';
     const msg = err.message || '';
-    if (['missing_client_key', 'missing_client_secret', 'missing_redirect_uri'].includes(msg)) {
+    if (['missing_client_key', 'missing_client_secret', 'missing_redirect_uri', 'token_persistence_failed', 'state_invalid'].includes(msg)) {
       reason = msg;
-    } else if (msg.includes('database')) {
-      reason = 'database_error';
+    } else if (msg.includes('database') || msg.includes('persistence')) {
+      reason = 'token_persistence_failed';
     } else if (msg.includes('account') || msg.includes('user_info')) {
       reason = 'account_fetch_failed';
     }
