@@ -199,13 +199,54 @@ export function getTikTokAuthUrl(state: string): string {
   return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
 }
 
+let lastSyncDiagnosticReport: TikTokSyncDiagnosticReport | null = null;
+
+export interface TikTokPageDiagnostic {
+  pageNumber: number;
+  phase: 'standard' | 'backfill';
+  requestedCursor: number | string | null;
+  returnedCursor: number | null;
+  hasMore: boolean;
+  videosReturned: number;
+  uniqueVideosAdded: number;
+  duplicates: number;
+  oldestCreateTime: number | null;
+  newestCreateTime: number | null;
+  httpStatus: number;
+  apiErrorCode: number | null;
+  apiErrorMessage: string | null;
+  elapsedMs: number;
+}
+
+export interface TikTokSyncDiagnosticReport {
+  openId: string;
+  userStatsVideoCount: number;
+  pagesFetched: number;
+  rawVideosFetched: number;
+  uniqueVideosFetched: number;
+  persistedVideos: number;
+  lastCursor: number | null;
+  lastHasMore: boolean;
+  stopReason: string;
+  backfillFoundExtraVideos: boolean;
+  backfillExtraCount: number;
+  totalDurationMs: number;
+  pages: TikTokPageDiagnostic[];
+  timestamp: string;
+}
+
+export function getLastSyncDiagnosticReport(): TikTokSyncDiagnosticReport | null {
+  return lastSyncDiagnosticReport;
+}
+
 /**
  * Store or Update TikTok Token in PostgreSQL with IMMEDIATE read-back verification
+ * PostgreSQL/Neon is the SOLE AND EXCLUSIVE source of truth.
  */
 export async function saveTikTokTokenRecord(record: TikTokTokenRecord): Promise<boolean> {
   const pool = getPool();
   if (!pool) {
-    console.error('ERRO CRÍTICO: PostgreSQL não disponível para persistir token do TikTok');
+    console.error('ERRO CRÍTICO: PostgreSQL não configurado para persistir token do TikTok');
     throw new Error('database_not_configured');
   }
 
@@ -730,24 +771,43 @@ export async function getTikTokStatus() {
     videosCount: Math.max(record.video_count || 0, videosCount),
     tokenStatus: tokenStatus,
     dbInfo,
+    lastSyncReport: lastSyncDiagnosticReport,
     lastError: lastOAuthDiagnostic || (record.last_error ? { stage: 'sync', httpStatus: 0, code: 'sync_error', message: record.last_error } : null)
   };
 }
 
 /**
- * Sync TikTok User Profile and Public Videos
+ * Sync TikTok User Profile and Public Videos with instrumentation and timestamp backfill
  */
-export async function syncTikTokContents(): Promise<number> {
+export async function syncTikTokContents(): Promise<TikTokSyncDiagnosticReport> {
+  const syncStartTime = Date.now();
   const tokenInfo = await getValidTikTokToken();
   if (!tokenInfo) {
     console.log('Nenhum token ativo do TikTok encontrado para sincronização.');
-    return 0;
+    const emptyReport: TikTokSyncDiagnosticReport = {
+      openId: 'none',
+      userStatsVideoCount: 0,
+      pagesFetched: 0,
+      rawVideosFetched: 0,
+      uniqueVideosFetched: 0,
+      persistedVideos: 0,
+      lastCursor: null,
+      lastHasMore: false,
+      stopReason: 'no_active_token',
+      backfillFoundExtraVideos: false,
+      backfillExtraCount: 0,
+      totalDurationMs: Date.now() - syncStartTime,
+      pages: [],
+      timestamp: new Date().toISOString()
+    };
+    lastSyncDiagnosticReport = emptyReport;
+    return emptyReport;
   }
 
-  const { accessToken } = tokenInfo;
-  let importedCount = 0;
+  const { accessToken, openId } = tokenInfo;
 
-  // 1. Update user info if possible
+  // 1. Refresh user info stats from TikTok User Info API
+  let userStatsVideoCount = 0;
   try {
     const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,follower_count,following_count,likes_count,video_count', {
       headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -763,7 +823,10 @@ export async function syncTikTokContents(): Promise<number> {
         if (typeof uData.follower_count === 'number') record.followers_count = uData.follower_count;
         if (typeof uData.following_count === 'number') record.following_count = uData.following_count;
         if (typeof uData.likes_count === 'number') record.likes_count = uData.likes_count;
-        if (typeof uData.video_count === 'number') record.video_count = uData.video_count;
+        if (typeof uData.video_count === 'number') {
+          record.video_count = uData.video_count;
+          userStatsVideoCount = uData.video_count;
+        }
         record.last_synced_at = new Date().toISOString();
         await saveTikTokTokenRecord(record);
       }
@@ -772,40 +835,329 @@ export async function syncTikTokContents(): Promise<number> {
     console.warn('Aviso ao atualizar perfil do TikTok:', uErr.message);
   }
 
-  // 2. Fetch public videos with pagination
-  try {
-    let hasMore = true;
-    let cursor = 0;
-    let pageCount = 0;
+  // 2. Paginated Video List Fetching
+  const seenVideoIds = new Set<string>();
+  const seenCursors = new Set<number>();
+  const pageDiagnostics: TikTokPageDiagnostic[] = [];
 
-    while (hasMore && pageCount < 50) { // Max 50 pages x 20 = 1000 videos max
-      pageCount++;
-      const videoListUrl = 'https://open.tiktokapis.com/v2/video/list/?fields=id,title,create_time,cover_image_url,share_url,video_description,duration,like_count,comment_count,share_count,view_count';
+  let pageNumber = 0;
+  let totalRawVideos = 0;
+  let totalUniqueVideos = 0;
+  let persistedVideos = 0;
+  let hasMore = true;
+  let cursor: number | undefined = undefined; // CRITICAL: Page 1 MUST NOT include cursor!
+  let lastReturnedCursor: number | null = null;
 
-      const listRes = await fetch(videoListUrl, {
+  let oldestCreateTime: number | null = null;
+  let newestCreateTime: number | null = null;
+
+  let stopReason = 'completed';
+  let backfillFoundExtraVideos = false;
+  let backfillExtraCount = 0;
+
+  // PHASE 1: Standard Cursor Pagination (up to 100 pages = 2000 max capacity)
+  while (hasMore && pageNumber < 100) {
+    pageNumber++;
+    const pageStart = Date.now();
+    const videoListUrl = 'https://open.tiktokapis.com/v2/video/list/?fields=id,title,create_time,cover_image_url,share_url,video_description,duration,like_count,comment_count,share_count,view_count';
+
+    const reqBody: any = { max_count: 20 };
+    if (cursor !== undefined) {
+      reqBody.cursor = cursor;
+    }
+
+    let listRes: Response;
+    try {
+      listRes = await fetch(videoListUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          max_count: 20,
-          cursor: cursor
-        })
+        body: JSON.stringify(reqBody)
       });
+    } catch (netErr: any) {
+      const elapsedMs = Date.now() - pageStart;
+      console.error(`[TikTok Sync Pág ${pageNumber}] Erro de rede:`, netErr.message);
+      pageDiagnostics.push({
+        pageNumber,
+        phase: 'standard',
+        requestedCursor: cursor ?? null,
+        returnedCursor: null,
+        hasMore: false,
+        videosReturned: 0,
+        uniqueVideosAdded: 0,
+        duplicates: 0,
+        oldestCreateTime: null,
+        newestCreateTime: null,
+        httpStatus: 0,
+        apiErrorCode: 500,
+        apiErrorMessage: netErr.message,
+        elapsedMs
+      });
+      stopReason = `network_error: ${netErr.message}`;
+      break;
+    }
+
+    const elapsedMs = Date.now() - pageStart;
+
+    if (!listRes.ok) {
+      const errText = await listRes.text();
+      console.warn(`[TikTok Sync Pág ${pageNumber}] HTTP Error ${listRes.status}:`, errText);
+      pageDiagnostics.push({
+        pageNumber,
+        phase: 'standard',
+        requestedCursor: cursor ?? null,
+        returnedCursor: null,
+        hasMore: false,
+        videosReturned: 0,
+        uniqueVideosAdded: 0,
+        duplicates: 0,
+        oldestCreateTime: null,
+        newestCreateTime: null,
+        httpStatus: listRes.status,
+        apiErrorCode: listRes.status,
+        apiErrorMessage: errText.slice(0, 200),
+        elapsedMs
+      });
+      stopReason = `http_error_${listRes.status}`;
+      break;
+    }
+
+    const listJson = await listRes.json();
+    const apiErrorCode = listJson.error?.code !== undefined ? listJson.error.code : (listJson.code || 0);
+    const apiErrorMessage = listJson.error?.message || null;
+
+    if (apiErrorCode !== 0 && apiErrorCode !== 'ok' && apiErrorCode !== '0') {
+      console.warn(`[TikTok Sync Pág ${pageNumber}] API Code ${apiErrorCode}: ${apiErrorMessage}`);
+      pageDiagnostics.push({
+        pageNumber,
+        phase: 'standard',
+        requestedCursor: cursor ?? null,
+        returnedCursor: null,
+        hasMore: false,
+        videosReturned: 0,
+        uniqueVideosAdded: 0,
+        duplicates: 0,
+        oldestCreateTime: null,
+        newestCreateTime: null,
+        httpStatus: 200,
+        apiErrorCode: Number(apiErrorCode) || 400,
+        apiErrorMessage,
+        elapsedMs
+      });
+      stopReason = `api_error_${apiErrorCode}`;
+      break;
+    }
+
+    const listData = listJson.data || {};
+    const videos: any[] = listData.videos || [];
+    const returnedHasMore = Boolean(listData.has_more);
+    const returnedCursor = typeof listData.cursor === 'number' ? listData.cursor : null;
+    lastReturnedCursor = returnedCursor;
+
+    let pageUniqueAdded = 0;
+    let pageDuplicates = 0;
+    let pageOldest: number | null = null;
+    let pageNewest: number | null = null;
+
+    for (const item of videos) {
+      if (!item.id) continue;
+      totalRawVideos++;
+
+      if (item.create_time && typeof item.create_time === 'number') {
+        const ct = item.create_time; // in seconds
+        if (oldestCreateTime === null || ct < oldestCreateTime) oldestCreateTime = ct;
+        if (newestCreateTime === null || ct > newestCreateTime) newestCreateTime = ct;
+        if (pageOldest === null || ct < pageOldest) pageOldest = ct;
+        if (pageNewest === null || ct > pageNewest) pageNewest = ct;
+      }
+
+      if (seenVideoIds.has(item.id)) {
+        pageDuplicates++;
+      } else {
+        seenVideoIds.add(item.id);
+        pageUniqueAdded++;
+        totalUniqueVideos++;
+      }
+
+      const caption = (item.title || item.video_description || 'Vídeo TikTok').trim();
+      const description = item.video_description || item.title || '';
+      const url = item.share_url || `https://www.tiktok.com/@rosleonoficial/video/${item.id}`;
+      const thumbnail = item.cover_image_url || '';
+      const publishedAt = item.create_time ? new Date(item.create_time * 1000).toISOString() : new Date().toISOString();
+
+      const views = Number(item.view_count || 0);
+      const likes = Number(item.like_count || 0);
+      const comments = Number(item.comment_count || 0);
+      const shares = item.share_count !== undefined && item.share_count !== null ? Number(item.share_count) : null;
+      const engagementRate = views > 0 ? parseFloat((((likes + comments + (shares || 0)) / views) * 100).toFixed(2)) : 0;
+
+      await upsertContentToDb({
+        platform: 'tiktok',
+        external_id: item.id,
+        title: caption,
+        description: description,
+        url: url,
+        thumbnail_url: thumbnail,
+        content_type: 'video',
+        published_at: publishedAt,
+        views_count: views,
+        likes_count: likes,
+        comments_count: comments,
+        shares_count: shares,
+        engagement_rate: engagementRate
+      });
+
+      persistedVideos++;
+    }
+
+    pageDiagnostics.push({
+      pageNumber,
+      phase: 'standard',
+      requestedCursor: cursor ?? null,
+      returnedCursor,
+      hasMore: returnedHasMore,
+      videosReturned: videos.length,
+      uniqueVideosAdded: pageUniqueAdded,
+      duplicates: pageDuplicates,
+      oldestCreateTime: pageOldest,
+      newestCreateTime: pageNewest,
+      httpStatus: 200,
+      apiErrorCode: 0,
+      apiErrorMessage: null,
+      elapsedMs
+    });
+
+    console.log(`[TikTok Sync Pág ${pageNumber}] Retornados: ${videos.length} (novos: ${pageUniqueAdded}, dup: ${pageDuplicates}). has_more=${returnedHasMore}, cursor=${returnedCursor}`);
+
+    hasMore = returnedHasMore;
+
+    if (returnedCursor !== null && returnedCursor > 0) {
+      if (seenCursors.has(returnedCursor) && pageUniqueAdded === 0) {
+        console.warn(`[TikTok Sync] Cursor ${returnedCursor} repetido sem novos vídeos. Interrompendo paginação.`);
+        stopReason = 'cursor_repeated_no_new_items';
+        break;
+      }
+      seenCursors.add(returnedCursor);
+      cursor = returnedCursor;
+    } else if (!hasMore) {
+      stopReason = 'standard_has_more_false';
+      break;
+    }
+
+    if (!hasMore) {
+      stopReason = 'standard_has_more_false';
+      break;
+    }
+  }
+
+  // PHASE 2: Timestamp-Based Backfill Test
+  // If standard pagination finished with has_more=false, check if timestamp cursor brings additional older videos!
+  if (oldestCreateTime !== null) {
+    console.log(`[TikTok Backfill] Paginação padrão concluída (${totalUniqueVideos} vídeos). Vídeo mais antigo: ${new Date(oldestCreateTime * 1000).toISOString()}. Testando Backfill por Timestamp...`);
+
+    let backfillCursor = (oldestCreateTime * 1000) - 1; // ms timestamp minus 1 ms
+    let continueBackfill = true;
+    let backfillAttempts = 0;
+
+    while (continueBackfill && backfillAttempts < 50 && pageNumber < 150) {
+      backfillAttempts++;
+      pageNumber++;
+      const pageStart = Date.now();
+      const videoListUrl = 'https://open.tiktokapis.com/v2/video/list/?fields=id,title,create_time,cover_image_url,share_url,video_description,duration,like_count,comment_count,share_count,view_count';
+
+      let listRes: Response;
+      try {
+        listRes = await fetch(videoListUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            max_count: 20,
+            cursor: backfillCursor
+          })
+        });
+      } catch (netErr: any) {
+        const elapsedMs = Date.now() - pageStart;
+        console.warn(`[TikTok Backfill Pág ${pageNumber}] Erro de rede:`, netErr.message);
+        pageDiagnostics.push({
+          pageNumber,
+          phase: 'backfill',
+          requestedCursor: backfillCursor,
+          returnedCursor: null,
+          hasMore: false,
+          videosReturned: 0,
+          uniqueVideosAdded: 0,
+          duplicates: 0,
+          oldestCreateTime: null,
+          newestCreateTime: null,
+          httpStatus: 0,
+          apiErrorCode: 500,
+          apiErrorMessage: netErr.message,
+          elapsedMs
+        });
+        break;
+      }
+
+      const elapsedMs = Date.now() - pageStart;
 
       if (!listRes.ok) {
         const errText = await listRes.text();
-        console.warn(`Erro na API do TikTok video/list (status ${listRes.status}):`, errText);
+        console.warn(`[TikTok Backfill Pág ${pageNumber}] HTTP Error ${listRes.status}:`, errText);
+        pageDiagnostics.push({
+          pageNumber,
+          phase: 'backfill',
+          requestedCursor: backfillCursor,
+          returnedCursor: null,
+          hasMore: false,
+          videosReturned: 0,
+          uniqueVideosAdded: 0,
+          duplicates: 0,
+          oldestCreateTime: null,
+          newestCreateTime: null,
+          httpStatus: listRes.status,
+          apiErrorCode: listRes.status,
+          apiErrorMessage: errText.slice(0, 200),
+          elapsedMs
+        });
         break;
       }
 
       const listJson = await listRes.json();
       const listData = listJson.data || {};
-      const videos = listData.videos || [];
+      const videos: any[] = listData.videos || [];
+      const returnedHasMore = Boolean(listData.has_more);
+      const returnedCursor = typeof listData.cursor === 'number' ? listData.cursor : null;
+
+      let pageUniqueAdded = 0;
+      let pageDuplicates = 0;
+      let pageOldest: number | null = null;
+      let pageNewest: number | null = null;
 
       for (const item of videos) {
         if (!item.id) continue;
+        totalRawVideos++;
+
+        if (item.create_time && typeof item.create_time === 'number') {
+          const ct = item.create_time;
+          if (oldestCreateTime === null || ct < oldestCreateTime) oldestCreateTime = ct;
+          if (newestCreateTime === null || ct > newestCreateTime) newestCreateTime = ct;
+          if (pageOldest === null || ct < pageOldest) pageOldest = ct;
+          if (pageNewest === null || ct > pageNewest) pageNewest = ct;
+        }
+
+        if (seenVideoIds.has(item.id)) {
+          pageDuplicates++;
+        } else {
+          seenVideoIds.add(item.id);
+          pageUniqueAdded++;
+          totalUniqueVideos++;
+          backfillFoundExtraVideos = true;
+          backfillExtraCount++;
+        }
 
         const caption = (item.title || item.video_description || 'Vídeo TikTok').trim();
         const description = item.video_description || item.title || '';
@@ -835,19 +1187,104 @@ export async function syncTikTokContents(): Promise<number> {
           engagement_rate: engagementRate
         });
 
-        importedCount++;
+        persistedVideos++;
       }
 
-      hasMore = Boolean(listData.has_more);
-      cursor = listData.cursor || 0;
-      if (!hasMore || !cursor) break;
-    }
+      pageDiagnostics.push({
+        pageNumber,
+        phase: 'backfill',
+        requestedCursor: backfillCursor,
+        returnedCursor,
+        hasMore: returnedHasMore,
+        videosReturned: videos.length,
+        uniqueVideosAdded: pageUniqueAdded,
+        duplicates: pageDuplicates,
+        oldestCreateTime: pageOldest,
+        newestCreateTime: pageNewest,
+        httpStatus: 200,
+        apiErrorCode: 0,
+        apiErrorMessage: null,
+        elapsedMs
+      });
 
-    console.log(`Sincronização TikTok concluída. ${importedCount} vídeos importados/atualizados.`);
-  } catch (vErr: any) {
-    console.warn('Erro durante a busca de vídeos do TikTok:', vErr.message);
+      console.log(`[TikTok Backfill Pág ${pageNumber}] Retornados: ${videos.length} (novos: ${pageUniqueAdded}, dup: ${pageDuplicates}). has_more=${returnedHasMore}`);
+
+      if (pageUniqueAdded === 0) {
+        console.log(`[TikTok Backfill] Nenhum vídeo novo retornado na busca por timestamp (${backfillCursor}). Backfill finalizado.`);
+        continueBackfill = false;
+        if (stopReason === 'standard_has_more_false') {
+          stopReason = backfillFoundExtraVideos ? 'completed_with_backfill' : 'api_returned_has_more_false';
+        }
+        break;
+      }
+
+      if (returnedCursor !== null && returnedCursor > 0 && returnedCursor !== backfillCursor) {
+        backfillCursor = returnedCursor;
+      } else if (pageOldest !== null) {
+        backfillCursor = (pageOldest * 1000) - 1;
+      } else {
+        continueBackfill = false;
+      }
+
+      if (!returnedHasMore && pageUniqueAdded === 0) {
+        continueBackfill = false;
+      }
+    }
   }
 
-  return importedCount;
+  const totalDurationMs = Date.now() - syncStartTime;
+
+  const report: TikTokSyncDiagnosticReport = {
+    openId,
+    userStatsVideoCount,
+    pagesFetched: pageNumber,
+    rawVideosFetched: totalRawVideos,
+    uniqueVideosFetched: totalUniqueVideos,
+    persistedVideos,
+    lastCursor: lastReturnedCursor,
+    lastHasMore: hasMore,
+    stopReason,
+    backfillFoundExtraVideos,
+    backfillExtraCount,
+    totalDurationMs,
+    pages: pageDiagnostics,
+    timestamp: new Date().toISOString()
+  };
+
+  lastSyncDiagnosticReport = report;
+
+  // Persist checkpoint diagnostic report to PostgreSQL if available
+  const pool = getPool();
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO tiktok_sync_checkpoints (
+          open_id, user_stats_video_count, pages_fetched, raw_videos_fetched,
+          unique_videos_fetched, persisted_videos, last_cursor, last_has_more,
+          stop_reason, backfill_found_extra, backfill_extra_count, total_duration_ms, report
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [
+        openId,
+        userStatsVideoCount,
+        pageNumber,
+        totalRawVideos,
+        totalUniqueVideos,
+        persistedVideos,
+        lastReturnedCursor,
+        hasMore,
+        stopReason,
+        backfillFoundExtraVideos,
+        backfillExtraCount,
+        totalDurationMs,
+        JSON.stringify(report)
+      ]);
+    } catch (e: any) {
+      console.warn('Aviso ao salvar checkpoint de sync do TikTok:', e.message);
+    }
+  }
+
+  console.log(`[TikTok Sync Finalizado] Total Páginas: ${pageNumber}, Vídeos Únicos: ${totalUniqueVideos}, Persistidos: ${persistedVideos}, Motivo Parada: ${stopReason}, Duração: ${totalDurationMs}ms`);
+
+  return report;
 }
 

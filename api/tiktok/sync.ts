@@ -14,13 +14,16 @@ export default async function handler(req: any, res: any) {
 
   try {
     await initDatabase();
-    const importedCount = await syncTikTokContents();
+    const result = await syncTikTokContents();
     await reprocessAllContentBrands();
+
+    const importedCount = typeof result === 'number' ? result : (result.uniqueVideosFetched || 0);
 
     return res.status(200).json({
       success: true,
       message: 'Sincronização do TikTok concluída com sucesso.',
       importedCount,
+      report: result,
       timestamp: new Date().toISOString()
     });
   } catch (err: any) {

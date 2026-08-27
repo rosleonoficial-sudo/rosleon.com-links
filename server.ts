@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
-import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking } from './server/resultsService.js';
+import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking, getAllCatalogContents } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
 import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState, HANDLER_VERSION, BUILD_MARKER } from './server/tiktokService.js';
 
@@ -520,15 +520,45 @@ async function fetchCentralMediaKitData() {
     console.warn("YouTube stats fetch warning in central media kit:", ytErr);
   }
 
+  let tiktokFollowers = 15089;
+  let tiktokViews = 2356235;
+  let tiktokVideos = 329;
+  let tiktokAutoSynced = false;
+
+  try {
+    const allContents = await getAllCatalogContents();
+    const ttItems = allContents.filter(c => c.platform === 'tiktok');
+    if (ttItems.length > 0) {
+      tiktokViews = ttItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
+      tiktokVideos = ttItems.length;
+    }
+  } catch (catErr) {
+    console.warn("Erro ao consultar catálogo no media-kit do server.ts:", catErr);
+  }
+
+  try {
+    const ttStatus = await getTikTokStatus();
+    if (ttStatus && ttStatus.account) {
+      if (ttStatus.account.followersCount > 0) tiktokFollowers = ttStatus.account.followersCount;
+    }
+    if (ttStatus && ttStatus.connected) tiktokAutoSynced = true;
+  } catch (ttErr) {
+    console.warn("TikTok status warning in central media kit:", ttErr);
+  }
+
   const tiktokData = {
-    followers: 15089,
-    followersFormatted: "15.089",
-    views: 2356235,
-    viewsFormatted: "2.356.235",
-    isAutoSynced: false
+    followers: tiktokFollowers,
+    followersFormatted: tiktokFollowers.toLocaleString('pt-BR'),
+    views: tiktokViews,
+    viewsFormatted: tiktokViews >= 1000000
+      ? `${(tiktokViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
+      : tiktokViews.toLocaleString('pt-BR'),
+    videos: tiktokVideos,
+    isAutoSynced: tiktokAutoSynced
   };
 
   const totalCommunity = rawFollowers + youtubeData.subscribers + tiktokData.followers;
+  const totalViews3Networks = youtubeData.views + rawViews30Days + tiktokViews;
   const lastSyncedAt = new Date().toISOString();
 
   const payload = {
@@ -536,6 +566,10 @@ async function fetchCentralMediaKitData() {
     snapshotId: realtimeAudience.snapshotId,
     generatedAt: realtimeAudience.generatedAt,
     nextUpdateAt: realtimeAudience.nextUpdateAt,
+    totalViews3Networks,
+    totalViews3NetworksFormatted: totalViews3Networks >= 1000000
+      ? `${(totalViews3Networks / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
+      : totalViews3Networks.toLocaleString('pt-BR'),
     instagram: {
       followers: rawFollowers,
       followersCount: rawFollowers,
@@ -811,9 +845,10 @@ app.get('/api/tiktok/status', async (_req, res) => {
 app.post(['/api/tiktok/sync', '/tiktok/sync'], async (_req, res) => {
   try {
     await initDatabase();
-    const importedCount = await syncTikTokContents();
+    const result = await syncTikTokContents();
     await reclassifyAllDatabaseContents();
-    res.json({ success: true, importedCount, timestamp: new Date().toISOString() });
+    const importedCount = typeof result === 'number' ? result : (result.uniqueVideosFetched || 0);
+    res.json({ success: true, importedCount, report: result, timestamp: new Date().toISOString() });
   } catch (err: any) {
     console.error('Erro /api/tiktok/sync:', err);
     res.status(500).json({ success: false, error: err.message });

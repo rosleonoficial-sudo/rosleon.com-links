@@ -1084,7 +1084,8 @@ export async function syncSocialMediaContents() {
       // 3. TikTok Sync
       let ttCount = 0;
       try {
-        ttCount = await syncTikTokContents();
+        const ttRes = await syncTikTokContents();
+        ttCount = typeof ttRes === 'number' ? ttRes : (ttRes.uniqueVideosFetched || 0);
       } catch (ttErr: any) {
         console.warn('Erro durante a sincronização do TikTok:', ttErr.message);
       }
