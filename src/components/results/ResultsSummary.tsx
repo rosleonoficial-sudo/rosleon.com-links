@@ -20,6 +20,7 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, filters
 
   const ytShares = summary.breakdown.youtube?.totalShares ?? null;
   const igShares = summary.breakdown.instagram?.totalShares ?? null;
+  const ttShares = summary.breakdown.tiktok?.totalShares ?? null;
 
   let sharesMainValue = '—';
   let sharesSubtext = 'Não disponível';
@@ -40,6 +41,14 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, filters
       sharesMainValue = '—';
       sharesSubtext = 'Não disponível no Instagram';
     }
+  } else if (filters.platform === 'tiktok') {
+    if (ttShares !== null) {
+      sharesMainValue = formatNum(ttShares);
+      sharesSubtext = `${ttShares.toLocaleString('pt-BR')} compartilhamentos no TikTok`;
+    } else {
+      sharesMainValue = '—';
+      sharesSubtext = 'Não disponível no TikTok';
+    }
   } else {
     if (summary.totalShares !== null) {
       sharesMainValue = formatNum(summary.totalShares);
@@ -49,24 +58,8 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, filters
 
     const ytStr = ytShares !== null ? ytShares.toLocaleString('pt-BR') : '—';
     const igStr = igShares !== null ? igShares.toLocaleString('pt-BR') : '—';
-    sharesSubtext = `YouTube: ${ytStr} • Instagram: ${igStr}`;
-  }
-  if (filters.platform === 'tiktok') {
-    return (
-      <div className="bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-6 sm:p-8 text-center space-y-3 shadow-xl">
-        <div className="inline-flex items-center justify-center p-3 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-500/30">
-          <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
-            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
-          </svg>
-        </div>
-        <h3 className="text-xl font-black text-white uppercase tracking-wider">
-          TIKTOK • INTEGRAÇÃO EM ANDAMENTO
-        </h3>
-        <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-          Estamos finalizando a integração das métricas do TikTok. Em breve, os resultados dessa plataforma também estarão disponíveis neste portal.
-        </p>
-      </div>
-    );
+    const ttStr = ttShares !== null ? ttShares.toLocaleString('pt-BR') : '—';
+    sharesSubtext = `YT: ${ytStr} • IG: ${igStr} • TT: ${ttStr}`;
   }
 
   return (

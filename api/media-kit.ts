@@ -1,3 +1,6 @@
+import { getTikTokStatus } from '../server/tiktokService.js';
+import { isPostgresActive, getPool } from '../server/db.js';
+
 const UF_DEFINITIONS = [
   { id: 'SP', name: 'São Paulo', region: 'Sudeste', weight: 25.6, topCity: 'São Paulo', x: 59, y: 70 },
   { id: 'RJ', name: 'Rio de Janeiro', region: 'Sudeste', weight: 15.6, topCity: 'Rio de Janeiro / Niterói', x: 73, y: 70 },
@@ -199,12 +202,50 @@ export default async function handler(req: any, res: any) {
     videos: 649
   };
 
+  let tiktokFollowers = 15089;
+  let tiktokViews = 2356235;
+  let tiktokVideos = 50;
+  let tiktokAutoSynced = false;
+
+  try {
+    const ttStatus = await getTikTokStatus();
+    if (ttStatus && ttStatus.account) {
+      if (ttStatus.account.followersCount > 0) tiktokFollowers = ttStatus.account.followersCount;
+    }
+    
+    // Sum views across ALL TikTok contents in DB
+    if (isPostgresActive()) {
+      const pool = getPool();
+      if (pool) {
+        const ttDb = await pool.query(`
+          SELECT COALESCE(SUM(m.views_count), 0)::bigint as total_views, COUNT(c.id)::int as total_videos
+          FROM contents c
+          JOIN content_metrics m ON c.id = m.content_id
+          WHERE c.platform = 'tiktok'
+        `);
+        if (ttDb.rows[0]) {
+          const dbViews = Number(ttDb.rows[0].total_views);
+          const dbVideos = Number(ttDb.rows[0].total_videos);
+          if (dbViews > 0) tiktokViews = dbViews;
+          if (dbVideos > 0) tiktokVideos = dbVideos;
+        }
+      }
+    }
+
+    if (ttStatus.connected) tiktokAutoSynced = true;
+  } catch (e) {
+    console.warn('Erro ao carregar métricas real-time do TikTok para Media Kit:', e);
+  }
+
   const tiktokData = {
-    followers: 15089,
-    followersFormatted: "15.089",
-    views: 2356235,
-    viewsFormatted: "2.356.235",
-    isAutoSynced: false
+    followers: tiktokFollowers,
+    followersFormatted: tiktokFollowers.toLocaleString('pt-BR'),
+    views: tiktokViews,
+    viewsFormatted: tiktokViews >= 1000000 
+      ? `${(tiktokViews / 1000000).toFixed(1).replace('.', ',')} MILHÕES` 
+      : tiktokViews.toLocaleString('pt-BR'),
+    videos: tiktokVideos,
+    isAutoSynced: tiktokAutoSynced
   };
 
   const totalCommunity = rawFollowers + youtubeData.subscribers + tiktokData.followers;

@@ -112,6 +112,15 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, rankPosition 
             </span>
           )}
 
+          {content.platform === 'tiktok' && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black border border-cyan-500/50 text-cyan-400 font-black text-[11px] shadow-md uppercase tracking-wider backdrop-blur-md">
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
+              </svg>
+              TikTok
+            </span>
+          )}
+
           {/* Content Type Badge */}
           <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-950/80 text-slate-300 border border-slate-700/80 font-bold text-[10px] uppercase tracking-wider backdrop-blur-md">
             {content.contentType === 'shorts' ? 'Shorts' : content.contentType === 'reels' ? 'Reels' : 'Vídeo'}

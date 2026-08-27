@@ -1,5 +1,5 @@
 import { initDatabase } from '../server/db.js';
-import { getAllBrands, getBrandRanking } from '../server/resultsService.js';
+import { getAllBrands, getBrandRanking, syncSocialMediaContents } from '../server/resultsService.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');

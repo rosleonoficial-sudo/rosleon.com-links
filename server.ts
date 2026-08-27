@@ -4,6 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
 import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
+import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents } from './server/tiktokService.js';
 
 const app = express();
 const PORT = 3000;
@@ -712,6 +713,66 @@ app.post('/api/results/reclassify', async (_req, res) => {
     res.json({ success: true, report });
   } catch (err: any) {
     console.error('Erro na reclassificação:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/tiktok/login
+app.get('/api/tiktok/login', (req, res) => {
+  try {
+    const state = Math.random().toString(36).substring(2, 15);
+    const authUrl = getTikTokAuthUrl(state);
+    if (req.query?.json === 'true' || req.headers?.accept?.includes('application/json')) {
+      return res.json({ success: true, authUrl });
+    }
+    return res.redirect(302, authUrl);
+  } catch (err: any) {
+    console.error('Erro /api/tiktok/login:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/tiktok/callback
+app.get('/api/tiktok/callback', async (req, res) => {
+  const code = req.query?.code || req.query?.auth_code;
+  const error = req.query?.error;
+  if (error) {
+    return res.redirect(302, '/resultados?tiktok=error&msg=' + encodeURIComponent(String(error)));
+  }
+  if (!code) {
+    return res.status(400).json({ success: false, error: 'Parâmetro code é obrigatório' });
+  }
+  try {
+    await initDatabase();
+    await handleTikTokCallback(String(code));
+    return res.redirect(302, '/resultados?tiktok=connected');
+  } catch (err: any) {
+    console.error('Erro /api/tiktok/callback:', err);
+    return res.redirect(302, '/resultados?tiktok=error&msg=' + encodeURIComponent(err.message));
+  }
+});
+
+// GET /api/tiktok/status
+app.get('/api/tiktok/status', async (_req, res) => {
+  try {
+    await initDatabase();
+    const status = await getTikTokStatus();
+    res.json({ success: true, ...status });
+  } catch (err: any) {
+    console.error('Erro /api/tiktok/status:', err);
+    res.status(500).json({ success: false, error: 'Erro ao consultar status TikTok' });
+  }
+});
+
+// POST /api/tiktok/sync
+app.post(['/api/tiktok/sync', '/tiktok/sync'], async (_req, res) => {
+  try {
+    await initDatabase();
+    const importedCount = await syncTikTokContents();
+    await reclassifyAllDatabaseContents();
+    res.json({ success: true, importedCount, timestamp: new Date().toISOString() });
+  } catch (err: any) {
+    console.error('Erro /api/tiktok/sync:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

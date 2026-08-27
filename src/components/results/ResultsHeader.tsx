@@ -194,9 +194,21 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
                 </span>
               )}
 
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-amber-500/30 text-[10px] text-amber-300 font-medium">
-                TikTok: Em integração
-              </span>
+              {status?.platforms?.tiktok?.connected ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                  TikTok: Ativo ({status?.platforms?.tiktok?.totalContents || 0} vídeos)
+                </span>
+              ) : (
+                <a
+                  href="/api/tiktok/login"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-[10px] text-cyan-300 font-semibold transition-colors"
+                  title="Conectar Conta TikTok Sandbox"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  TikTok: Conectar Sandbox
+                </a>
+              )}
             </div>
           </div>
 

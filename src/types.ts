@@ -321,7 +321,7 @@ export interface ResultsStatusResponse {
   platforms: {
     youtube: { status: 'active' | 'error'; totalContents: number; lastSyncedAt: string };
     instagram: { status: 'active' | 'error'; totalContents: number; lastSyncedAt: string };
-    tiktok: { status: 'in_progress'; totalContents: number; message: string };
+    tiktok: { status: 'active' | 'in_progress' | 'error'; totalContents: number; connected?: boolean; lastSyncedAt?: string; message?: string };
   };
 }
 

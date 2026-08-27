@@ -1,4 +1,5 @@
 import { getPool, isPostgresActive, getMemoryStore, DbBrand, DbContent, DbContentMetrics } from './db.js';
+import { syncTikTokContents, getTikTokStatus } from './tiktokService.js';
 import {
   classifyContent,
   reclassifyAllDatabaseContents,
@@ -25,6 +26,7 @@ let ytStatus = { status: 'active' as const, totalContents: 0, lastSyncedAt: new 
 let igStatus = { status: 'active' as const, totalContents: 0, lastSyncedAt: new Date().toISOString() };
 
 export async function getSyncStatus() {
+  let ttCount = 0;
   if (isPostgresActive()) {
     const pool = getPool();
     if (pool) {
@@ -32,7 +34,8 @@ export async function getSyncStatus() {
         const dbRes = await pool.query(`
           SELECT MAX(last_synced_at) as last_sync, 
                  COUNT(*) FILTER (WHERE platform = 'youtube') as yt_count, 
-                 COUNT(*) FILTER (WHERE platform = 'instagram') as ig_count 
+                 COUNT(*) FILTER (WHERE platform = 'instagram') as ig_count,
+                 COUNT(*) FILTER (WHERE platform = 'tiktok') as tt_count
           FROM content_metrics cm 
           JOIN contents c ON c.id = cm.content_id
         `);
@@ -46,6 +49,7 @@ export async function getSyncStatus() {
             }
             if (row.yt_count) ytStatus.totalContents = parseInt(row.yt_count, 10);
             if (row.ig_count) igStatus.totalContents = parseInt(row.ig_count, 10);
+            if (row.tt_count) ttCount = parseInt(row.tt_count, 10);
           }
         }
       } catch (err) {
@@ -73,6 +77,8 @@ export async function getSyncStatus() {
     }
   }
 
+  const ttStatusInfo = await getTikTokStatus();
+
   return {
     success: true,
     lastSyncedAt: globalLastSyncedAt,
@@ -83,9 +89,11 @@ export async function getSyncStatus() {
       youtube: ytStatus,
       instagram: igStatus,
       tiktok: {
-        status: 'in_progress' as const,
-        totalContents: 0,
-        message: 'Estamos finalizando a integração das métricas do TikTok. Em breve, os resultados dessa plataforma também estarão disponíveis neste portal.'
+        status: ttStatusInfo.connected ? ('active' as const) : ('active' as const),
+        totalContents: Math.max(ttCount, ttStatusInfo.videosCount),
+        connected: ttStatusInfo.connected,
+        lastSyncedAt: ttStatusInfo.lastSync || globalLastSyncedAt,
+        message: ttStatusInfo.connected ? 'Integração TikTok Ativa' : 'Pronto para conectar TikTok'
       }
     }
   };
@@ -361,6 +369,7 @@ export interface UnifiedBrandStats {
   totalViews: number;
   ytViews: number;
   igViews: number;
+  ttViews: number;
   totalLikes: number;
   totalComments: number;
   totalShares: number;
@@ -388,6 +397,7 @@ export async function getGlobalBrandStats(): Promise<Map<string, UnifiedBrandSta
       totalViews: 0,
       ytViews: 0,
       igViews: 0,
+      ttViews: 0,
       totalLikes: 0,
       totalComments: 0,
       totalShares: 0,
@@ -417,6 +427,7 @@ export async function getGlobalBrandStats(): Promise<Map<string, UnifiedBrandSta
           totalViews: 0,
           ytViews: 0,
           igViews: 0,
+          ttViews: 0,
           totalLikes: 0,
           totalComments: 0,
           totalShares: 0,
@@ -434,6 +445,7 @@ export async function getGlobalBrandStats(): Promise<Map<string, UnifiedBrandSta
       st.totalViews += v;
       if (item.platform === 'youtube') st.ytViews += v;
       if (item.platform === 'instagram') st.igViews += v;
+      if (item.platform === 'tiktok') st.ttViews += v;
 
       st.totalLikes += l;
       st.totalComments += c;
@@ -477,11 +489,6 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
   let filtered = rawList.filter(item => {
     // Platform Filter
     if (activeFilters.platform !== 'all' && item.platform !== activeFilters.platform) {
-      return false;
-    }
-
-    // TikTok Status: TikTok has no real contents yet
-    if (activeFilters.platform === 'tiktok') {
       return false;
     }
 
@@ -1057,12 +1064,20 @@ export async function syncSocialMediaContents() {
     }
   }
 
-      // 3. Reprocess brand associations cleanly for all contents
+      // 3. TikTok Sync
+      let ttCount = 0;
+      try {
+        ttCount = await syncTikTokContents();
+      } catch (ttErr: any) {
+        console.warn('Erro durante a sincronização do TikTok:', ttErr.message);
+      }
+
+      // 4. Reprocess brand associations cleanly for all contents
       await reprocessAllContentBrands();
 
       globalLastSyncedAt = new Date().toISOString();
       globalNextSyncAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      console.log(`Sincronização e Backfill concluídos. YouTube: ${ytCount} itens, Instagram: ${igCount} itens.`);
+      console.log(`Sincronização e Backfill concluídos. YouTube: ${ytCount} itens, Instagram: ${igCount} itens, TikTok: ${ttCount} itens.`);
     } catch (err: any) {
       console.error('Erro durante a rotina de sincronização:', err);
     } finally {
@@ -1074,7 +1089,7 @@ export async function syncSocialMediaContents() {
   return activeSyncPromise;
 }
 
-interface UpsertPayload {
+export interface UpsertPayload {
   platform: 'youtube' | 'instagram' | 'tiktok';
   external_id: string;
   title: string;
@@ -1090,7 +1105,7 @@ interface UpsertPayload {
   engagement_rate: number;
 }
 
-async function upsertContentToDb(data: UpsertPayload) {
+export async function upsertContentToDb(data: UpsertPayload) {
   const classification = classifyContent(data.title, data.description, data.content_type, data.platform);
 
   if (isPostgresActive()) {
