@@ -24,7 +24,55 @@ let globalIsSyncing = false;
 let ytStatus = { status: 'active' as const, totalContents: 0, lastSyncedAt: new Date().toISOString() };
 let igStatus = { status: 'active' as const, totalContents: 0, lastSyncedAt: new Date().toISOString() };
 
-export function getSyncStatus() {
+export async function getSyncStatus() {
+  if (isPostgresActive()) {
+    const pool = getPool();
+    if (pool) {
+      try {
+        const dbRes = await pool.query(`
+          SELECT MAX(last_synced_at) as last_sync, 
+                 COUNT(*) FILTER (WHERE platform = 'youtube') as yt_count, 
+                 COUNT(*) FILTER (WHERE platform = 'instagram') as ig_count 
+          FROM content_metrics cm 
+          JOIN contents c ON c.id = cm.content_id
+        `);
+        const row = dbRes.rows[0];
+        if (row && row.last_sync) {
+          const dbLastSync = new Date(row.last_sync);
+          if (!isNaN(dbLastSync.getTime())) {
+            if (dbLastSync.getTime() > new Date(globalLastSyncedAt).getTime() || !globalLastSyncedAt) {
+              globalLastSyncedAt = dbLastSync.toISOString();
+              globalNextSyncAt = new Date(dbLastSync.getTime() + 30 * 60 * 1000).toISOString();
+            }
+            if (row.yt_count) ytStatus.totalContents = parseInt(row.yt_count, 10);
+            if (row.ig_count) igStatus.totalContents = parseInt(row.ig_count, 10);
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao obter max last_synced_at do DB:', err);
+      }
+    }
+  }
+
+  const now = Date.now();
+  const nextSyncTime = new Date(globalNextSyncAt).getTime();
+  const isExpired = isNaN(nextSyncTime) || now >= nextSyncTime;
+
+  if (isExpired) {
+    console.log('Sincronização pendente/vencida detectada no getSyncStatus. Aguardando syncSocialMediaContents()...');
+    try {
+      await syncSocialMediaContents();
+    } catch (e) {
+      console.warn('Erro ao aguardar syncSocialMediaContents no getSyncStatus:', e);
+    }
+  } else if (globalIsSyncing && activeSyncPromise) {
+    try {
+      await activeSyncPromise;
+    } catch (e) {
+      // ignore
+    }
+  }
+
   return {
     success: true,
     lastSyncedAt: globalLastSyncedAt,
@@ -739,14 +787,15 @@ export async function syncSocialMediaContents() {
   globalIsSyncing = true;
 
   activeSyncPromise = (async () => {
-    console.log('Iniciando sincronização e backfill completo de conteúdos sociais...');
+    try {
+      console.log('Iniciando sincronização e backfill completo de conteúdos sociais...');
 
-  const ytKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
-  const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
-  const igUserId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || "17841461297140253";
+      const ytKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
+      const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
+      const igUserId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || "17841461297140253";
 
-  let ytCount = 0;
-  let igCount = 0;
+      let ytCount = 0;
+      let igCount = 0;
 
   // 1. YouTube Sync & Full Backfill
   if (ytKey) {
@@ -1008,14 +1057,18 @@ export async function syncSocialMediaContents() {
     }
   }
 
-  // 3. Reprocess brand associations cleanly for all contents
-  await reprocessAllContentBrands();
+      // 3. Reprocess brand associations cleanly for all contents
+      await reprocessAllContentBrands();
 
-    globalLastSyncedAt = new Date().toISOString();
-    globalNextSyncAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-    globalIsSyncing = false;
-    activeSyncPromise = null;
-    console.log(`Sincronização e Backfill concluídos. YouTube: ${ytCount} itens, Instagram: ${igCount} itens.`);
+      globalLastSyncedAt = new Date().toISOString();
+      globalNextSyncAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      console.log(`Sincronização e Backfill concluídos. YouTube: ${ytCount} itens, Instagram: ${igCount} itens.`);
+    } catch (err: any) {
+      console.error('Erro durante a rotina de sincronização:', err);
+    } finally {
+      globalIsSyncing = false;
+      activeSyncPromise = null;
+    }
   })();
 
   return activeSyncPromise;

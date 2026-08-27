@@ -16,12 +16,13 @@ export default async function handler(req: any, res: any) {
 
     // Handle subroutes if routed to this catch-all
     if (req.url?.includes('/status')) {
-      return res.status(200).json(getSyncStatus());
+      const status = await getSyncStatus();
+      return res.status(200).json(status);
     }
 
     if (req.url?.includes('/sync')) {
       await syncSocialMediaContents();
-      const status = getSyncStatus();
+      const status = await getSyncStatus();
       return res.status(200).json({
         success: true,
         message: 'Sincronização concluída com sucesso',

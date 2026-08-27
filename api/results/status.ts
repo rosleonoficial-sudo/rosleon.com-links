@@ -13,7 +13,7 @@ export default async function handler(req: any, res: any) {
 
   try {
     await initDatabase();
-    const status = getSyncStatus();
+    const status = await getSyncStatus();
     return res.status(200).json(status);
   } catch (err: any) {
     console.error('Erro na serverless /api/results/status:', err);

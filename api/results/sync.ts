@@ -16,7 +16,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST' || req.method === 'GET') {
       await syncSocialMediaContents();
-      const status = getSyncStatus();
+      const status = await getSyncStatus();
       return res.status(200).json({
         success: true,
         message: 'Sincronização concluída com sucesso',

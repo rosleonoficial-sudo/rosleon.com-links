@@ -655,9 +655,10 @@ const handleResultsQuery = async (req: express.Request, res: express.Response) =
 app.get(['/api/results', '/api/results/search', '/results', '/results/search'], handleResultsQuery);
 
 // GET /api/results/status & GET /results/status
-app.get(['/api/results/status', '/results/status'], (_req, res) => {
+app.get(['/api/results/status', '/results/status'], async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.json(getSyncStatus());
+  const status = await getSyncStatus();
+  res.json(status);
 });
 
 // GET /api/brands & GET /brands
@@ -690,7 +691,7 @@ app.post(['/api/results/sync', '/results/sync'], async (_req, res) => {
   try {
     await initDatabase();
     await syncSocialMediaContents();
-    const status = getSyncStatus();
+    const status = await getSyncStatus();
     res.json({
       success: true,
       message: 'Sincronização concluída com sucesso',
