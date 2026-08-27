@@ -1,4 +1,3 @@
-import { initDatabase } from '../../server/db.js';
 import { handleTikTokCallback, validateAndDeleteOAuthState } from '../../server/tiktokService.js';
 
 function parseCookie(cookieHeader?: string, name?: string): string | null {
@@ -13,6 +12,8 @@ function parseCookie(cookieHeader?: string, name?: string): string | null {
 }
 
 export default async function handler(req: any, res: any) {
+  const callbackReceivedAtMs = Date.now();
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -44,20 +45,18 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    await initDatabase();
-
     // Read state from cookie or request header
     const cookieState = req.cookies?.tiktok_oauth_state || parseCookie(req.headers?.cookie, 'tiktok_oauth_state');
 
-    // Validate state against cookie and DB
+    // FAST state validation: cookie check first (<1ms), fast DB query fallback
     const isValidState = await validateAndDeleteOAuthState(String(state), cookieState);
     if (!isValidState) {
       console.error('State de OAuth inválido ou expirado:', { queryState: state, cookieState });
       return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=state_invalid');
     }
 
-    // Process code exchange & token persistence
-    await handleTikTokCallback(String(code));
+    // Process IMMEDIATE code exchange
+    await handleTikTokCallback(String(code), callbackReceivedAtMs);
 
     return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=connected');
   } catch (err: any) {
@@ -65,7 +64,9 @@ export default async function handler(req: any, res: any) {
     
     let reason = 'token_exchange_failed';
     const msg = err.message || '';
-    if (msg.includes('database')) {
+    if (['missing_client_key', 'missing_client_secret', 'missing_redirect_uri'].includes(msg)) {
+      reason = msg;
+    } else if (msg.includes('database')) {
       reason = 'database_error';
     } else if (msg.includes('account') || msg.includes('user_info')) {
       reason = 'account_fetch_failed';

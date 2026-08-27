@@ -24,8 +24,23 @@ export interface TikTokTokenRecord {
 // In-memory token storage for local development fallback
 let memoryTikTokToken: TikTokTokenRecord | null = null;
 
+export interface TikTokDiagnosticError {
+  stage: string;
+  httpStatus: number;
+  code: string;
+  message: string;
+  logId?: string;
+  callbackReceivedAt?: string;
+  tokenExchangeStartedAt?: string;
+  tokenExchangeFinishedAt?: string;
+  tokenExchangeDurationMs?: number;
+  timeBeforeTokenExchangeMs?: number;
+}
+
+let lastOAuthDiagnostic: TikTokDiagnosticError | null = null;
+
 export function getClientCredentials() {
-  const clientKey = (process.env.TIKTOK_CLIENT_KEY || process.env.VITE_TIKTOK_CLIENT_KEY || 'aw4x19142f1b4c91').trim();
+  const clientKey = (process.env.TIKTOK_CLIENT_KEY || process.env.VITE_TIKTOK_CLIENT_KEY || '').trim();
   const clientSecret = (process.env.TIKTOK_CLIENT_SECRET || process.env.VITE_TIKTOK_CLIENT_SECRET || '').trim();
   const redirectUri = (process.env.TIKTOK_REDIRECT_URI || process.env.VITE_TIKTOK_REDIRECT_URI || 'https://links.gruporosleon.com.br/api/tiktok/callback').trim();
   
@@ -101,16 +116,14 @@ export async function saveOAuthState(state: string) {
  * Validate state against cookie or Postgres table, then consume (delete) it
  */
 export async function validateAndDeleteOAuthState(queryState: string, cookieState?: string | null): Promise<boolean> {
-  await initTikTokTable();
-
   let isValid = false;
 
-  // 1. Cookie match validation
+  // 1. Fast Cookie match validation (<1ms)
   if (cookieState && cookieState === queryState) {
     isValid = true;
   }
 
-  // 2. Database persistence validation
+  // 2. Database persistence validation without table creation blocking
   if (!isValid && isPostgresActive()) {
     const pool = getPool();
     if (pool) {
@@ -128,16 +141,14 @@ export async function validateAndDeleteOAuthState(queryState: string, cookieStat
     }
   }
 
-  // Clean up state from DB if Postgres active
+  // Clean up state from DB asynchronously if Postgres active
   if (isPostgresActive()) {
     const pool = getPool();
     if (pool) {
-      try {
-        await pool.query(
-          `DELETE FROM tiktok_oauth_states WHERE state = $1 OR expires_at < NOW()`,
-          [queryState]
-        );
-      } catch (e) {}
+      pool.query(
+        `DELETE FROM tiktok_oauth_states WHERE state = $1 OR expires_at < NOW()`,
+        [queryState]
+      ).catch(() => {});
     }
   }
 
@@ -346,20 +357,68 @@ export async function getValidTikTokToken(): Promise<{ accessToken: string; open
 /**
  * Handle OAuth Callback: code exchange -> token -> user info -> store -> initial sync
  */
-export async function handleTikTokCallback(code: string) {
+export async function handleTikTokCallback(code: string, callbackReceivedAtMs?: number) {
+  const receivedAt = callbackReceivedAtMs || Date.now();
+  const tokenExchangeStartedAtMs = Date.now();
+  const timeBeforeTokenExchangeMs = tokenExchangeStartedAtMs - receivedAt;
+  const callbackReceivedAtStr = new Date(receivedAt).toISOString();
+  const tokenExchangeStartedAtStr = new Date(tokenExchangeStartedAtMs).toISOString();
+
   const { clientKey, clientSecret, redirectUri } = getClientCredentials();
 
-  const params = new URLSearchParams({
-    client_key: clientKey,
-    client_secret: clientSecret,
-    code: code,
-    grant_type: 'authorization_code',
-    redirect_uri: redirectUri
-  });
+  if (!clientKey) {
+    lastOAuthDiagnostic = {
+      stage: 'token_exchange',
+      httpStatus: 0,
+      code: 'missing_client_key',
+      message: 'TIKTOK_CLIENT_KEY não configurado',
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: new Date().toISOString(),
+      tokenExchangeDurationMs: 0,
+      timeBeforeTokenExchangeMs
+    };
+    throw new Error('missing_client_key');
+  }
+  if (!clientSecret) {
+    lastOAuthDiagnostic = {
+      stage: 'token_exchange',
+      httpStatus: 0,
+      code: 'missing_client_secret',
+      message: 'TIKTOK_CLIENT_SECRET não configurado',
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: new Date().toISOString(),
+      tokenExchangeDurationMs: 0,
+      timeBeforeTokenExchangeMs
+    };
+    throw new Error('missing_client_secret');
+  }
+  if (!redirectUri) {
+    lastOAuthDiagnostic = {
+      stage: 'token_exchange',
+      httpStatus: 0,
+      code: 'missing_redirect_uri',
+      message: 'TIKTOK_REDIRECT_URI não configurado',
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: new Date().toISOString(),
+      tokenExchangeDurationMs: 0,
+      timeBeforeTokenExchangeMs
+    };
+    throw new Error('missing_redirect_uri');
+  }
 
-  console.log('Trocando code do TikTok por access_token...');
-  console.log('Redirect URI configurado:', redirectUri);
+  const params = new URLSearchParams();
+  params.set('client_key', clientKey);
+  params.set('client_secret', clientSecret);
+  params.set('code', code);
+  params.set('grant_type', 'authorization_code');
+  params.set('redirect_uri', redirectUri);
 
+  console.log(`[OAuth TikTok] Troca de token iniciada IMEDIATAMENTE. timeBeforeTokenExchangeMs=${timeBeforeTokenExchangeMs}ms`);
+
+  // 1. IMMEDIATE TOKEN EXCHANGE
   let tokenRes: Response;
   try {
     tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
@@ -368,22 +427,87 @@ export async function handleTikTokCallback(code: string) {
       body: params.toString()
     });
   } catch (netErr: any) {
-    throw new Error(`token_exchange_failed: Erro de rede (${netErr.message})`);
+    const tokenExchangeFinishedAtMs = Date.now();
+    lastOAuthDiagnostic = {
+      stage: 'token_exchange',
+      httpStatus: 0,
+      code: 'network_error',
+      message: netErr.message || 'Erro de rede na troca de código',
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: new Date(tokenExchangeFinishedAtMs).toISOString(),
+      tokenExchangeDurationMs: tokenExchangeFinishedAtMs - tokenExchangeStartedAtMs,
+      timeBeforeTokenExchangeMs
+    };
+    throw new Error('token_exchange_failed');
   }
 
-  if (!tokenRes.ok) {
-    const errText = await tokenRes.text();
-    console.error(`Erro na troca de código do TikTok (${tokenRes.status}):`, errText);
-    throw new Error(`token_exchange_failed: HTTP ${tokenRes.status}`);
+  const tokenExchangeFinishedAtMs = Date.now();
+  const tokenExchangeDurationMs = tokenExchangeFinishedAtMs - tokenExchangeStartedAtMs;
+  const tokenExchangeFinishedAtStr = new Date(tokenExchangeFinishedAtMs).toISOString();
+
+  const httpStatus = tokenRes.status;
+  let tokenJson: any = {};
+  try {
+    tokenJson = await tokenRes.json();
+  } catch (parseErr: any) {
+    const rawText = await tokenRes.text().catch(() => '');
+    lastOAuthDiagnostic = {
+      stage: 'token_exchange',
+      httpStatus,
+      code: 'non_json_response',
+      message: rawText ? rawText.substring(0, 200) : 'Resposta não-JSON do TikTok',
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: tokenExchangeFinishedAtStr,
+      tokenExchangeDurationMs,
+      timeBeforeTokenExchangeMs
+    };
+    throw new Error('token_exchange_failed');
   }
 
-  const tokenJson = await tokenRes.json();
   const data = tokenJson.data || tokenJson;
 
-  if (!data || !data.access_token) {
-    console.error('Resposta do TikTok sem access_token:', JSON.stringify(tokenJson));
-    throw new Error('token_exchange_failed: Sem access_token na resposta');
+  const isError = !tokenRes.ok || Boolean(tokenJson.error) || Boolean(tokenJson.error_code) || Boolean(data?.error) || Boolean(data?.error_code) || !data?.access_token;
+
+  if (isError) {
+    let rawCode = tokenJson.error?.code || tokenJson.error || tokenJson.error_code || data?.error_code || data?.error || 'token_exchange_failed';
+    if (typeof rawCode === 'object') rawCode = rawCode.code || JSON.stringify(rawCode);
+
+    let rawMessage = tokenJson.error?.message || tokenJson.error_description || tokenJson.message || data?.description || data?.message || 'Falha ao trocar código por access_token';
+    if (typeof rawMessage === 'object') rawMessage = rawMessage.message || JSON.stringify(rawMessage);
+
+    const logId = tokenJson.log_id || data?.log_id || tokenJson.error?.log_id || undefined;
+
+    lastOAuthDiagnostic = {
+      stage: 'token_exchange',
+      httpStatus,
+      code: String(rawCode),
+      message: String(rawMessage),
+      ...(logId ? { logId: String(logId) } : {}),
+      callbackReceivedAt: callbackReceivedAtStr,
+      tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+      tokenExchangeFinishedAt: tokenExchangeFinishedAtStr,
+      tokenExchangeDurationMs,
+      timeBeforeTokenExchangeMs
+    };
+
+    console.error('[OAuth TikTok] Erro no token exchange:', lastOAuthDiagnostic);
+    throw new Error('token_exchange_failed');
   }
+
+  // Record success diagnostic timing
+  lastOAuthDiagnostic = {
+    stage: 'token_exchange_success',
+    httpStatus,
+    code: 'success',
+    message: 'Token trocado com sucesso',
+    callbackReceivedAt: callbackReceivedAtStr,
+    tokenExchangeStartedAt: tokenExchangeStartedAtStr,
+    tokenExchangeFinishedAt: tokenExchangeFinishedAtStr,
+    tokenExchangeDurationMs,
+    timeBeforeTokenExchangeMs
+  };
 
   const accessToken = data.access_token;
   const refreshToken = data.refresh_token || '';
@@ -392,14 +516,29 @@ export async function handleTikTokCallback(code: string) {
   const expiresAt = new Date(Date.now() + (data.expires_in || 86400) * 1000).toISOString();
   const refreshExpiresAt = new Date(Date.now() + (data.refresh_expires_in || 31536000) * 1000).toISOString();
 
-  // Fetch User Info
-  let displayName = 'ROSLEON TikTok';
-  let avatarUrl = '';
-  let followersCount = 0;
-  let followingCount = 0;
-  let likesCount = 0;
-  let videoCount = 0;
+  // 2. PERSIST TOKEN IMMEDIATELY AFTER EXCHANGE
+  const tokenRecord: TikTokTokenRecord = {
+    open_id: openId,
+    display_name: 'ROSLEON TikTok',
+    avatar_url: '',
+    access_token: accessToken,
+    expires_at: expiresAt,
+    refresh_token: refreshToken,
+    refresh_expires_at: refreshExpiresAt,
+    scope: scope,
+    followers_count: 0,
+    following_count: 0,
+    likes_count: 0,
+    video_count: 0,
+    last_synced_at: new Date().toISOString(),
+    last_error: null
+  };
 
+  // Ensure DB tables exist now (after successful token exchange)
+  await initTikTokTable();
+  await saveTikTokTokenRecord(tokenRecord);
+
+  // 3. FETCH USER PROFILE INFO (AFTER TOKEN SAVED)
   try {
     const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,follower_count,following_count,likes_count,video_count', {
       headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -408,41 +547,21 @@ export async function handleTikTokCallback(code: string) {
     if (userRes.ok) {
       const userJson = await userRes.json();
       const uData = userJson.data?.user || userJson.data || {};
-      displayName = uData.display_name || displayName;
-      avatarUrl = uData.avatar_url || avatarUrl;
-      followersCount = uData.follower_count || followersCount;
-      followingCount = uData.following_count || followingCount;
-      likesCount = uData.likes_count || likesCount;
-      videoCount = uData.video_count || videoCount;
-    } else {
-      const uErrText = await userRes.text();
-      console.warn('Aviso ao consultar perfil do TikTok:', userRes.status, uErrText);
+      tokenRecord.display_name = uData.display_name || tokenRecord.display_name;
+      tokenRecord.avatar_url = uData.avatar_url || tokenRecord.avatar_url;
+      tokenRecord.followers_count = uData.follower_count || 0;
+      tokenRecord.following_count = uData.following_count || 0;
+      tokenRecord.likes_count = uData.likes_count || 0;
+      tokenRecord.video_count = uData.video_count || 0;
+      tokenRecord.last_synced_at = new Date().toISOString();
+
+      await saveTikTokTokenRecord(tokenRecord);
     }
   } catch (uErr: any) {
-    console.warn('Erro ao buscar perfil do usuário do TikTok:', uErr.message);
+    console.warn('Aviso ao consultar perfil do TikTok:', uErr.message);
   }
 
-  const tokenRecord: TikTokTokenRecord = {
-    open_id: openId,
-    display_name: displayName,
-    avatar_url: avatarUrl,
-    access_token: accessToken,
-    expires_at: expiresAt,
-    refresh_token: refreshToken,
-    refresh_expires_at: refreshExpiresAt,
-    scope: scope,
-    followers_count: followersCount,
-    following_count: followingCount,
-    likes_count: likesCount,
-    video_count: videoCount,
-    last_synced_at: new Date().toISOString(),
-    last_error: null
-  };
-
-  // PERSIST OAUTH TOKEN FIRST
-  await saveTikTokTokenRecord(tokenRecord);
-
-  // SECOND: EXECUTE INITIAL SYNC (DO NOT FAIL OAUTH IF SYNC FAILS)
+  // 4. INITIAL CONTENT SYNC
   try {
     await syncTikTokContents();
   } catch (syncErr: any) {
@@ -492,7 +611,7 @@ export async function getTikTokStatus() {
       lastSync: dbLastSync,
       videosCount: videosCount,
       tokenStatus: 'not_connected',
-      lastError: null
+      lastError: lastOAuthDiagnostic
     };
   }
 
@@ -525,7 +644,7 @@ export async function getTikTokStatus() {
     lastSync: record.last_synced_at || dbLastSync,
     videosCount: Math.max(record.video_count || 0, videosCount),
     tokenStatus: tokenStatus,
-    lastError: record.last_error || null
+    lastError: lastOAuthDiagnostic || (record.last_error ? { stage: 'sync', httpStatus: 0, code: 'sync_error', message: record.last_error } : null)
   };
 }
 

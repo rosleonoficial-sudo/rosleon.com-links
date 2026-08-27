@@ -739,6 +739,7 @@ app.get('/api/tiktok/login', async (req, res) => {
 
 // GET /api/tiktok/callback
 app.get('/api/tiktok/callback', async (req, res) => {
+  const callbackReceivedAtMs = Date.now();
   const code = req.query?.code || req.query?.auth_code;
   const state = req.query?.state;
   const error = req.query?.error;
@@ -756,8 +757,6 @@ app.get('/api/tiktok/callback', async (req, res) => {
   }
 
   try {
-    await initDatabase();
-
     const cookieHeader = req.headers?.cookie;
     let cookieState: string | null = null;
     if (cookieHeader) {
@@ -771,14 +770,16 @@ app.get('/api/tiktok/callback', async (req, res) => {
       return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=error&reason=state_invalid');
     }
 
-    await handleTikTokCallback(String(code));
+    await handleTikTokCallback(String(code), callbackReceivedAtMs);
     return res.redirect(302, 'https://links.gruporosleon.com.br/resultados?tiktok=connected');
   } catch (err: any) {
     console.error('Erro /api/tiktok/callback:', err);
 
     let reason = 'token_exchange_failed';
     const msg = err.message || '';
-    if (msg.includes('database')) {
+    if (['missing_client_key', 'missing_client_secret', 'missing_redirect_uri'].includes(msg)) {
+      reason = msg;
+    } else if (msg.includes('database')) {
       reason = 'database_error';
     } else if (msg.includes('account') || msg.includes('user_info')) {
       reason = 'account_fetch_failed';
