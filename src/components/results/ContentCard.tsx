@@ -242,10 +242,14 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, rankPosition 
           className={`inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white transition-all duration-200 border cursor-pointer active:scale-95 ${
             isYouTube
               ? 'bg-red-600/90 hover:bg-red-600 border-red-500/40 hover:shadow-lg hover:shadow-red-600/20'
+              : content.platform === 'tiktok'
+              ? 'bg-gradient-to-r from-slate-950 via-cyan-950 to-slate-900 border-cyan-500/50 text-cyan-300 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20'
               : 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:opacity-95 border-pink-500/40 hover:shadow-lg hover:shadow-pink-600/20'
           }`}
         >
-          <span>{isYouTube ? 'VER NO YOUTUBE' : 'VER NO INSTAGRAM'}</span>
+          <span>
+            {isYouTube ? 'VER NO YOUTUBE' : content.platform === 'tiktok' ? 'VER NO TIKTOK' : 'VER NO INSTAGRAM'}
+          </span>
           <ExternalLink className="w-3.5 h-3.5 shrink-0" />
         </a>
 

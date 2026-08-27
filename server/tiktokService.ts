@@ -778,7 +778,7 @@ export async function syncTikTokContents(): Promise<number> {
     let cursor = 0;
     let pageCount = 0;
 
-    while (hasMore && pageCount < 10) { // Safety max 10 pages x 20 = 200 videos
+    while (hasMore && pageCount < 50) { // Max 50 pages x 20 = 1000 videos max
       pageCount++;
       const videoListUrl = 'https://open.tiktokapis.com/v2/video/list/?fields=id,title,create_time,cover_image_url,share_url,video_description,duration,like_count,comment_count,share_count,view_count';
 

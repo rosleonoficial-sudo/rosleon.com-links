@@ -101,7 +101,7 @@ export const pt = {
     instagramSub: "Conteúdo diário, bastidores, ofertas e cupons exclusivos.",
     tiktokSub: "Conteúdo diário, bastidores, ofertas e cupons exclusivos.",
     followers: "seguidores",
-    views30d: "visualizações (30 dias)",
+    views30d: "visualizações totais",
     viewInstagram: "Ver no Instagram",
     goToTikTok: "Ir para o TikTok",
   },

@@ -632,6 +632,7 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
   // SUMMARY CALCULATION (Calculated across ALL filtered contents)
   const ytItems = filtered.filter(i => i.platform === 'youtube');
   const igItems = filtered.filter(i => i.platform === 'instagram');
+  const ttItems = filtered.filter(i => i.platform === 'tiktok');
 
   const ytSharesItems = ytItems.filter(i => i.metrics.sharesCount !== null);
   const youtubeSharesTotal = ytSharesItems.length > 0
@@ -643,9 +644,14 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
     ? igSharesItems.reduce((acc, i) => acc + (i.metrics.sharesCount || 0), 0)
     : null;
 
+  const ttSharesItems = ttItems.filter(i => i.metrics.sharesCount !== null);
+  const tiktokSharesTotal = ttSharesItems.length > 0
+    ? ttSharesItems.reduce((acc, i) => acc + (i.metrics.sharesCount || 0), 0)
+    : null;
+
   let totalShares: number | null = null;
-  if (youtubeSharesTotal !== null || instagramSharesTotal !== null) {
-    totalShares = (youtubeSharesTotal || 0) + (instagramSharesTotal || 0);
+  if (youtubeSharesTotal !== null || instagramSharesTotal !== null || tiktokSharesTotal !== null) {
+    totalShares = (youtubeSharesTotal || 0) + (instagramSharesTotal || 0) + (tiktokSharesTotal || 0);
   }
 
   const summary: ResultsSummaryData = {
@@ -679,6 +685,17 @@ export async function searchContents(filters: Partial<ResultsFilterState>): Prom
       totalLikes: igItems.reduce((acc, i) => acc + i.metrics.likesCount, 0),
       totalComments: igItems.reduce((acc, i) => acc + i.metrics.commentsCount, 0),
       totalShares: instagramSharesTotal
+    };
+  }
+
+  if (ttItems.length > 0) {
+    summary.breakdown.tiktok = {
+      platform: 'tiktok',
+      totalContents: ttItems.length,
+      totalViews: ttItems.reduce((acc, i) => acc + i.metrics.viewsCount, 0),
+      totalLikes: ttItems.reduce((acc, i) => acc + i.metrics.likesCount, 0),
+      totalComments: ttItems.reduce((acc, i) => acc + i.metrics.commentsCount, 0),
+      totalShares: tiktokSharesTotal
     };
   }
 

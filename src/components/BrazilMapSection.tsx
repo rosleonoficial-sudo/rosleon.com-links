@@ -612,7 +612,7 @@ export const BrazilMapSection: React.FC<BrazilMapSectionProps> = ({ totalOnlineC
 
               {/* Explanatory Footnote */}
               <p className="text-[9.5px] text-slate-400/90 font-mono pt-1 leading-tight border-t border-slate-800/60">
-                Os valores acima representam a composição estimada do total exibido no Brasil, com atualização periódica pela fonte central.
+                Dados geográficos baseados em audiência confirmada do Instagram, YouTube e site. O TikTok não disponibiliza detalhamento regional de audiência na API oficial.
               </p>
             </div>
           </div>

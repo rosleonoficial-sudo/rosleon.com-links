@@ -15,8 +15,8 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
 
   // Calculate total combined views across YouTube, Instagram & TikTok
   const ytViewsRaw = stats.rawViews || 8298312;
-  const igViewsRaw = instagramStats?.views30Days ?? instagramStats?.views30d ?? 478322;
-  const ttViewsRaw = 2356235; // 2.356.235 TikTok views
+  const igViewsRaw = instagramStats?.viewsTotal ?? instagramStats?.views30Days ?? instagramStats?.views30d ?? 1070560;
+  const ttViewsRaw = instagramStats?.tiktokViews ?? 2356235;
   const totalViewsRaw = ytViewsRaw + igViewsRaw + ttViewsRaw;
 
   const totalViewsCompact = `+${formatNumber(Number((totalViewsRaw / 1_000_000).toFixed(1)))} ${t('partnerships.millions')}`;
@@ -25,7 +25,7 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
   // Calculate total audience
   const ytSubsRaw = stats.rawSubscribers || 42600;
   const igFollowersRaw = instagramStats?.followers ?? instagramStats?.followersCount ?? 38772;
-  const ttFollowersRaw = 15089; // 15.089 TikTok followers
+  const ttFollowersRaw = instagramStats?.tiktokFollowers ?? 15089;
   const totalAudienceRaw = ytSubsRaw + igFollowersRaw + ttFollowersRaw;
   const totalAudienceFormatted = `+${formatNumber(Number((totalAudienceRaw / 1_000).toFixed(1)))} ${t('partnerships.thousand')}`;
 
@@ -163,10 +163,13 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                       <Instagram className="w-3 h-3" /> Instagram
                     </div>
                     <div className="text-[11px] font-bold text-slate-200 mt-0.5">
-                      {formatNumber(Math.round(igViewsRaw / 1_000))} {t('partnerships.thousand')}
+                      {igViewsRaw >= 1_000_000 
+                        ? `${formatNumber(Number((igViewsRaw / 1_000_000).toFixed(2)))} ${t('partnerships.million')}`
+                        : `${formatNumber(Math.round(igViewsRaw / 1_000))} ${t('partnerships.thousand')}`
+                      }
                     </div>
                   </div>
-                  <span className="text-[8.5px] text-pink-400/90 font-mono mt-0.5">Últimos 30 dias</span>
+                  <span className="text-[8.5px] text-pink-400/90 font-mono mt-0.5">Total acumulado</span>
                 </div>
 
                 <div className="bg-slate-900/80 py-1.5 px-1 rounded-lg border border-slate-800 flex flex-col justify-between">

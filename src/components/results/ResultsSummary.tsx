@@ -247,7 +247,7 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, filters
       </div>
 
       {/* Network Breakdown Pill (When All Networks selected) */}
-      {filters.platform === 'all' && (summary.breakdown.youtube || summary.breakdown.instagram) && (
+      {filters.platform === 'all' && (summary.breakdown.youtube || summary.breakdown.instagram || summary.breakdown.tiktok) && (
         <div className="flex flex-wrap items-center gap-3 bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-300">
           <span className="font-bold text-slate-400 uppercase text-[11px]">Distribuição:</span>
 
@@ -266,6 +266,17 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, filters
               <span className="font-semibold text-white">Instagram:</span>
               <span className="text-slate-300">{summary.breakdown.instagram.totalContents} conteúdos</span>
               <span className="text-pink-400 font-extrabold">({formatNum(summary.breakdown.instagram.totalViews)} views)</span>
+            </div>
+          )}
+
+          {summary.breakdown.tiktok && (
+            <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+              <svg className="w-4 h-4 fill-current text-cyan-400 inline-block" viewBox="0 0 24 24">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.34 6.34 0 0 0 9.33 22a6.33 6.33 0 0 0 6.34-6.32V9.4a8.16 8.16 0 0 0 4.92 1.62V7.57a4.85 4.85 0 0 1-1-.88z"/>
+              </svg>
+              <span className="font-semibold text-white">TikTok:</span>
+              <span className="text-slate-300">{summary.breakdown.tiktok.totalContents} conteúdos</span>
+              <span className="text-cyan-400 font-extrabold">({formatNum(summary.breakdown.tiktok.totalViews)} views)</span>
             </div>
           )}
         </div>

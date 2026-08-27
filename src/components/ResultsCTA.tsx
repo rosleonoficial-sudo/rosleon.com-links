@@ -35,15 +35,15 @@ export const ResultsCTA: React.FC<ResultsCTAProps> = ({ onNavigateToResults }) =
             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-400 font-medium">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                YouTube + Instagram
+                YouTube + Instagram + TikTok
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">
                 <RefreshCw className="w-3 h-3 text-cyan-400" />
                 Dados atualizados automaticamente
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60 text-amber-400/90 font-semibold">
-                <Zap className="w-3 h-3 text-amber-400" />
-                TikTok em integração
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/80 border border-slate-700/60 text-cyan-300 font-semibold">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                TikTok Conectado
               </span>
             </div>
           </div>

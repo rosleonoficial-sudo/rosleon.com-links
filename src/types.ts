@@ -38,6 +38,14 @@ export interface InstagramStats {
   views30DaysFormatted?: string | null;
   views30d?: number | null;
   views30dFormatted?: string | null;
+  viewsTotal?: number | null;
+  viewsTotalFormatted?: string | null;
+  videosTotal?: number | null;
+  tiktokFollowers?: number | null;
+  tiktokViews?: number | null;
+  tiktokVideos?: number | null;
+  totalViews3Networks?: number | null;
+  totalViews3NetworksFormatted?: string | null;
   reach30d?: number | null;
   reach30dFormatted?: string | null;
   profileVisits30d?: number | null;

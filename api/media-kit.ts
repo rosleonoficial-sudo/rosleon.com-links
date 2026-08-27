@@ -1,5 +1,6 @@
 import { getTikTokStatus } from '../server/tiktokService.js';
 import { isPostgresActive, getPool } from '../server/db.js';
+import { getAllCatalogContents } from '../server/resultsService.js';
 
 const UF_DEFINITIONS = [
   { id: 'SP', name: 'São Paulo', region: 'Sudeste', weight: 25.6, topCity: 'São Paulo', x: 59, y: 70 },
@@ -139,8 +140,7 @@ export default async function handler(req: any, res: any) {
   const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
   const userId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || '17841461297140253';
 
-  let rawFollowers = 38772;
-  let rawViews30Days = 478322;
+  let rawFollowers = 40170;
   let username = "rosleonoficial";
   let name = "ROSLEON | Leonardo Mey";
   let profilePictureUrl = "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png";
@@ -165,27 +165,6 @@ export default async function handler(req: any, res: any) {
       username = profileData.username || username;
       if (profileData.profile_picture_url) profilePictureUrl = profileData.profile_picture_url;
       if (typeof profileData.followers_count === 'number') rawFollowers = profileData.followers_count;
-
-      const now = new Date();
-      const until = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
-      const since = until - (30 * 24 * 60 * 60);
-
-      try {
-        const insightsUrl = `https://graph.instagram.com/v20.0/${userId}/insights?metric=views&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${token}`;
-        const insightsRes = await fetch(insightsUrl);
-
-        if (insightsRes.ok) {
-          const insightsData = await insightsRes.json();
-          if (insightsData.data && Array.isArray(insightsData.data) && insightsData.data.length > 0) {
-            const viewsObj = insightsData.data.find((item: any) => item.name === 'views');
-            if (viewsObj && viewsObj.total_value && typeof viewsObj.total_value.value === 'number') {
-              rawViews30Days = viewsObj.total_value.value;
-            }
-          }
-        }
-      } catch (iErr: any) {
-        syncError = iErr.message;
-      }
     } else {
       syncError = "Erro no perfil da Meta API";
     }
@@ -194,61 +173,83 @@ export default async function handler(req: any, res: any) {
     stale = true;
   }
 
-  const youtubeData = {
-    subscribers: 42600,
-    subscribersFormatted: "42,6 mil",
-    views: 8298312,
-    viewsFormatted: "8,2 MILHÕES",
-    videos: 649
-  };
+  // 1. Fetch catalog items from DB / memory store (Fuente Unica de Verdad)
+  let youtubeSubscribers = 43400;
+  let youtubeViews = 8277301;
+  let youtubeVideos = 651;
+
+  let instagramTotalViews = 1070560;
+  let instagramTotalVideos = 183;
 
   let tiktokFollowers = 15089;
   let tiktokViews = 2356235;
-  let tiktokVideos = 50;
+  let tiktokVideos = 329;
   let tiktokAutoSynced = false;
 
+  try {
+    const allContents = await getAllCatalogContents();
+    
+    const ytItems = allContents.filter(c => c.platform === 'youtube');
+    const igItems = allContents.filter(c => c.platform === 'instagram');
+    const ttItems = allContents.filter(c => c.platform === 'tiktok');
+
+    if (ytItems.length > 0) {
+      youtubeViews = ytItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
+      youtubeVideos = ytItems.length;
+    }
+
+    if (igItems.length > 0) {
+      instagramTotalViews = igItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
+      instagramTotalVideos = igItems.length;
+    }
+
+    if (ttItems.length > 0) {
+      tiktokViews = ttItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
+      tiktokVideos = ttItems.length;
+    }
+  } catch (cErr) {
+    console.warn('Erro ao consultar catálogo para Media Kit:', cErr);
+  }
+
+  // 2. Fetch TikTok Real-time Account Status for Followers Count
   try {
     const ttStatus = await getTikTokStatus();
     if (ttStatus && ttStatus.account) {
       if (ttStatus.account.followersCount > 0) tiktokFollowers = ttStatus.account.followersCount;
     }
-    
-    // Sum views across ALL TikTok contents in DB
-    if (isPostgresActive()) {
-      const pool = getPool();
-      if (pool) {
-        const ttDb = await pool.query(`
-          SELECT COALESCE(SUM(m.views_count), 0)::bigint as total_views, COUNT(c.id)::int as total_videos
-          FROM contents c
-          JOIN content_metrics m ON c.id = m.content_id
-          WHERE c.platform = 'tiktok'
-        `);
-        if (ttDb.rows[0]) {
-          const dbViews = Number(ttDb.rows[0].total_views);
-          const dbVideos = Number(ttDb.rows[0].total_videos);
-          if (dbViews > 0) tiktokViews = dbViews;
-          if (dbVideos > 0) tiktokVideos = dbVideos;
-        }
-      }
-    }
-
-    if (ttStatus.connected) tiktokAutoSynced = true;
+    if (ttStatus && ttStatus.connected) tiktokAutoSynced = true;
   } catch (e) {
     console.warn('Erro ao carregar métricas real-time do TikTok para Media Kit:', e);
   }
+
+  const youtubeData = {
+    subscribers: youtubeSubscribers,
+    subscribersFormatted: `${(youtubeSubscribers / 1000).toFixed(1).replace('.', ',')} mil`,
+    views: youtubeViews,
+    viewsFormatted: youtubeViews >= 1000000 
+      ? `${(youtubeViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES` 
+      : youtubeViews.toLocaleString('pt-BR'),
+    videos: youtubeVideos
+  };
 
   const tiktokData = {
     followers: tiktokFollowers,
     followersFormatted: tiktokFollowers.toLocaleString('pt-BR'),
     views: tiktokViews,
     viewsFormatted: tiktokViews >= 1000000 
-      ? `${(tiktokViews / 1000000).toFixed(1).replace('.', ',')} MILHÕES` 
+      ? `${(tiktokViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES` 
       : tiktokViews.toLocaleString('pt-BR'),
     videos: tiktokVideos,
     isAutoSynced: tiktokAutoSynced
   };
 
+  const instagramViewsFormatted = instagramTotalViews >= 1000000
+    ? `${(instagramTotalViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
+    : instagramTotalViews.toLocaleString('pt-BR');
+
   const totalCommunity = rawFollowers + youtubeData.subscribers + tiktokData.followers;
+  const totalViews3Networks = youtubeViews + instagramTotalViews + tiktokViews;
+
   const realtimeAudience = generateSnapshot();
   const lastSyncedAt = new Date().toISOString();
 
@@ -257,14 +258,21 @@ export default async function handler(req: any, res: any) {
     snapshotId: realtimeAudience.snapshotId,
     generatedAt: realtimeAudience.generatedAt,
     nextUpdateAt: realtimeAudience.nextUpdateAt,
+    totalViews3Networks,
+    totalViews3NetworksFormatted: totalViews3Networks >= 1000000
+      ? `${(totalViews3Networks / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
+      : totalViews3Networks.toLocaleString('pt-BR'),
     instagram: {
       followers: rawFollowers,
       followersCount: rawFollowers,
       followersFormatted: rawFollowers.toLocaleString('pt-BR'),
-      views30Days: rawViews30Days,
-      views30d: rawViews30Days,
-      views30DaysFormatted: rawViews30Days.toLocaleString('pt-BR'),
-      views30dFormatted: rawViews30Days.toLocaleString('pt-BR'),
+      views30Days: instagramTotalViews,
+      views30d: instagramTotalViews,
+      views30DaysFormatted: instagramViewsFormatted,
+      views30dFormatted: instagramViewsFormatted,
+      viewsTotal: instagramTotalViews,
+      viewsTotalFormatted: instagramViewsFormatted,
+      videosTotal: instagramTotalVideos,
       source,
       isAutoSynced,
       lastSyncedAt,

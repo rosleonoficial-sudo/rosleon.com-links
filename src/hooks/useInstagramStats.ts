@@ -14,12 +14,13 @@ export function useInstagramStats() {
       try {
         setLoading(true);
         let igData: any = null;
+        let mkJson: any = null;
 
         // Try /api/media-kit first
         try {
           const mkRes = await fetch('/api/media-kit');
           if (mkRes.ok) {
-            const mkJson = await mkRes.json();
+            mkJson = await mkRes.json();
             if (mkJson && mkJson.instagram) {
               igData = mkJson.instagram;
             }
@@ -47,7 +48,14 @@ export function useInstagramStats() {
           if (igData) {
             setConfigured(true);
             const followers = igData.followers ?? igData.followersCount ?? 0;
-            const views30Days = igData.views30Days ?? igData.views30d ?? 0;
+            const viewsTotal = igData.viewsTotal ?? igData.views30Days ?? igData.views30d ?? 1070560;
+            const viewsTotalFormatted = igData.viewsTotalFormatted || igData.views30DaysFormatted || viewsTotal.toLocaleString('pt-BR');
+
+            const tiktokFollowers = mkJson?.tiktok?.followers ?? 15089;
+            const tiktokViews = mkJson?.tiktok?.views ?? 2356235;
+            const tiktokVideos = mkJson?.tiktok?.videos ?? 329;
+            const totalViews3Networks = mkJson?.totalViews3Networks;
+            const totalViews3NetworksFormatted = mkJson?.totalViews3NetworksFormatted;
 
             setData({
               name: igData.name || "ROSLEON | Leonardo Mey",
@@ -56,10 +64,18 @@ export function useInstagramStats() {
               followers,
               followersCount: followers,
               followersFormatted: igData.followersFormatted || followers.toLocaleString('pt-BR'),
-              views30Days,
-              views30d: views30Days,
-              views30DaysFormatted: igData.views30DaysFormatted || igData.views30dFormatted || views30Days.toLocaleString('pt-BR'),
-              views30dFormatted: igData.views30dFormatted || igData.views30DaysFormatted || views30Days.toLocaleString('pt-BR'),
+              viewsTotal,
+              viewsTotalFormatted,
+              views30Days: viewsTotal,
+              views30d: viewsTotal,
+              views30DaysFormatted: viewsTotalFormatted,
+              views30dFormatted: viewsTotalFormatted,
+              videosTotal: igData.videosTotal || 183,
+              tiktokFollowers,
+              tiktokViews,
+              tiktokVideos,
+              totalViews3Networks,
+              totalViews3NetworksFormatted,
               source: igData.source || "instagram_meta_graph_api",
               isAutoSynced: igData.isAutoSynced ?? true,
               lastSyncedAt: igData.lastSyncedAt || new Date().toISOString(),
@@ -95,4 +111,3 @@ export function useInstagramStats() {
 
   return { data, loading, error, configured };
 }
-

@@ -103,7 +103,7 @@ export const zhCN: typeof pt = {
     instagramSub: "日常内容、幕后花絮、独家优惠与折扣券。",
     tiktokSub: "日常内容、幕后花絮、独家优惠与折扣券。",
     followers: "关注者",
-    views30d: "观看量（30天）",
+    views30d: "总观看量",
     viewInstagram: "在 Instagram 查看",
     goToTikTok: "进入 TikTok",
   },

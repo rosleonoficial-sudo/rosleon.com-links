@@ -103,7 +103,7 @@ export const en: typeof pt = {
     instagramSub: "Daily content, behind the scenes, exclusive deals & coupons.",
     tiktokSub: "Daily content, behind the scenes, exclusive deals & coupons.",
     followers: "followers",
-    views30d: "views (30 days)",
+    views30d: "total views",
     viewInstagram: "View on Instagram",
     goToTikTok: "Go to TikTok",
   },

@@ -113,16 +113,16 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
 
                 <div className="h-7 w-px bg-slate-800" />
 
-                {/* Visualizações (30 dias) */}
+                {/* Visualizações (Total acumulado) */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-pink-400">
-                    {instagramStats?.views30DaysFormatted || instagramStats?.views30dFormatted || (typeof instagramStats?.views30Days === 'number' ? instagramStats.views30Days.toLocaleString('pt-BR') : (typeof instagramStats?.views30d === 'number' ? instagramStats.views30d.toLocaleString('pt-BR') : '—'))}
+                    {instagramStats?.viewsTotalFormatted || instagramStats?.views30DaysFormatted || (typeof instagramStats?.viewsTotal === 'number' ? instagramStats.viewsTotal.toLocaleString('pt-BR') : '1.070.560')}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
-                    {t('social.views30d')}
+                    {t('youtube.views')}
                   </div>
                   <div className="text-[8.5px] font-mono text-pink-400/90 mt-0.5">
-                    Últimos 30 dias
+                    Total acumulado
                   </div>
                 </div>
               </div>
@@ -212,7 +212,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Followers */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-white">
-                    {formatNumber(15089)}
+                    {formatNumber(instagramStats?.tiktokFollowers ?? 15089)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('social.followers')}
@@ -224,7 +224,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Visualizações */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-cyan-400">
-                    {formatNumber(2356235)}
+                    {formatNumber(instagramStats?.tiktokViews ?? 2356235)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('youtube.views')}

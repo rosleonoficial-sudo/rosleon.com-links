@@ -131,7 +131,7 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
               Consulta de Vídeos e Métricas de Desempenho
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 font-medium">
-              Pesquise por marcas, campanhas ou produtos e consulte resultados consolidados no YouTube e Instagram.
+              Pesquise por marcas, campanhas ou produtos e consulte resultados consolidados no YouTube, Instagram e TikTok.
             </p>
           </div>
 
@@ -194,10 +194,10 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
                 </span>
               )}
 
-              {status?.platforms?.tiktok?.connected ? (
+              {status?.platforms?.tiktok?.connected || status?.platforms?.tiktok?.status === 'active' ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                  TikTok: Ativo ({status?.platforms?.tiktok?.totalContents || 0} vídeos)
+                  TikTok: Ativo
                 </span>
               ) : (
                 <a
