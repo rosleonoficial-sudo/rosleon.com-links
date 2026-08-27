@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, Radio, CheckCircle2, Clock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, RefreshCw, Radio, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { ResultsStatusResponse } from '../../types';
 
 interface ResultsHeaderProps {
@@ -16,6 +16,7 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
   isRefreshing
 }) => {
   const [now, setNow] = useState<number>(Date.now());
+  const lastAutoTriggerRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -24,23 +25,64 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Compute time ago and countdown to next sync
+  // Compute time ago based on REAL backend timestamp
   let timeAgoText = 'Sincronizando...';
   let countdownText = '00:00';
 
   if (status?.lastSyncedAt) {
     const lastSyncedTime = new Date(status.lastSyncedAt).getTime();
-    const diffSec = Math.max(0, Math.floor((now - lastSyncedTime) / 1000));
-    const minutesAgo = Math.floor(diffSec / 60);
-    const secondsAgo = diffSec % 60;
-    timeAgoText = minutesAgo > 0 ? `há ${minutesAgo} min ${secondsAgo} s` : `há ${secondsAgo} s`;
+    if (!isNaN(lastSyncedTime)) {
+      const diffSec = Math.max(0, Math.floor((now - lastSyncedTime) / 1000));
+      if (diffSec < 60) {
+        timeAgoText = `há ${diffSec} s`;
+      } else if (diffSec < 3600) {
+        const minutesAgo = Math.floor(diffSec / 60);
+        const secondsAgo = diffSec % 60;
+        timeAgoText = `há ${minutesAgo} min ${secondsAgo} s`;
+      } else {
+        const hoursAgo = Math.floor(diffSec / 3600);
+        const minutesAgo = Math.floor((diffSec % 3600) / 60);
+        timeAgoText = `há ${hoursAgo} h ${minutesAgo} min`;
+      }
+    }
+  }
 
-    if (status.nextSyncAt) {
-      const nextSyncTime = new Date(status.nextSyncAt).getTime();
+  // Compute real countdown to next sync
+  if (status?.nextSyncAt) {
+    const nextSyncTime = new Date(status.nextSyncAt).getTime();
+    if (!isNaN(nextSyncTime)) {
       const remainingSec = Math.max(0, Math.floor((nextSyncTime - now) / 1000));
       const rMin = Math.floor(remainingSec / 60);
       const rSec = remainingSec % 60;
       countdownText = `${String(rMin).padStart(2, '0')}:${String(rSec).padStart(2, '0')}`;
+    }
+  }
+
+  // Auto trigger refresh when countdown reaches 00:00
+  useEffect(() => {
+    if (!status?.nextSyncAt) return;
+    const nextSyncTime = new Date(status.nextSyncAt).getTime();
+    if (isNaN(nextSyncTime)) return;
+    const remainingSec = Math.floor((nextSyncTime - now) / 1000);
+
+    if (remainingSec <= 0 && lastAutoTriggerRef.current !== status.nextSyncAt) {
+      lastAutoTriggerRef.current = status.nextSyncAt;
+      onRefresh();
+    }
+  }, [now, status?.nextSyncAt, onRefresh]);
+
+  // Determine system monitoring status
+  const ytActive = status?.platforms?.youtube?.status === 'active';
+  const igActive = status?.platforms?.instagram?.status === 'active';
+
+  let systemState: 'active' | 'delayed' | 'error' = 'active';
+
+  if (!status || status.success === false || !ytActive || !igActive) {
+    systemState = 'error';
+  } else if (status.nextSyncAt) {
+    const nextSyncTime = new Date(status.nextSyncAt).getTime();
+    if (!isNaN(nextSyncTime) && now > nextSyncTime + 120000) {
+      systemState = 'delayed';
     }
   }
 
@@ -93,13 +135,28 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
             </p>
           </div>
 
-          {/* Discrete Live Monitoring Box (Requirement 21) */}
+          {/* Discrete Live Monitoring Box */}
           <div className="bg-slate-950/80 border border-slate-800/90 rounded-xl p-3.5 sm:p-4 text-left space-y-2.5 min-w-[280px] shadow-inner">
             <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="inline-flex items-center gap-1.5 font-bold text-emerald-400 uppercase tracking-wider text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                ● MONITORAMENTO ATIVO
-              </span>
+              {systemState === 'active' && (
+                <span className="inline-flex items-center gap-1.5 font-bold text-emerald-400 uppercase tracking-wider text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  ● MONITORAMENTO ATIVO
+                </span>
+              )}
+              {systemState === 'delayed' && (
+                <span className="inline-flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  ● ATUALIZAÇÃO ATRASADA
+                </span>
+              )}
+              {systemState === 'error' && (
+                <span className="inline-flex items-center gap-1.5 font-bold text-rose-400 uppercase tracking-wider text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                  ● MONITORAMENTO COM PROBLEMA
+                </span>
+              )}
+
               <span className="font-mono text-[11px] text-slate-400 flex items-center gap-1">
                 <Clock className="w-3 h-3 text-cyan-400" />
                 Próxima: <strong className="text-cyan-300">{countdownText}</strong>
@@ -113,14 +170,30 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
 
             {/* Network status badges */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
-                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                YouTube: Ativo
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
-                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                Instagram: Ativo
-              </span>
+              {ytActive ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                  YouTube: Ativo
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-rose-500/30 text-[10px] text-rose-300 font-medium">
+                  <XCircle className="w-2.5 h-2.5 text-rose-400" />
+                  YouTube: Inativo
+                </span>
+              )}
+
+              {igActive ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                  Instagram: Ativo
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-rose-500/30 text-[10px] text-rose-300 font-medium">
+                  <XCircle className="w-2.5 h-2.5 text-rose-400" />
+                  Instagram: Inativo
+                </span>
+              )}
+
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-amber-500/30 text-[10px] text-amber-300 font-medium">
                 TikTok: Em integração
               </span>
@@ -133,3 +206,4 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
     </header>
   );
 };
+
