@@ -1,6 +1,6 @@
 import { getTikTokStatus } from '../server/tiktokService.js';
 import { isPostgresActive, getPool } from '../server/db.js';
-import { getAllCatalogContents } from '../server/resultsService.js';
+import { getAllCatalogContents, searchContents } from '../server/resultsService.js';
 
 const UF_DEFINITIONS = [
   { id: 'SP', name: 'São Paulo', region: 'Sudeste', weight: 25.6, topCity: 'São Paulo', x: 59, y: 70 },
@@ -186,26 +186,33 @@ export default async function handler(req: any, res: any) {
   let tiktokVideos = 329;
   let tiktokAutoSynced = false;
 
+  let totalLikes = 314053;
+  let totalComments = 61338;
+  let totalShares = 28459;
+  let avgEngagementRate = 5.59;
+
   try {
-    const allContents = await getAllCatalogContents();
-    
-    const ytItems = allContents.filter(c => c.platform === 'youtube');
-    const igItems = allContents.filter(c => c.platform === 'instagram');
-    const ttItems = allContents.filter(c => c.platform === 'tiktok');
+    const searchRes = await searchContents({});
+    const summary = searchRes.summary;
 
-    if (ytItems.length > 0) {
-      youtubeViews = ytItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
-      youtubeVideos = ytItems.length;
-    }
+    if (summary && summary.totalContents > 0) {
+      if (summary.totalLikes) totalLikes = summary.totalLikes;
+      if (summary.totalComments) totalComments = summary.totalComments;
+      if (summary.totalShares !== null && summary.totalShares !== undefined) totalShares = summary.totalShares;
+      if (summary.avgEngagementRate) avgEngagementRate = summary.avgEngagementRate;
 
-    if (igItems.length > 0) {
-      instagramTotalViews = igItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
-      instagramTotalVideos = igItems.length;
-    }
-
-    if (ttItems.length > 0) {
-      tiktokViews = ttItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
-      tiktokVideos = ttItems.length;
+      if (summary.breakdown.youtube) {
+        youtubeViews = summary.breakdown.youtube.totalViews;
+        youtubeVideos = summary.breakdown.youtube.totalContents;
+      }
+      if (summary.breakdown.instagram) {
+        instagramTotalViews = summary.breakdown.instagram.totalViews;
+        instagramTotalVideos = summary.breakdown.instagram.totalContents;
+      }
+      if (summary.breakdown.tiktok) {
+        tiktokViews = summary.breakdown.tiktok.totalViews;
+        tiktokVideos = summary.breakdown.tiktok.totalContents;
+      }
     }
   } catch (cErr) {
     console.warn('Erro ao consultar catálogo para Media Kit:', cErr);
@@ -262,6 +269,25 @@ export default async function handler(req: any, res: any) {
     totalViews3NetworksFormatted: totalViews3Networks >= 1000000
       ? `${(totalViews3Networks / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
       : totalViews3Networks.toLocaleString('pt-BR'),
+    totalLikes,
+    totalLikesFormatted: totalLikes >= 1000000
+      ? `+${(totalLikes / 1000000).toFixed(1).replace('.', ',')} M`
+      : totalLikes >= 1000
+      ? `+${(totalLikes / 1000).toFixed(0)} MIL`
+      : `+${totalLikes.toLocaleString('pt-BR')}`,
+    totalComments,
+    totalCommentsFormatted: totalComments >= 1000000
+      ? `+${(totalComments / 1000000).toFixed(1).replace('.', ',')} M`
+      : totalComments >= 1000
+      ? `+${(totalComments / 1000).toFixed(0)} MIL`
+      : `+${totalComments.toLocaleString('pt-BR')}`,
+    totalShares,
+    totalSharesFormatted: totalShares >= 1000000
+      ? `+${(totalShares / 1000000).toFixed(1).replace('.', ',')} M`
+      : totalShares >= 1000
+      ? `+${(totalShares / 1000).toFixed(0)} MIL`
+      : `+${totalShares.toLocaleString('pt-BR')}`,
+    avgEngagementRate,
     instagram: {
       followers: rawFollowers,
       followersCount: rawFollowers,

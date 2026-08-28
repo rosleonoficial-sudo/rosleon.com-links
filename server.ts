@@ -65,9 +65,20 @@ async function fetchYouTubeChannelStats() {
     return youtubeStatsCache.data;
   }
 
-  const defaultRawSubs = 42600;
-  const defaultRawViews = 8298312;
-  const defaultRawVideos = 649;
+  // Obter dinamicamente a contagem de conteúdos auditáveis do catálogo (mesma fonte do /resultados e /api/media-kit)
+  let youtubeAuditableContentCount = 651;
+  try {
+    const searchRes = await searchContents({ platform: 'youtube' });
+    if (searchRes && searchRes.summary && typeof searchRes.summary.totalContents === 'number' && searchRes.summary.totalContents > 0) {
+      youtubeAuditableContentCount = searchRes.summary.totalContents;
+    }
+  } catch (e) {
+    console.warn("Aviso ao buscar contagem auditável do YouTube:", e);
+  }
+
+  const defaultRawSubs = 43400;
+  const defaultRawViews = 8277301;
+  const defaultRawVideos = youtubeAuditableContentCount;
 
   // Live scrape fallback if API key is not set
   async function scrapeYouTubeChannel() {
@@ -106,14 +117,15 @@ async function fetchYouTubeChannelStats() {
           if (!isNaN(val)) num = val;
         }
 
-        let vidNum = defaultRawVideos;
+        let vidNum = youtubeAuditableContentCount;
+        let repVidNum = 656;
         if (vidText) {
           const cleanVid = vidText.replace(/vídeos|videos/gi, "").replace(/\D/g, "");
           const parsedVid = parseInt(cleanVid, 10);
-          if (!isNaN(parsedVid)) vidNum = parsedVid;
+          if (!isNaN(parsedVid)) repVidNum = parsedVid;
         }
 
-        return { rawSubscribers: num, rawVideos: vidNum };
+        return { rawSubscribers: num, rawVideos: vidNum, youtubeReportedVideoCount: repVidNum, youtubeAuditableContentCount: vidNum };
       }
     } catch (e) {
       console.warn("Falha ao raspar canal do YouTube no server.ts:", e);
@@ -124,7 +136,8 @@ async function fetchYouTubeChannelStats() {
   if (!apiKey) {
     const scraped = await scrapeYouTubeChannel();
     const rawSubscribers = scraped ? scraped.rawSubscribers : defaultRawSubs;
-    const rawVideos = scraped ? scraped.rawVideos : defaultRawVideos;
+    const rawVideos = youtubeAuditableContentCount;
+    const youtubeReportedVideoCount = scraped?.youtubeReportedVideoCount || 656;
 
     const defaultData = {
       subscribers: rawSubscribers.toLocaleString('pt-BR'),
@@ -137,6 +150,8 @@ async function fetchYouTubeChannelStats() {
       rawSubscribers,
       rawViews: defaultRawViews,
       rawVideos,
+      youtubeReportedVideoCount,
+      youtubeAuditableContentCount,
       viewsFull: defaultRawViews.toLocaleString('pt-BR'),
       videosFull: rawVideos.toLocaleString('pt-BR'),
       channelTitle: "ROSLEON",
@@ -204,11 +219,11 @@ async function fetchYouTubeChannelStats() {
 
     const rawSubscribers = parseInt(stats.subscriberCount || `${defaultRawSubs}`, 10) || defaultRawSubs;
     const rawViews = parseInt(stats.viewCount || `${defaultRawViews}`, 10) || defaultRawViews;
-    const rawVideos = parseInt(stats.videoCount || `${defaultRawVideos}`, 10) || defaultRawVideos;
+    const youtubeReportedVideoCount = parseInt(stats.videoCount || `${defaultRawVideos}`, 10) || defaultRawVideos;
 
     const fullSubscribers = rawSubscribers.toLocaleString('pt-BR');
     const fullViews = rawViews.toLocaleString('pt-BR');
-    const fullVideos = rawVideos.toLocaleString('pt-BR');
+    const fullVideos = youtubeAuditableContentCount.toLocaleString('pt-BR');
 
     const formattedData = {
       subscribers: fullSubscribers,
@@ -220,7 +235,9 @@ async function fetchYouTubeChannelStats() {
       videos: fullVideos,
       rawSubscribers,
       rawViews,
-      rawVideos,
+      rawVideos: youtubeAuditableContentCount,
+      youtubeReportedVideoCount,
+      youtubeAuditableContentCount,
       viewsFull: fullViews,
       videosFull: fullVideos,
       channelTitle: snippet.title || "ROSLEON",
@@ -259,12 +276,14 @@ async function fetchYouTubeChannelStats() {
         subscribersFull: defaultRawSubs.toLocaleString('pt-BR'),
         views: defaultRawViews.toLocaleString('pt-BR'),
         viewsCompact: defaultRawViews.toLocaleString('pt-BR'),
-        videos: defaultRawVideos.toLocaleString('pt-BR'),
+        videos: youtubeAuditableContentCount.toLocaleString('pt-BR'),
         rawSubscribers: defaultRawSubs,
         rawViews: defaultRawViews,
-        rawVideos: defaultRawVideos,
+        rawVideos: youtubeAuditableContentCount,
+        youtubeReportedVideoCount: 656,
+        youtubeAuditableContentCount,
         viewsFull: defaultRawViews.toLocaleString('pt-BR'),
-        videosFull: defaultRawVideos.toLocaleString('pt-BR'),
+        videosFull: youtubeAuditableContentCount.toLocaleString('pt-BR'),
         channelTitle: "ROSLEON",
         updatedAt: new Date().toISOString()
       }
@@ -496,44 +515,67 @@ async function fetchCentralMediaKitData() {
     stale = true;
   }
 
-  // Fetch YouTube channel stats for YouTube section & community total calculation
-  let youtubeData = {
-    subscribers: 42600,
-    subscribersFormatted: "42,6 mil",
-    views: 8298312,
-    viewsFormatted: "8,2 MILHÕES",
-    videos: 649
-  };
+  // 1. Fetch catalog items from resultsService (Single Source of Truth)
+  let youtubeSubscribers = 43400;
+  let youtubeViews = 8277301;
+  let youtubeVideos = 651;
 
-  try {
-    const ytRes = await fetchYouTubeChannelStats();
-    if (ytRes && ytRes.data) {
-      youtubeData = {
-        subscribers: ytRes.data.rawSubscribers || 42600,
-        subscribersFormatted: ytRes.data.subscribers || "42,6 mil",
-        views: ytRes.data.rawViews || 8298312,
-        viewsFormatted: ytRes.data.views || "8,2 MILHÕES",
-        videos: ytRes.data.rawVideos || 649
-      };
-    }
-  } catch (ytErr) {
-    console.warn("YouTube stats fetch warning in central media kit:", ytErr);
-  }
+  let instagramTotalViews = 1070560;
+  let instagramTotalVideos = 183;
 
   let tiktokFollowers = 15089;
   let tiktokViews = 2356235;
   let tiktokVideos = 329;
   let tiktokAutoSynced = false;
 
+  let totalLikes = 314056;
+  let totalComments = 61338;
+  let totalShares = 28459;
+  let avgEngagementRate = 5.59;
+  let summary: any = null;
+
   try {
-    const allContents = await getAllCatalogContents();
-    const ttItems = allContents.filter(c => c.platform === 'tiktok');
-    if (ttItems.length > 0) {
-      tiktokViews = ttItems.reduce((acc, item) => acc + (item.metrics.viewsCount || 0), 0);
-      tiktokVideos = ttItems.length;
+    const searchRes = await searchContents({});
+    summary = searchRes.summary;
+
+    if (summary && summary.totalContents > 0) {
+      if (summary.totalLikes) totalLikes = summary.totalLikes;
+      if (summary.totalComments) totalComments = summary.totalComments;
+      if (summary.totalShares !== null && summary.totalShares !== undefined) totalShares = summary.totalShares;
+      if (summary.avgEngagementRate) avgEngagementRate = summary.avgEngagementRate;
+
+      if (summary.breakdown.youtube) {
+        youtubeViews = summary.breakdown.youtube.totalViews;
+        youtubeVideos = summary.breakdown.youtube.totalContents;
+      }
+      if (summary.breakdown.instagram) {
+        instagramTotalViews = summary.breakdown.instagram.totalViews;
+        instagramTotalVideos = summary.breakdown.instagram.totalContents;
+      }
+      if (summary.breakdown.tiktok) {
+        tiktokViews = summary.breakdown.tiktok.totalViews;
+        tiktokVideos = summary.breakdown.tiktok.totalContents;
+      }
     }
   } catch (catErr) {
-    console.warn("Erro ao consultar catálogo no media-kit do server.ts:", catErr);
+    console.warn("Erro ao consultar agregação do resultsService no server.ts:", catErr);
+  }
+
+  let youtubeReportedVideoCount = 656;
+
+  // Fetch YouTube channel subscribers
+  try {
+    const ytRes = await fetchYouTubeChannelStats();
+    if (ytRes && ytRes.data) {
+      if (ytRes.data.rawSubscribers) {
+        youtubeSubscribers = ytRes.data.rawSubscribers;
+      }
+      if (ytRes.data.youtubeReportedVideoCount) {
+        youtubeReportedVideoCount = ytRes.data.youtubeReportedVideoCount;
+      }
+    }
+  } catch (ytErr) {
+    console.warn("YouTube stats fetch warning in central media kit:", ytErr);
   }
 
   try {
@@ -546,6 +588,18 @@ async function fetchCentralMediaKitData() {
     console.warn("TikTok status warning in central media kit:", ttErr);
   }
 
+  const youtubeData = {
+    subscribers: youtubeSubscribers,
+    subscribersFormatted: `${(youtubeSubscribers / 1000).toFixed(1).replace('.', ',')} mil`,
+    views: youtubeViews,
+    viewsFormatted: youtubeViews >= 1000000
+      ? `${(youtubeViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
+      : youtubeViews.toLocaleString('pt-BR'),
+    videos: youtubeVideos,
+    youtubeAuditableContentCount: youtubeVideos,
+    youtubeReportedVideoCount
+  };
+
   const tiktokData = {
     followers: tiktokFollowers,
     followersFormatted: tiktokFollowers.toLocaleString('pt-BR'),
@@ -557,8 +611,12 @@ async function fetchCentralMediaKitData() {
     isAutoSynced: tiktokAutoSynced
   };
 
+  const instagramViewsFormatted = instagramTotalViews >= 1000000
+    ? `${(instagramTotalViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
+    : instagramTotalViews.toLocaleString('pt-BR');
+
   const totalCommunity = rawFollowers + youtubeData.subscribers + tiktokData.followers;
-  const totalViews3Networks = youtubeData.views + rawViews30Days + tiktokViews;
+  const totalViews3Networks = youtubeViews + instagramTotalViews + tiktokViews;
   const lastSyncedAt = new Date().toISOString();
 
   const payload = {
@@ -570,6 +628,25 @@ async function fetchCentralMediaKitData() {
     totalViews3NetworksFormatted: totalViews3Networks >= 1000000
       ? `${(totalViews3Networks / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
       : totalViews3Networks.toLocaleString('pt-BR'),
+    totalLikes,
+    totalLikesFormatted: totalLikes >= 1000000
+      ? `+${(totalLikes / 1000000).toFixed(1).replace('.', ',')} M`
+      : totalLikes >= 1000
+      ? `+${(totalLikes / 1000).toFixed(0)} MIL`
+      : `+${totalLikes.toLocaleString('pt-BR')}`,
+    totalComments,
+    totalCommentsFormatted: totalComments >= 1000000
+      ? `+${(totalComments / 1000000).toFixed(1).replace('.', ',')} M`
+      : totalComments >= 1000
+      ? `+${(totalComments / 1000).toFixed(0)} MIL`
+      : `+${totalComments.toLocaleString('pt-BR')}`,
+    totalShares,
+    totalSharesFormatted: totalShares >= 1000000
+      ? `+${(totalShares / 1000000).toFixed(1).replace('.', ',')} M`
+      : totalShares >= 1000
+      ? `+${(totalShares / 1000).toFixed(0)} MIL`
+      : `+${totalShares.toLocaleString('pt-BR')}`,
+    avgEngagementRate,
     instagram: {
       followers: rawFollowers,
       followersCount: rawFollowers,
@@ -578,6 +655,9 @@ async function fetchCentralMediaKitData() {
       views30d: rawViews30Days,
       views30DaysFormatted: rawViews30Days.toLocaleString('pt-BR'),
       views30dFormatted: rawViews30Days.toLocaleString('pt-BR'),
+      viewsTotal: instagramTotalViews,
+      viewsTotalFormatted: instagramViewsFormatted,
+      videosTotal: instagramTotalVideos,
       source,
       isAutoSynced,
       lastSyncedAt,
@@ -601,10 +681,12 @@ async function fetchCentralMediaKitData() {
     realtimeAudience
   };
 
-  instagramStatsCache = {
-    data: payload,
-    timestamp: Date.now()
-  };
+  if (summary && summary.totalContents > 200) {
+    instagramStatsCache = {
+      data: payload,
+      timestamp: Date.now()
+    };
+  }
 
   return payload;
 }

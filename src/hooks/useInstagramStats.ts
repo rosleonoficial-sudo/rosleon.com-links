@@ -57,6 +57,14 @@ export function useInstagramStats() {
             const totalViews3Networks = mkJson?.totalViews3Networks;
             const totalViews3NetworksFormatted = mkJson?.totalViews3NetworksFormatted;
 
+            const totalLikes = mkJson?.totalLikes ?? igData.totalLikes ?? 314056;
+            const totalLikesFormatted = mkJson?.totalLikesFormatted ?? igData.totalLikesFormatted;
+            const totalComments = mkJson?.totalComments ?? igData.totalComments ?? 61338;
+            const totalCommentsFormatted = mkJson?.totalCommentsFormatted ?? igData.totalCommentsFormatted;
+            const totalShares = mkJson?.totalShares ?? igData.totalShares ?? 28459;
+            const totalSharesFormatted = mkJson?.totalSharesFormatted ?? igData.totalSharesFormatted;
+            const avgEngagementRate = mkJson?.avgEngagementRate ?? igData.avgEngagementRate;
+
             setData({
               name: igData.name || "ROSLEON | Leonardo Mey",
               username: igData.username || "rosleonoficial",
@@ -76,6 +84,13 @@ export function useInstagramStats() {
               tiktokVideos,
               totalViews3Networks,
               totalViews3NetworksFormatted,
+              totalLikes,
+              totalLikesFormatted,
+              totalComments,
+              totalCommentsFormatted,
+              totalShares,
+              totalSharesFormatted,
+              avgEngagementRate,
               source: igData.source || "instagram_meta_graph_api",
               isAutoSynced: igData.isAutoSynced ?? true,
               lastSyncedAt: igData.lastSyncedAt || new Date().toISOString(),

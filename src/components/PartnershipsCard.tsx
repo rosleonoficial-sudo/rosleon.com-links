@@ -29,6 +29,23 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
   const totalAudienceRaw = ytSubsRaw + igFollowersRaw + ttFollowersRaw;
   const totalAudienceFormatted = `+${formatNumber(Number((totalAudienceRaw / 1_000).toFixed(1)))} ${t('partnerships.thousand')}`;
 
+  // Calculate dynamic engagement metrics (likes, comments, shares) from real catalog
+  const totalLikesRaw = instagramStats?.totalLikes ?? 314056;
+  const totalCommentsRaw = instagramStats?.totalComments ?? 61338;
+  const totalSharesRaw = instagramStats?.totalShares ?? 28459;
+
+  const totalLikesFormatted = totalLikesRaw >= 1_000_000
+    ? `+${formatNumber(Number((totalLikesRaw / 1_000_000).toFixed(1)))} ${t('partnerships.million')}`
+    : `+${formatNumber(Number((totalLikesRaw / 1_000).toFixed(0)))} ${t('partnerships.thousand')}`;
+
+  const totalCommentsFormatted = totalCommentsRaw >= 1_000_000
+    ? `+${formatNumber(Number((totalCommentsRaw / 1_000_000).toFixed(1)))} ${t('partnerships.million')}`
+    : `+${formatNumber(Number((totalCommentsRaw / 1_000).toFixed(0)))} ${t('partnerships.thousand')}`;
+
+  const totalSharesFormatted = totalSharesRaw >= 1_000_000
+    ? `+${formatNumber(Number((totalSharesRaw / 1_000_000).toFixed(1)))} ${t('partnerships.million')}`
+    : `+${formatNumber(Number((totalSharesRaw / 1_000).toFixed(0)))} ${t('partnerships.thousand')}`;
+
   return (
     <section id="parcerias" className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto my-6">
       <div className="relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-xl shadow-amber-950/20 hover:border-amber-500/50 transition-all duration-300">
@@ -208,7 +225,7 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                     <MessageSquare className="w-3.5 h-3.5" />
                   </div>
                   <div className="text-[11px] sm:text-xs lg:text-sm font-black text-white leading-tight truncate w-full">
-                    +185 {t('partnerships.thousand')}
+                    {totalCommentsFormatted}
                   </div>
                 </div>
 
@@ -221,7 +238,7 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                     <Heart className="w-3.5 h-3.5 fill-current" />
                   </div>
                   <div className="text-[11px] sm:text-xs lg:text-sm font-black text-white leading-tight truncate w-full">
-                    +1,2 {t('partnerships.million')}
+                    {totalLikesFormatted}
                   </div>
                 </div>
 
@@ -234,7 +251,7 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                     <Share2 className="w-3.5 h-3.5" />
                   </div>
                   <div className="text-[11px] sm:text-xs lg:text-sm font-black text-white leading-tight truncate w-full">
-                    +340 {t('partnerships.thousand')}
+                    {totalSharesFormatted}
                   </div>
                 </div>
               </div>

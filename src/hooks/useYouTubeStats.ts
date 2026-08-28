@@ -30,6 +30,20 @@ export function useYouTubeStats(initialStats: CreatorStats) {
         const clientApiKey = (import.meta as any).env?.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
         if ((!json || !json.data) && clientApiKey) {
           try {
+            // Fetch catalog count from media-kit or results if available
+            let auditableCount = 651;
+            try {
+              const mkRes = await fetch('/api/media-kit');
+              if (mkRes.ok) {
+                const mkData = await mkRes.json();
+                if (mkData?.youtube?.videos) {
+                  auditableCount = mkData.youtube.videos;
+                }
+              }
+            } catch (mkErr) {
+              // fallback
+            }
+
             const handle = "rosleonoficial";
             const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=%40${handle}&key=${clientApiKey}`;
             const res = await fetch(url);
@@ -40,17 +54,19 @@ export function useYouTubeStats(initialStats: CreatorStats) {
                 const s = item.statistics;
                 const subs = parseInt(s.subscriberCount, 10);
                 const views = parseInt(s.viewCount, 10);
-                const vids = parseInt(s.videoCount, 10);
+                const reportedVids = parseInt(s.videoCount, 10);
                 json = {
                   success: true,
                   apiKeyConfigured: true,
                   data: {
                     rawSubscribers: subs,
                     rawViews: views,
-                    rawVideos: vids,
+                    rawVideos: auditableCount,
+                    youtubeReportedVideoCount: reportedVids,
+                    youtubeAuditableContentCount: auditableCount,
                     subscribersExact: subs.toLocaleString('pt-BR'),
                     viewsFull: views.toLocaleString('pt-BR'),
-                    videosFull: vids.toLocaleString('pt-BR'),
+                    videosFull: auditableCount.toLocaleString('pt-BR'),
                     updatedAt: new Date().toISOString()
                   }
                 };
@@ -62,9 +78,9 @@ export function useYouTubeStats(initialStats: CreatorStats) {
         }
 
         if (json && json.data && isMounted) {
-          const rawSubscribers = typeof json.data.rawSubscribers === 'number' ? json.data.rawSubscribers : 42600;
-          const rawViews = typeof json.data.rawViews === 'number' ? json.data.rawViews : 8298312;
-          const rawVideos = typeof json.data.rawVideos === 'number' ? json.data.rawVideos : 649;
+          const rawSubscribers = typeof json.data.rawSubscribers === 'number' ? json.data.rawSubscribers : 43400;
+          const rawViews = typeof json.data.rawViews === 'number' ? json.data.rawViews : 8277301;
+          const rawVideos = typeof json.data.rawVideos === 'number' ? json.data.rawVideos : 651;
 
           const exactSubscribers = json.data.subscribersExact || json.data.subscribersFull || json.data.subscribers || rawSubscribers.toLocaleString('pt-BR');
           const exactViews = json.data.viewsFull || json.data.views || rawViews.toLocaleString('pt-BR');

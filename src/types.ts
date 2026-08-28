@@ -21,6 +21,9 @@ export interface CreatorStats {
   videosFull?: string;
   rawViews?: number;
   rawSubscribers?: number;
+  rawVideos?: number;
+  youtubeAuditableContentCount?: number;
+  youtubeReportedVideoCount?: number;
   lastUpdated?: string;
   isLiveApiData?: boolean;
 }
@@ -46,6 +49,13 @@ export interface InstagramStats {
   tiktokVideos?: number | null;
   totalViews3Networks?: number | null;
   totalViews3NetworksFormatted?: string | null;
+  totalLikes?: number | null;
+  totalLikesFormatted?: string | null;
+  totalComments?: number | null;
+  totalCommentsFormatted?: string | null;
+  totalShares?: number | null;
+  totalSharesFormatted?: string | null;
+  avgEngagementRate?: number | null;
   reach30d?: number | null;
   reach30dFormatted?: string | null;
   profileVisits30d?: number | null;
@@ -136,6 +146,8 @@ export interface CentralMediaKitData {
     views: number;
     viewsFormatted: string;
     videos: number;
+    youtubeAuditableContentCount?: number;
+    youtubeReportedVideoCount?: number;
   };
   tiktok: {
     followers: number;
