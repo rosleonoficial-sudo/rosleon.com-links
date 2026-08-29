@@ -182,8 +182,8 @@ export default async function handler(req: any, res: any) {
   let instagramTotalVideos = 183;
 
   let tiktokFollowers = 15089;
-  let tiktokViews = 2356235;
-  let tiktokVideos = 329;
+  let tiktokViews = 0;
+  let tiktokVideos = 0;
   let tiktokAutoSynced = false;
 
   let totalLikes = 314053;

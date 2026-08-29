@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Trophy, Eye, ThumbsUp, MessageSquare, Share2, TrendingUp, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Trophy, Eye, ThumbsUp, MessageSquare, Share2, TrendingUp, ChevronDown, ChevronUp, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export type BrandMetricOption = 'views' | 'likes' | 'comments' | 'shares' | 'engagement';
 
@@ -15,24 +15,77 @@ export interface BrandRankingItem {
   displayValue: string;
 }
 
+const LOADING_MESSAGES = [
+  'Calculando ranking de marcas...',
+  'Consolidando métricas...',
+  'Organizando marcas...',
+  'Preparando ranking...'
+];
+
 export const BrandRankingWidget: React.FC = () => {
   const [selectedMetric, setSelectedMetric] = useState<BrandMetricOption>('views');
   const [rankingData, setRankingData] = useState<BrandRankingItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
+  const [secondsElapsed, setSecondsElapsed] = useState<number>(0);
+  const [msgIndex, setMsgIndex] = useState<number>(0);
   const [showFullRanking, setShowFullRanking] = useState<boolean>(false);
 
-  useEffect(() => {
+  const fetchRanking = useCallback((metric: BrandMetricOption) => {
     setLoading(true);
-    fetch(`/api/brands/ranking?metric=${selectedMetric}`)
-      .then(res => res.json())
+    setError(false);
+    setSecondsElapsed(0);
+    setMsgIndex(0);
+
+    fetch(`/api/brands/ranking?metric=${metric}`)
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP Error');
+        return res.json();
+      })
       .then(data => {
         if (data.success && Array.isArray(data.ranking)) {
           setRankingData(data.ranking);
+          setError(false);
+        } else {
+          setError(true);
         }
       })
-      .catch(err => console.warn('Erro ao carregar ranking de marcas:', err))
-      .finally(() => setLoading(false));
-  }, [selectedMetric]);
+      .catch(err => {
+        console.warn('Erro ao carregar ranking de marcas:', err);
+        setError(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchRanking(selectedMetric);
+  }, [selectedMetric, fetchRanking]);
+
+  // Loading Timer & Rotating Message Effect
+  useEffect(() => {
+    if (!loading) return;
+
+    const intervalTimer = setInterval(() => {
+      setSecondsElapsed(prev => prev + 1);
+    }, 1000);
+
+    const msgTimer = setInterval(() => {
+      setMsgIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
+    }, 3000);
+
+    return () => {
+      clearInterval(intervalTimer);
+      clearInterval(msgTimer);
+    };
+  }, [loading]);
+
+  const formatTimer = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   const top4 = rankingData.slice(0, 4);
   const restRanking = rankingData.slice(4);
@@ -90,14 +143,60 @@ export const BrandRankingWidget: React.FC = () => {
         </div>
       </div>
 
-      {/* Top 4 Compact Grid */}
+      {/* Main Content Area: Professional Loading State OR Error State OR Ranking Cards */}
       {loading ? (
-        <div className="py-8 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
-          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-          <span>Calculando ranking de marcas...</span>
+        <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-6 sm:p-8 space-y-4 text-center">
+          
+          {/* Rotating Message & Timer */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs sm:text-sm font-semibold text-slate-300">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold">
+              <Loader2 className="w-4 h-4 animate-spin text-cyan-400 shrink-0" />
+              <span>{LOADING_MESSAGES[msgIndex]}</span>
+            </div>
+            <span className="bg-slate-900 border border-slate-800 px-3 py-1 rounded-md font-mono text-cyan-300 font-extrabold text-xs">
+              {formatTimer(secondsElapsed)}
+            </span>
+          </div>
+
+          {/* Indeterminate Progress Bar */}
+          <div className="w-full max-w-md mx-auto h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80 relative">
+            <div className="absolute top-0 bottom-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 rounded-full animate-indeterminate-slide" />
+          </div>
+
+          {/* Alert if taking longer than 20 seconds */}
+          {secondsElapsed >= 20 && (
+            <div className="max-w-md mx-auto pt-2 space-y-3">
+              <p className="text-xs text-amber-300 font-bold flex items-center justify-center gap-2 bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>O ranking está demorando mais que o normal.</span>
+              </p>
+              <button
+                onClick={() => fetchRanking(selectedMetric)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Tentar novamente</span>
+              </button>
+            </div>
+          )}
+
+        </div>
+      ) : error ? (
+        <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-6 text-center space-y-3">
+          <p className="text-xs sm:text-sm text-amber-400 font-bold flex items-center justify-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span>Não foi possível carregar o ranking de marcas no momento.</span>
+          </p>
+          <button
+            onClick={() => fetchRanking(selectedMetric)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Tentar novamente</span>
+          </button>
         </div>
       ) : top4.length > 0 ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in">
           {top4.map((item) => {
             const badge = getRankBadge(item.rank);
             return (
@@ -131,7 +230,7 @@ export const BrandRankingWidget: React.FC = () => {
       )}
 
       {/* Full Ranking Collapsible Option */}
-      {!loading && restRanking.length > 0 && (
+      {!loading && !error && restRanking.length > 0 && (
         <div className="pt-1 border-t border-slate-800/60">
           <button
             onClick={() => setShowFullRanking(!showFullRanking)}

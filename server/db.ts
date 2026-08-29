@@ -1,7 +1,8 @@
 import pg from 'pg';
 import crypto from 'crypto';
-import { fixBomberBrandOnly } from './classifierService.js';
+import { fixBomberBrandOnly, classifyContent } from './classifierService.js';
 import { initTikTokTable } from './tiktokService.js';
+import { loadCatalogSnapshot, syncSnapshotToPostgres } from './snapshotService.js';
 const { Pool } = pg;
 
 export interface DbBrand {
@@ -273,6 +274,18 @@ export async function initDatabase() {
         // Ensure TikTok tables (tiktok_tokens, tiktok_oauth_states) exist
         await initTikTokTable();
 
+        // Check if contents are populated; if < 100, ensure snapshot contents are seeded
+        try {
+          const countRes = await pool.query('SELECT COUNT(*) as total FROM contents');
+          const totalInDb = parseInt(countRes.rows[0]?.total || '0', 10);
+          if (totalInDb < 100) {
+            console.log(`[Database Init] Banco possui apenas ${totalInDb} conteúdos. Sincronizando catálogo do snapshot...`);
+            await syncSnapshotToPostgres(pool);
+          }
+        } catch (e: any) {
+          console.warn('[Database Init] Aviso ao checar contagem inicial do Postgres:', e.message);
+        }
+
         return;
       } catch (e: any) {
         console.warn('Não foi possível conectar ao PostgreSQL via DATABASE_URL. Utilizando in-memory DB fallback:', e.message);
@@ -290,18 +303,75 @@ export async function initDatabase() {
 }
 
 function seedMemoryDatabase() {
-  if (memoryDb.brands.length > 0) return;
+  if (memoryDb.brands.length === 0) {
+    for (const b of INITIAL_BRANDS) {
+      const brand: DbBrand = {
+        id: memoryDb.nextBrandId++,
+        name: b.name,
+        slug: b.slug,
+        keywords: b.keywords,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      memoryDb.brands.push(brand);
+    }
+  }
 
-  for (const b of INITIAL_BRANDS) {
-    const brand: DbBrand = {
-      id: memoryDb.nextBrandId++,
-      name: b.name,
-      slug: b.slug,
-      keywords: b.keywords,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    memoryDb.brands.push(brand);
+  // Populate memory contents from snapshot if memory is empty
+  if (memoryDb.contents.length === 0) {
+    const snapshot = loadCatalogSnapshot();
+    if (snapshot.contents && snapshot.contents.length > 0) {
+      console.log(`[Memory DB] Populando ${snapshot.contents.length} conteúdos do snapshot resiliente no store de memória...`);
+      for (const item of snapshot.contents) {
+        const targetId = memoryDb.nextContentId++;
+        memoryDb.contents.push({
+          id: targetId,
+          platform: item.platform,
+          external_id: item.externalId,
+          title: item.title,
+          description: item.description || '',
+          url: item.url,
+          thumbnail_url: item.thumbnailUrl || '',
+          content_type: item.contentType || 'video',
+          published_at: item.publishedAt,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        memoryDb.metrics.set(targetId, {
+          content_id: targetId,
+          views_count: item.metrics.viewsCount || 0,
+          likes_count: item.metrics.likesCount || 0,
+          comments_count: item.metrics.commentsCount || 0,
+          shares_count: item.metrics.sharesCount !== null && item.metrics.sharesCount !== undefined ? item.metrics.sharesCount : null,
+          engagement_rate: item.metrics.engagementRate || 0,
+          last_synced_at: item.metrics.lastSyncedAt || new Date().toISOString()
+        });
+
+        if (!(memoryDb as any).content_classifications) {
+          (memoryDb as any).content_classifications = new Map();
+        }
+        const cls = item.classification || classifyContent(item.title, item.description || '', item.contentType || 'video', item.platform);
+        (memoryDb as any).content_classifications.set(targetId, {
+          content_id: targetId,
+          primary_brands: cls.primaryBrands,
+          primary_products: cls.primaryProducts,
+          secondary_brands: cls.secondaryBrands,
+          secondary_products: cls.secondaryProducts,
+          aliases: cls.aliases,
+          is_comparison: cls.isComparison,
+          confidence_score: cls.confidenceScore
+        });
+
+        // Associate primary brands
+        for (const bName of cls.primaryBrands) {
+          const matchedB = memoryDb.brands.find(b => b.name.toLowerCase() === bName.toLowerCase());
+          if (matchedB) {
+            memoryDb.content_brands.push({ content_id: targetId, brand_id: matchedB.id });
+          }
+        }
+      }
+    }
   }
 }
 

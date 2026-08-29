@@ -52,8 +52,8 @@ export function useInstagramStats() {
             const viewsTotalFormatted = igData.viewsTotalFormatted || igData.views30DaysFormatted || viewsTotal.toLocaleString('pt-BR');
 
             const tiktokFollowers = mkJson?.tiktok?.followers ?? 15089;
-            const tiktokViews = mkJson?.tiktok?.views ?? 2356235;
-            const tiktokVideos = mkJson?.tiktok?.videos ?? 329;
+            const tiktokViews = mkJson?.tiktok?.views ?? 0;
+            const tiktokVideos = mkJson?.tiktok?.videos ?? 0;
             const totalViews3Networks = mkJson?.totalViews3Networks;
             const totalViews3NetworksFormatted = mkJson?.totalViews3NetworksFormatted;
 

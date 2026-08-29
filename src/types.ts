@@ -330,6 +330,10 @@ export interface ResultsApiResponse {
   activeFilters: ResultsFilterState;
   lastSyncedAt: string;
   nextSyncAt: string;
+  isFallback?: boolean;
+  hasProblem?: boolean;
+  problemMessage?: string | null;
+  degradedPlatforms?: string[];
 }
 
 export interface ResultsStatusResponse {
@@ -338,10 +342,13 @@ export interface ResultsStatusResponse {
   nextSyncAt: string;
   syncIntervalMs: number;
   isSyncing: boolean;
+  hasProblem?: boolean;
+  problemMessage?: string | null;
+  overallStatus?: 'active' | 'warning' | 'error';
   platforms: {
-    youtube: { status: 'active' | 'error'; totalContents: number; lastSyncedAt: string };
-    instagram: { status: 'active' | 'error'; totalContents: number; lastSyncedAt: string };
-    tiktok: { status: 'active' | 'in_progress' | 'error'; totalContents: number; connected?: boolean; lastSyncedAt?: string; message?: string };
+    youtube: { status: 'active' | 'degraded' | 'error'; totalContents: number; lastSyncedAt: string; lastError?: string | null };
+    instagram: { status: 'active' | 'degraded' | 'error'; totalContents: number; lastSyncedAt: string; lastError?: string | null };
+    tiktok: { status: 'active' | 'in_progress' | 'warning' | 'error' | 'disconnected'; totalContents: number; connected?: boolean; lastSyncedAt?: string; message?: string; lastError?: string | null };
   };
 }
 

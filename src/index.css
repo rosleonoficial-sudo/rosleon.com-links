@@ -33,3 +33,13 @@
   animation: softGlowFade 3s ease-in-out infinite !important;
 }
 
+@keyframes indeterminateSlide {
+  0% { left: -50%; width: 50%; }
+  50% { left: 25%; width: 60%; }
+  100% { left: 100%; width: 50%; }
+}
+
+.animate-indeterminate-slide {
+  animation: indeterminateSlide 1.8s ease-in-out infinite !important;
+}
+
