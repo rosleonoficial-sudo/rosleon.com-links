@@ -83,8 +83,8 @@ export const defaultConfig: SiteConfig = {
     bioParagraph1: "Sou Leonardo Mey, criador de conteúdo, formado em Processos Gerenciais, copywriter e especialista em vendas e mercado digital, com mais de 10 anos de experiência.",
     bioParagraph2: "Ao longo desses anos, construí meu trabalho produzindo conteúdos, analisando produtos, compartilhando experiências e ajudando meu público a encontrar boas opções e tomar decisões de compra com mais segurança.",
     bioParagraph3: "Sou cristão, marido da Janaína e pai da Alice e do Joaquim. Meu compromisso é com Deus, com a minha família e com cada pessoa que acompanha e confia no meu trabalho.",
-    photoUrl: "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png",
-    aboutPhotoUrl: "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_640/q_auto:eco/f_auto/v1786311281/ChatGPT_Image_7_de_ago._de_2026_07_59_44.png",
+    photoUrl: "/images/rosleon-profile.webp",
+    aboutPhotoUrl: "/images/rosleon-about.webp",
     pillars: [
       { title: "+10 Anos de Experiência", subtitle: "Copywriting, Marketing & Vendas", icon: "award" },
       { title: "Análises Criteriosas", subtitle: "Recomendações com responsabilidade", icon: "sparkles" },
@@ -94,15 +94,15 @@ export const defaultConfig: SiteConfig = {
   },
   
   stats: {
-    subscribers: "43.400",
-    views: "8.277.301",
-    videos: "651",
+    subscribers: "43.800",
+    views: "8.409.421",
+    videos: "654",
     levelBadge: "MERCADO LIVRE NÍVEL PRATA",
-    subscribersFull: "43.400",
-    viewsFull: "8.277.301",
-    videosFull: "651",
-    rawSubscribers: 43400,
-    rawViews: 8277301
+    subscribersFull: "43.800",
+    viewsFull: "8.409.421",
+    videosFull: "654",
+    rawSubscribers: 43800,
+    rawViews: 8409421
   },
   
   couponsFeed: [

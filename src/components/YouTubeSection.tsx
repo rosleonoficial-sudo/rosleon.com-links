@@ -39,13 +39,14 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ youtubeData, sta
             >
               <div className="p-[3px] rounded-full bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform duration-200">
                 <ImageWithFallback
-                  src="https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
-                  backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
+                  src="/images/rosleon-profile.webp"
+                  backupSrc="https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
                   alt="Perfil YouTube ROSLEON"
                   initials="YT"
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover bg-slate-800"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-slate-900 object-cover object-center bg-slate-800"
                   referrerPolicy="no-referrer"
-                  loading="lazy"
+                  loading="eager"
+                  fetchPriority="high"
                   decoding="async"
                   width={64}
                   height={64}

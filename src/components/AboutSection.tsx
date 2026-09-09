@@ -78,16 +78,17 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ creator }) => {
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl group flex items-center justify-center bg-slate-900">
               <ImageWithFallback
-                src={creator.aboutPhotoUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_640/q_auto:eco/f_auto/v1786311281/ChatGPT_Image_7_de_ago._de_2026_07_59_44.png"}
-                backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_640/q_auto:eco/f_auto/v1786311281/ChatGPT_Image_7_de_ago._de_2026_07_59_44.png"
+                src={creator.aboutPhotoUrl || "/images/rosleon-about.webp"}
+                backupSrc="https://i.postimg.cc/prgTDQ7C/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
                 alt={creator.name || "Leonardo Mey"}
                 initials="ROSLEON"
                 referrerPolicy="no-referrer"
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
                 decoding="async"
                 width={384}
                 height={480}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 pointer-events-none" />
             </div>

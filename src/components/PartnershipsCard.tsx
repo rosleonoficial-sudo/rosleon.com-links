@@ -111,8 +111,8 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
               
               <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800 flex items-center justify-center">
                 <ImageWithFallback
-                  src={creator.photoUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"}
-                  backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_limit,w_420/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
+                  src={creator.photoUrl || "/images/rosleon-profile.webp"}
+                  backupSrc="https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
                   alt={creator.name || "Leonardo Mey"}
                   initials="LM"
                   referrerPolicy="no-referrer"
@@ -121,7 +121,7 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
                   decoding="async"
                   width={128}
                   height={128}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-center"
                 />
               </div>
 

@@ -68,7 +68,7 @@ export function useInstagramStats() {
             setData({
               name: igData.name || "ROSLEON | Leonardo Mey",
               username: igData.username || "rosleonoficial",
-              profilePictureUrl: igData.profilePictureUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png",
+              profilePictureUrl: igData.profilePictureUrl || "https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png",
               followers,
               followersCount: followers,
               followersFormatted: igData.followersFormatted || followers.toLocaleString('pt-BR'),

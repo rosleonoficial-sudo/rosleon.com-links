@@ -19,11 +19,15 @@ export interface CatalogSnapshot {
 
 let inMemorySnapshotCache: CatalogSnapshot | null = null;
 
+export function invalidateSnapshotCache(): void {
+  inMemorySnapshotCache = null;
+}
+
 /**
  * Load the latest valid catalog snapshot from disk or in-memory cache
  */
-export function loadCatalogSnapshot(): CatalogSnapshot {
-  if (inMemorySnapshotCache && inMemorySnapshotCache.contents.length > 0) {
+export function loadCatalogSnapshot(forceReload: boolean = false): CatalogSnapshot {
+  if (!forceReload && inMemorySnapshotCache && inMemorySnapshotCache.contents.length > 0) {
     return inMemorySnapshotCache;
   }
 
@@ -61,12 +65,17 @@ export function saveCatalogSnapshot(
     let mergedContents: ContentItem[] = [];
 
     if (!platformScope || platformScope === 'all') {
-      // If newContents is unexpectedly small compared to current, guard against erasing
-      if (current.contents.length >= 100 && newContents.length < Math.round(current.contents.length * 0.5)) {
-        console.warn(`[SnapshotService Protection] Recusado salvamento global com apenas ${newContents.length} conteúdos (existentes: ${current.contents.length}). MANTENDO ESTADO SEGURO ANTERIOR.`);
-        return false;
+      const knownPlatforms = ['youtube', 'instagram', 'tiktok'] as const;
+      const mergedList = [...newContents];
+      for (const p of knownPlatforms) {
+        const inNew = newContents.filter(c => c.platform === p).length;
+        const inCurrent = current.contents.filter(c => c.platform === p);
+        if (inNew === 0 && inCurrent.length > 0) {
+          console.warn(`[SnapshotService Protection] newContents sem itens para ${p} (existentes: ${inCurrent.length}). Preservando conteúdos de ${p}.`);
+          mergedList.push(...inCurrent);
+        }
       }
-      mergedContents = newContents;
+      mergedContents = mergedList;
     } else {
       // Platform-specific partition update: preserve other platforms strictly
       const otherPlatformsContents = current.contents.filter(c => c.platform !== platformScope);
@@ -75,11 +84,11 @@ export function saveCatalogSnapshot(
       // Incremental UPSERT map for target platform
       const platformMap = new Map<string, ContentItem>();
       for (const item of existingPlatformContents) {
-        platformMap.set(item.externalId || item.id, item);
+        platformMap.set(String(item.externalId || item.id), item);
       }
       for (const item of newContents) {
         if (item.externalId || item.id) {
-          platformMap.set(item.externalId || item.id, item);
+          platformMap.set(String(item.externalId || item.id), item);
         }
       }
 

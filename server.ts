@@ -58,6 +58,35 @@ let youtubeStatsCache: {
 
 const CACHE_TTL_MS = 50 * 1000;
 
+async function scrapeTikTokProfile() {
+  try {
+    const res = await fetch('https://www.tiktok.com/@rosleonoficial', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8'
+      }
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const sigiMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)<\/script>/) || html.match(/<script id="SIGI_STATE"[^>]*>(.*?)<\/script>/);
+      if (sigiMatch) {
+        const jsonStr = sigiMatch[1];
+        const followerMatch = jsonStr.match(/"followerCount":(\d+)/);
+        const heartMatch = jsonStr.match(/"heartCount":(\d+)/) || jsonStr.match(/"heart":(\d+)/);
+        const videoMatch = jsonStr.match(/"videoCount":(\d+)/);
+        return {
+          followerCount: followerMatch ? parseInt(followerMatch[1], 10) : 15200,
+          heartCount: heartMatch ? parseInt(heartMatch[1], 10) : 97400,
+          videoCount: videoMatch ? parseInt(videoMatch[1], 10) : 332
+        };
+      }
+    }
+  } catch (e: any) {
+    console.warn("Falha ao raspar perfil do TikTok no server.ts:", e.message);
+  }
+  return { followerCount: 15200, heartCount: 97400, videoCount: 332 };
+}
+
 async function fetchYouTubeChannelStats() {
   const apiKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
 
@@ -523,7 +552,7 @@ async function fetchCentralMediaKitData() {
   let instagramTotalViews = 1070560;
   let instagramTotalVideos = 183;
 
-  let tiktokFollowers = 15089;
+  let tiktokFollowers = 15200;
   let tiktokViews = 0;
   let tiktokVideos = 0;
   let tiktokAutoSynced = false;
@@ -580,8 +609,13 @@ async function fetchCentralMediaKitData() {
 
   try {
     const ttStatus = await getTikTokStatus();
-    if (ttStatus && ttStatus.account) {
-      if (ttStatus.account.followersCount > 0) tiktokFollowers = ttStatus.account.followersCount;
+    if (ttStatus && ttStatus.account && ttStatus.account.followersCount > 0) {
+      tiktokFollowers = ttStatus.account.followersCount;
+    } else {
+      const scrapedTt = await scrapeTikTokProfile();
+      if (scrapedTt && scrapedTt.followerCount > 0) {
+        tiktokFollowers = scrapedTt.followerCount;
+      }
     }
     if (ttStatus && ttStatus.connected) tiktokAutoSynced = true;
   } catch (ttErr) {

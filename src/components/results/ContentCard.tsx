@@ -86,9 +86,9 @@ export const ContentCard: React.FC<ContentCardProps> = ({ content, rankPosition 
       <div className="relative aspect-video bg-slate-950 overflow-hidden">
         <ImageWithFallback
           src={content.thumbnailUrl}
-          backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_600,h_600/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png"
+          backupSrc="https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png"
           alt={content.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />
 

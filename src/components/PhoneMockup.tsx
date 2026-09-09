@@ -105,11 +105,11 @@ export const PhoneMockup: React.FC = () => {
           {/* Slide 1: Photo */}
           <div className={`absolute inset-0 transition-opacity duration-300 ${activeSlide === 1 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
             <ImageWithFallback 
-              src="https://res.cloudinary.com/jfqsykts/image/upload/v1786487067/photo_5177331699942100126_y.jpg"
-              backupSrc="https://res.cloudinary.com/jfqsykts/image/upload/v1786487067/photo_5177331699942100126_y.jpg"
+              src="/images/rosleon-about.webp"
+              backupSrc="https://i.postimg.cc/prgTDQ7C/Chat-GPT-Image-7-de-ago-de-2026-07-59-44.png"
               alt="Rosleon Destaque"
               initials="RL"
-              className="w-full h-full object-cover pointer-events-none"
+              className="w-full h-full object-cover object-center pointer-events-none"
               loading="eager"
               fetchPriority="high"
               decoding="async"

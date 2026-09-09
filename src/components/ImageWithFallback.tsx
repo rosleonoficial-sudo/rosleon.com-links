@@ -9,6 +9,8 @@ interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElemen
   className?: string;
 }
 
+const DEFAULT_LOCAL_IMAGE = "/images/rosleon-profile.webp";
+
 export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   src,
   backupSrc,
@@ -18,21 +20,34 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   onError,
   ...props
 }) => {
-  const [currentSrc, setCurrentSrc] = useState<string>(src);
+  // Helper to sanitize broken/expired third-party URLs
+  const sanitizeUrl = (urlStr: string): string => {
+    if (!urlStr) return DEFAULT_LOCAL_IMAGE;
+    if (urlStr.includes('res.cloudinary.com')) {
+      return DEFAULT_LOCAL_IMAGE;
+    }
+    return urlStr;
+  };
+
+  const initialSrc = sanitizeUrl(src);
+  const initialBackup = backupSrc ? sanitizeUrl(backupSrc) : DEFAULT_LOCAL_IMAGE;
+
+  const [currentSrc, setCurrentSrc] = useState<string>(initialSrc);
   const [hasError, setHasError] = useState<boolean>(false);
 
   // Sync state if src prop changes
   useEffect(() => {
-    setCurrentSrc(src);
+    const nextSrc = sanitizeUrl(src);
+    setCurrentSrc(nextSrc);
     setHasError(false);
   }, [src]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    if (backupSrc && currentSrc !== backupSrc) {
-      // Try backup image url
-      setCurrentSrc(backupSrc);
+    if (initialBackup && currentSrc !== initialBackup) {
+      setCurrentSrc(initialBackup);
+    } else if (currentSrc !== DEFAULT_LOCAL_IMAGE) {
+      setCurrentSrc(DEFAULT_LOCAL_IMAGE);
     } else {
-      // Both primary and backup failed
       setHasError(true);
     }
     if (onError) {

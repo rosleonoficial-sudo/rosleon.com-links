@@ -1167,7 +1167,7 @@ export async function syncInstagramPlatformContents(): Promise<number> {
         await Promise.all(chunk.map(async (item: any) => {
           const caption = item.caption || 'Publicação ROSLEON Instagram';
           const permalink = item.permalink || 'https://www.instagram.com/rosleonoficial/';
-          const thumb = item.thumbnail_url || item.media_url || 'https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_600,h_600/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png';
+          const thumb = item.thumbnail_url || item.media_url || 'https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
           const likes = typeof item.like_count === 'number' ? item.like_count : 0;
           const comments = typeof item.comments_count === 'number' ? item.comments_count : 0;
           const pubAt = item.timestamp || new Date().toISOString();
