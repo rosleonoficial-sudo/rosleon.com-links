@@ -58,6 +58,10 @@ export default function App() {
           mergedConfig.tiktokLink.url = 'https://www.tiktok.com/@rosleonoficial';
         }
 
+        if (!mergedConfig.whatsappLink.url || mergedConfig.whatsappLink.url.includes('pag.gruporosleon.com.br')) {
+          mergedConfig.whatsappLink.url = 'https://www.gruporosleon.com.br/';
+        }
+
         if (!mergedConfig.youtubeSection.url || (mergedConfig.youtubeSection.url.includes('youtube.com/@rosleon') && !mergedConfig.youtubeSection.url.includes('rosleonoficial'))) {
           mergedConfig.youtubeSection.url = 'https://www.youtube.com/@rosleonoficial';
         }

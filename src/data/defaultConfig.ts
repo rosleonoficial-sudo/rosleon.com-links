@@ -32,7 +32,7 @@ export const defaultConfig: SiteConfig = {
     platform: "whatsapp",
     title: "WhatsApp",
     subtitle: "Canal de ofertas no WhatsApp",
-    url: "https://pag.gruporosleon.com.br/",
+    url: "https://www.gruporosleon.com.br/",
     buttonText: "👉 TOQUE AQUI E VEJA COMO FUNCIONA NA PRÁTICA!",
     enabled: true
   },

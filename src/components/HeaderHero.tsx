@@ -166,52 +166,8 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
           <PhoneMockup />
         </div>
 
-        {/* Subtitle & Category Highlight Card */}
-        <div id="grupos" className="w-full max-w-xl bg-slate-900/80 backdrop-blur-md border border-amber-500/30 rounded-2xl p-5 shadow-xl text-left space-y-4">
-          {/* Subtitle Header */}
-          <div className="space-y-3">
-            <p className="text-white font-extrabold text-base sm:text-lg flex items-center gap-2">
-              <span>🔥</span> {t('hero.groupedByCategory')}
-            </p>
-
-            {/* Categories Pills */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <a
-                href="https://pag.gruporosleon.com.br/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onTrackClick('Category Pill - Fitness')}
-                className="flex flex-col items-center justify-center text-center gap-1 py-2.5 px-1.5 sm:px-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-white font-bold hover:border-amber-400 hover:bg-slate-800 hover:text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                <span className="text-lg">💪</span>
-                <span className="text-xs sm:text-sm leading-tight">{t('hero.catFitness')}</span>
-              </a>
-              <a
-                href="https://pag.gruporosleon.com.br/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onTrackClick('Category Pill - Eletronicos')}
-                className="flex flex-col items-center justify-center text-center gap-1 py-2.5 px-1.5 sm:px-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-white font-bold hover:border-amber-400 hover:bg-slate-800 hover:text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                <span className="text-lg">🔌</span>
-                <span className="text-xs sm:text-sm leading-tight">{t('hero.catElectronics')}</span>
-              </a>
-              <a
-                href="https://pag.gruporosleon.com.br/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onTrackClick('Category Pill - Ofertas Gerais')}
-                className="flex flex-col items-center justify-center text-center gap-1 py-2.5 px-1.5 sm:px-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-white font-bold hover:border-amber-400 hover:bg-slate-800 hover:text-amber-300 transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                <span className="text-lg">🛒</span>
-                <span className="text-xs sm:text-sm leading-tight">{t('hero.catGeneral')}</span>
-              </a>
-            </div>
-          </div>
-        </div>
-
         {/* Yellow Pulsing Button */}
-        <div className="pt-2 w-full max-w-lg">
+        <div id="grupos" className="pt-2 w-full max-w-lg scroll-mt-20">
           <a
             href="https://www.gruporosleon.com.br/"
             target="_blank"
