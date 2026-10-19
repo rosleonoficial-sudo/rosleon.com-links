@@ -213,7 +213,7 @@ export const HeaderHero: React.FC<HeaderHeroProps> = ({
         {/* Yellow Pulsing Button */}
         <div className="pt-2 w-full max-w-lg">
           <a
-            href="https://pag.gruporosleon.com.br/"
+            href="https://www.gruporosleon.com.br/"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onTrackClick('CTA Button')}
