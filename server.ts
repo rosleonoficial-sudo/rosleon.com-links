@@ -2,9 +2,11 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
-import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking, getAllCatalogContents } from './server/resultsService.js';
+import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking, getAllCatalogContents, invalidateCatalogCache } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
 import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState, HANDLER_VERSION, BUILD_MARKER } from './server/tiktokService.js';
+import { getInstagramToken, getInstagramUserId, setInstagramToken, testInstagramToken, getInstagramTokenStatus } from './server/tokenService.js';
+import { invalidateSnapshotCache } from './server/snapshotService.js';
 
 const app = express();
 const PORT = 3000;
@@ -75,27 +77,27 @@ async function scrapeTikTokProfile() {
         const heartMatch = jsonStr.match(/"heartCount":(\d+)/) || jsonStr.match(/"heart":(\d+)/);
         const videoMatch = jsonStr.match(/"videoCount":(\d+)/);
         return {
-          followerCount: followerMatch ? parseInt(followerMatch[1], 10) : 15200,
-          heartCount: heartMatch ? parseInt(heartMatch[1], 10) : 97400,
-          videoCount: videoMatch ? parseInt(videoMatch[1], 10) : 332
+          followerCount: followerMatch ? parseInt(followerMatch[1], 10) : 15300,
+          heartCount: heartMatch ? parseInt(heartMatch[1], 10) : 99200,
+          videoCount: videoMatch ? parseInt(videoMatch[1], 10) : 334
         };
       }
     }
   } catch (e: any) {
     console.warn("Falha ao raspar perfil do TikTok no server.ts:", e.message);
   }
-  return { followerCount: 15200, heartCount: 97400, videoCount: 332 };
+  return { followerCount: 15300, heartCount: 99200, videoCount: 334 };
 }
 
-async function fetchYouTubeChannelStats() {
+async function fetchYouTubeChannelStats(forceReload: boolean = false) {
   const apiKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
 
-  if (youtubeStatsCache && Date.now() - youtubeStatsCache.timestamp < CACHE_TTL_MS) {
+  if (!forceReload && youtubeStatsCache && Date.now() - youtubeStatsCache.timestamp < CACHE_TTL_MS) {
     return youtubeStatsCache.data;
   }
 
   // Obter dinamicamente a contagem de conteúdos auditáveis do catálogo (mesma fonte do /resultados e /api/media-kit)
-  let youtubeAuditableContentCount = 651;
+  let youtubeAuditableContentCount = 665;
   try {
     const searchRes = await searchContents({ platform: 'youtube' });
     if (searchRes && searchRes.summary && typeof searchRes.summary.totalContents === 'number' && searchRes.summary.totalContents > 0) {
@@ -105,8 +107,8 @@ async function fetchYouTubeChannelStats() {
     console.warn("Aviso ao buscar contagem auditável do YouTube:", e);
   }
 
-  const defaultRawSubs = 43400;
-  const defaultRawViews = 8277301;
+  const defaultRawSubs = 45300;
+  const defaultRawViews = 8876341;
   const defaultRawVideos = youtubeAuditableContentCount;
 
   // Live scrape fallback if API key is not set
@@ -460,14 +462,14 @@ let instagramStatsCache: {
 
 const INSTAGRAM_CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function fetchCentralMediaKitData() {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
-  const userId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || '17841461297140253';
+async function fetchCentralMediaKitData(forceReload: boolean = false) {
+  const token = getInstagramToken();
+  const userId = getInstagramUserId();
 
   // Always compute fresh realtimeAudience snapshot block
   const realtimeAudience = generateCentralRealtimeAudienceSnapshot();
 
-  if (instagramStatsCache && (Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS)) {
+  if (!forceReload && instagramStatsCache && (Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS)) {
     return {
       ...instagramStatsCache.data,
       snapshotId: realtimeAudience.snapshotId,
@@ -486,6 +488,7 @@ async function fetchCentralMediaKitData() {
   let isAutoSynced = true;
   let stale = false;
   let syncError: string | null = null;
+  let tokenExpired = false;
 
   try {
     const profileFields = "id,username,name,profile_picture_url,followers_count,media_count";
@@ -532,14 +535,31 @@ async function fetchCentralMediaKitData() {
           }
         }
       } catch (iErr: any) {
-        console.warn("Insights fetch error on central server:", iErr.message);
+        console.warn("[Instagram API] Aviso ao buscar insights:", iErr.message);
         syncError = iErr.message || "Erro de insights";
       }
     } else {
-      syncError = "Erro ao acessar perfil na Meta Graph API";
+      let metaErrMsg = `HTTP ${profileRes.status}`;
+      try {
+        const errJson = await profileRes.json();
+        if (errJson?.error) {
+          const err = errJson.error;
+          if (err.code === 190 || err.error_subcode === 463 || err.message?.includes('expired') || err.message?.includes('Session has expired')) {
+            tokenExpired = true;
+            stale = true;
+            syncError = "Token de acesso expirado na Meta (desde 05/10/2026). Atualize o token para sincronizar novos posts.";
+            console.error(`[Instagram API] Erro de autenticação: ${err.message}`);
+          } else {
+            syncError = `Erro da Meta API (${err.code}): ${err.message}`;
+          }
+        }
+      } catch (_) {
+        syncError = `Erro ao conectar com Meta Graph API (${metaErrMsg})`;
+      }
+      stale = true;
     }
   } catch (err: any) {
-    console.error("Erro na integração central do Instagram:", err.message);
+    console.error("[Instagram API] Erro na requisição central:", err.message);
     syncError = err.message || "Erro de comunicação com a Meta";
     stale = true;
   }
@@ -607,14 +627,20 @@ async function fetchCentralMediaKitData() {
     console.warn("YouTube stats fetch warning in central media kit:", ytErr);
   }
 
+  let tiktokLikes = 99200;
+
   try {
     const ttStatus = await getTikTokStatus();
     if (ttStatus && ttStatus.account && ttStatus.account.followersCount > 0) {
       tiktokFollowers = ttStatus.account.followersCount;
+      if (ttStatus.account.likesCount) tiktokLikes = ttStatus.account.likesCount;
+      if (ttStatus.account.videoCount) tiktokVideos = ttStatus.account.videoCount;
     } else {
       const scrapedTt = await scrapeTikTokProfile();
-      if (scrapedTt && scrapedTt.followerCount > 0) {
-        tiktokFollowers = scrapedTt.followerCount;
+      if (scrapedTt) {
+        if (scrapedTt.followerCount > 0) tiktokFollowers = scrapedTt.followerCount;
+        if (scrapedTt.heartCount > 0) tiktokLikes = scrapedTt.heartCount;
+        if (scrapedTt.videoCount > 0 && tiktokVideos === 0) tiktokVideos = scrapedTt.videoCount;
       }
     }
     if (ttStatus && ttStatus.connected) tiktokAutoSynced = true;
@@ -636,12 +662,15 @@ async function fetchCentralMediaKitData() {
 
   const tiktokData = {
     followers: tiktokFollowers,
-    followersFormatted: tiktokFollowers.toLocaleString('pt-BR'),
+    followersFormatted: tiktokFollowers >= 1000 ? `${(tiktokFollowers / 1000).toFixed(1).replace('.', ',')} mil` : tiktokFollowers.toLocaleString('pt-BR'),
+    likes: tiktokLikes,
+    likesFormatted: tiktokLikes >= 1000 ? `${(tiktokLikes / 1000).toFixed(1).replace('.', ',')} mil` : tiktokLikes.toLocaleString('pt-BR'),
     views: tiktokViews,
     viewsFormatted: tiktokViews >= 1000000
       ? `${(tiktokViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
       : tiktokViews.toLocaleString('pt-BR'),
-    videos: tiktokVideos,
+    videos: tiktokVideos || 334,
+    videosFormatted: `${(tiktokVideos || 334).toLocaleString('pt-BR')} vídeos`,
     isAutoSynced: tiktokAutoSynced
   };
 
@@ -697,6 +726,7 @@ async function fetchCentralMediaKitData() {
       lastSyncedAt,
       stale,
       syncError,
+      tokenExpired,
       username,
       name,
       profilePictureUrl
@@ -726,9 +756,13 @@ async function fetchCentralMediaKitData() {
 }
 
 // API Route for Central Media Kit
-app.get('/api/media-kit', async (_req, res) => {
-  const result = await fetchCentralMediaKitData();
+app.get('/api/media-kit', async (req, res) => {
+  const force = req.query?.force === 'true' || req.query?.forceRefresh === 'true';
+  const result = await fetchCentralMediaKitData(force);
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.json(result);
 });
 
@@ -837,23 +871,93 @@ app.get(['/api/brands/ranking', '/brands/ranking'], async (req, res) => {
   }
 });
 
-// POST /api/results/sync & POST /results/sync - Manual Sync Trigger
-app.post(['/api/results/sync', '/results/sync'], async (_req, res) => {
+// POST /api/results/sync & POST /results/sync & POST /api/media-kit/refresh - Manual Sync Trigger
+app.post(['/api/results/sync', '/results/sync', '/api/media-kit/refresh'], async (req, res) => {
   try {
+    // Invalidate in-memory caches to guarantee fresh data
+    youtubeStatsCache = null;
+    instagramStatsCache = null;
+    invalidateCatalogCache();
+    invalidateSnapshotCache();
+
     await initDatabase();
     await syncSocialMediaContents();
+
     const status = await getSyncStatus();
+    const mediaKit = await fetchCentralMediaKitData(true);
+
+    const isIgOk = status.platforms.instagram.status === 'active';
+    const isYtOk = status.platforms.youtube.status === 'active';
+
+    const feedbackParts = [];
+    if (isYtOk) {
+      feedbackParts.push(`YouTube: ${status.platforms.youtube.totalContents} vídeos sincronizados.`);
+    }
+    if (isIgOk) {
+      feedbackParts.push(`Instagram: ${status.platforms.instagram.totalContents} publicações sincronizadas.`);
+    } else {
+      feedbackParts.push(`Instagram: ${status.platforms.instagram.lastError || 'Token precisa ser renovado na Meta'}.`);
+    }
+    feedbackParts.push(`TikTok: ${status.platforms.tiktok.totalContents} vídeos (${status.platforms.tiktok.message}).`);
+
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+
     res.json({
       success: true,
-      message: 'Sincronização concluída com sucesso',
+      message: feedbackParts.join(' '),
       status,
-      youtube: status.platforms.youtube,
-      instagram: status.platforms.instagram
+      mediaKit,
+      platforms: status.platforms
     });
   } catch (err: any) {
     console.error('Erro no sync manual:', err);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.status(500).json({ success: false, error: err.message || 'Erro ao sincronizar' });
   }
+});
+
+// POST /api/instagram/update-token - Secure token test and update
+app.post('/api/instagram/update-token', async (req, res) => {
+  try {
+    const { token, userId } = req.body || {};
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ success: false, error: 'Token de acesso não informado.' });
+    }
+
+    const testRes = await testInstagramToken(token, userId);
+    if (!testRes.valid) {
+      return res.status(400).json({
+        success: false,
+        error: testRes.error || 'Token inválido na Meta',
+        isExpired: testRes.isExpired,
+        expiredDate: testRes.expiredDate
+      });
+    }
+
+    setInstagramToken(token, userId, testRes.profile?.username);
+    instagramStatsCache = null;
+    invalidateSnapshotCache();
+
+    // Trigger immediate background sync
+    syncSocialMediaContents().catch(e => console.warn('Erro pós-atualização de token:', e));
+
+    res.json({
+      success: true,
+      message: `Token do Instagram validado e salvo com sucesso para @${testRes.profile?.username || 'rosleonoficial'}!`,
+      profile: testRes.profile
+    });
+  } catch (err: any) {
+    console.error('Erro ao atualizar token Instagram:', err);
+    res.status(500).json({ success: false, error: err.message || 'Erro ao processar token' });
+  }
+});
+
+// GET /api/instagram/token-status
+app.get('/api/instagram/token-status', async (_req, res) => {
+  res.json({ success: true, status: getInstagramTokenStatus() });
 });
 
 // POST /api/results/reclassify - Manual Semantic Reclassification Trigger

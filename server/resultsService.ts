@@ -8,7 +8,8 @@ import {
   normalizeToken,
   CANONICAL_BRANDS
 } from './classifierService.js';
-import { loadCatalogSnapshot, saveCatalogSnapshot } from './snapshotService.js';
+import { loadCatalogSnapshot, saveCatalogSnapshot, invalidateSnapshotCache } from './snapshotService.js';
+import { getInstagramToken, getInstagramUserId, recordInstagramError, refreshInstagramTokenIfEligible } from './tokenService.js';
 import {
   ContentItem,
   ResultsFilterState,
@@ -1128,9 +1129,10 @@ export async function syncYouTubePlatformContents(): Promise<number> {
       lastError: null
     };
 
+    console.log('[YouTube] Atualização concluída.');
     return ytCount;
   } catch (err: any) {
-    console.error('[Sync YouTube] Erro na sincronização do YouTube:', err.message);
+    console.error('[YouTube ERROR]', err.message);
     ytStatus.status = 'degraded';
     ytStatus.lastError = err.message;
     return ytStatus.totalContents;
@@ -1141,33 +1143,97 @@ export async function syncYouTubePlatformContents(): Promise<number> {
  * Isolated Instagram Sync Routine
  */
 export async function syncInstagramPlatformContents(): Promise<number> {
-  const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
-  const igUserId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || "17841461297140253";
+  // Proactively attempt token refresh if eligible (before expiration)
+  await refreshInstagramTokenIfEligible().catch(() => {});
+
+  const igToken = getInstagramToken();
+  const igUserId = getInstagramUserId();
 
   if (!igToken || !igUserId) {
-    console.warn('[Sync Instagram] Credenciais do Instagram não configuradas.');
-    return 0;
+    const errorMsg = 'Credenciais do Instagram não configuradas no servidor.';
+    console.error(`[Instagram ERROR] ${errorMsg}`);
+    recordInstagramError(errorMsg);
+    igStatus.status = 'error';
+    igStatus.lastError = errorMsg;
+    return igStatus.totalContents;
   }
 
+  const isMetaGraph = igToken.startsWith('EAA');
+
   try {
-    let nextUrl: string | null = `https://graph.instagram.com/v20.0/${igUserId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=100&access_token=${igToken}`;
+    console.log('[Instagram] Buscando perfil...');
+
+    // 1. Fetch profile to verify token and update followers
+    try {
+      const profUrl = isMetaGraph
+        ? `https://graph.facebook.com/v21.0/${igUserId}?fields=id,username,name,followers_count,media_count&access_token=${igToken}`
+        : `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${igToken}`;
+
+      const profRes = await fetch(profUrl);
+      if (profRes.ok) {
+        console.log('[Instagram] Seguidores atualizados.');
+      } else {
+        const errJson = await profRes.json().catch(() => null);
+        const rawMsg = errJson?.error?.message || `HTTP ${profRes.status}`;
+        const sanitizedMsg = rawMsg.replace(igToken, '***');
+        console.error(`[Instagram ERROR] ${sanitizedMsg}`);
+        const isExpired = errJson?.error?.code === 190 || rawMsg.includes('Session has expired') || rawMsg.includes('expired');
+        let expiredDate = undefined;
+        if (rawMsg.includes('Session has expired on')) {
+          const match = rawMsg.match(/Session has expired on ([^.]+)/);
+          if (match) expiredDate = match[1].trim();
+        }
+        recordInstagramError(sanitizedMsg, isExpired, expiredDate);
+        igStatus.status = 'error';
+        igStatus.lastError = sanitizedMsg;
+        return igStatus.totalContents;
+      }
+    } catch (profErr: any) {
+      console.error(`[Instagram ERROR] Falha de rede ao buscar perfil: ${profErr.message}`);
+      recordInstagramError(`Erro de rede: ${profErr.message}`);
+      igStatus.status = 'error';
+      igStatus.lastError = profErr.message;
+      return igStatus.totalContents;
+    }
+
+    console.log('[Instagram] Buscando mídias...');
+
+    let nextUrl: string | null = isMetaGraph
+      ? `https://graph.facebook.com/v21.0/${igUserId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=100&access_token=${igToken}`
+      : `https://graph.instagram.com/v20.0/${igUserId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=100&access_token=${igToken}`;
+
     const collectedIgContents: ContentItem[] = [];
     let igCount = 0;
+    let pageCount = 0;
 
-    while (nextUrl) {
+    while (nextUrl && pageCount < 20) {
+      pageCount++;
       const mediaRes = await fetch(nextUrl);
       if (!mediaRes.ok) {
-        throw new Error(`Instagram Graph API returned HTTP ${mediaRes.status}`);
+        const errJson = await mediaRes.json().catch(() => null);
+        const rawMsg = errJson?.error?.message || `HTTP ${mediaRes.status}`;
+        const sanitizedMsg = rawMsg.replace(igToken, '***');
+        console.error(`[Instagram ERROR] ${sanitizedMsg}`);
+        recordInstagramError(sanitizedMsg);
+        break;
       }
+
       const mediaData = await mediaRes.json();
       const items = mediaData.data || [];
+      console.log(`[Instagram] ${items.length} mídias recebidas.`);
 
       for (let i = 0; i < items.length; i += 10) {
         const chunk = items.slice(i, i + 10);
         await Promise.all(chunk.map(async (item: any) => {
           const caption = item.caption || 'Publicação ROSLEON Instagram';
           const permalink = item.permalink || 'https://www.instagram.com/rosleonoficial/';
-          const thumb = item.thumbnail_url || item.media_url || 'https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
+          
+          let contentType: 'reels' | 'video' = 'reels';
+          let thumb = item.thumbnail_url || item.media_url || 'https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
+          if (item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM') {
+            thumb = item.media_url || item.thumbnail_url || thumb;
+          }
+
           const likes = typeof item.like_count === 'number' ? item.like_count : 0;
           const comments = typeof item.comments_count === 'number' ? item.comments_count : 0;
           const pubAt = item.timestamp || new Date().toISOString();
@@ -1196,7 +1262,7 @@ export async function syncInstagramPlatformContents(): Promise<number> {
             description: caption,
             url: permalink,
             thumbnail_url: thumb,
-            content_type: 'reels',
+            content_type: contentType,
             published_at: pubAt,
             views_count: views,
             likes_count: likes,
@@ -1205,7 +1271,7 @@ export async function syncInstagramPlatformContents(): Promise<number> {
             engagement_rate: engagementRate
           });
 
-          const cls = classifyContent(caption.split('\n')[0].slice(0, 120), caption, 'reels', 'instagram');
+          const cls = classifyContent(caption.split('\n')[0].slice(0, 120), caption, contentType, 'instagram');
           collectedIgContents.push({
             id: item.id,
             platform: 'instagram',
@@ -1214,7 +1280,7 @@ export async function syncInstagramPlatformContents(): Promise<number> {
             description: caption,
             url: permalink,
             thumbnailUrl: thumb,
-            contentType: 'reels',
+            contentType,
             publishedAt: pubAt,
             brands: cls.primaryBrands,
             classification: cls,
@@ -1235,22 +1301,32 @@ export async function syncInstagramPlatformContents(): Promise<number> {
       nextUrl = mediaData.paging?.next || null;
     }
 
-    if (collectedIgContents.length >= 50) {
-      saveCatalogSnapshot(collectedIgContents, 'instagram');
+    if (collectedIgContents.length > 0) {
+      collectedIgContents.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+      const lastDate = new Date(collectedIgContents[0].publishedAt).toLocaleDateString('pt-BR');
+      console.log(`[Instagram] Última mídia: ${lastDate}.`);
+      console.log('[Instagram] Atualização concluída.');
+
+      if (collectedIgContents.length >= 50) {
+        saveCatalogSnapshot(collectedIgContents, 'instagram');
+      }
+
+      igStatus = {
+        status: 'active',
+        totalContents: igCount,
+        lastSyncedAt: new Date().toISOString(),
+        lastError: null
+      };
+
+      return igCount;
     }
 
-    igStatus = {
-      status: 'active',
-      totalContents: igCount,
-      lastSyncedAt: new Date().toISOString(),
-      lastError: null
-    };
-
-    return igCount;
+    return igStatus.totalContents;
   } catch (err: any) {
-    console.error('[Sync Instagram] Erro na sincronização do Instagram:', err.message);
-    igStatus.status = 'degraded';
-    igStatus.lastError = err.message;
+    const sanitized = err.message ? err.message.replace(igToken, '***') : 'Erro desconhecido';
+    console.error('[Instagram ERROR]', sanitized);
+    igStatus.status = 'error';
+    igStatus.lastError = sanitized;
     return igStatus.totalContents;
   }
 }
@@ -1260,6 +1336,7 @@ export async function syncInstagramPlatformContents(): Promise<number> {
  */
 export async function syncTikTokPlatformContents(): Promise<number> {
   try {
+    console.log('[TikTok] Buscando perfil e vídeos...');
     const ttRes = await syncTikTokContents();
     const count = typeof ttRes === 'number' ? ttRes : (ttRes.uniqueVideosFetched || 0);
 
@@ -1270,9 +1347,10 @@ export async function syncTikTokPlatformContents(): Promise<number> {
       ttStatus.lastError = null;
     }
 
+    console.log('[TikTok] Atualização concluída.');
     return count;
   } catch (err: any) {
-    console.error('[Sync TikTok] Erro na sincronização do TikTok:', err.message);
+    console.error('[TikTok ERROR]', err.message);
     ttStatus.status = 'warning';
     ttStatus.lastError = err.message;
     return ttStatus.totalContents;

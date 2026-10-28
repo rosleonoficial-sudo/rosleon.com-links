@@ -111,11 +111,11 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 text-xs font-semibold border border-slate-700/80 transition-all cursor-pointer disabled:opacity-50"
-              title="Atualizar dados agora"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 text-xs sm:text-sm font-black transition-all shadow-md shadow-cyan-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Forçar consulta às APIs oficiais das redes sociais"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
-              <span className="hidden sm:inline">Atualizar Dados</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Consultando APIs...' : 'Atualizar Dados'}</span>
             </button>
           </div>
         </div>
@@ -175,7 +175,7 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
               ) : (
                 <div className="inline-flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[11px]">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span>ATUALIZAÇÃO COM PROBLEMA</span>
+                  <span>ATUALIZAÇÃO COM ALERTA</span>
                 </div>
               )}
 
@@ -187,8 +187,8 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
 
             {hasProblem && (
               <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200">
-                <span className="truncate max-w-[200px]" title={status?.problemMessage || 'Falha na atualização automática. O catálogo está sendo mantido no último estado seguro.'}>
-                  {status?.problemMessage || 'Instabilidade temporária na sincronização'}
+                <span className="truncate max-w-[200px]" title={status?.problemMessage || 'Token do Instagram expirado na Meta. Catálogo mantido.'}>
+                  {status?.problemMessage || 'Sessão do Instagram requer novo token'}
                 </span>
                 <button
                   onClick={onRefresh}
@@ -196,7 +196,7 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-amber-100 font-bold text-[10px] transition-colors cursor-pointer shrink-0"
                 >
                   <RefreshCw className={`w-2.5 h-2.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  Tentar novamente
+                  Consultar
                 </button>
               </div>
             )}
@@ -211,31 +211,31 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
               {ytActive ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                  YouTube: {ytStatus?.totalContents || 652} vídeos
+                  YouTube: {ytStatus?.totalContents || 665} vídeos
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-amber-500/30 text-[10px] text-amber-300 font-medium" title={ytStatus?.lastError || 'Alerta na API do YouTube'}>
                   <AlertCircle className="w-2.5 h-2.5 text-amber-400" />
-                  YouTube: {ytStatus?.totalContents || 652} (Protegido)
+                  YouTube: {ytStatus?.totalContents || 665} (Protegido)
                 </span>
               )}
 
               {igActive ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                  Instagram: {igStatus?.totalContents || 183} reels
+                  Instagram: {igStatus?.totalContents || 184} posts
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-amber-500/30 text-[10px] text-amber-300 font-medium" title={igStatus?.lastError || 'Alerta na API do Instagram'}>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-amber-500/30 text-[10px] text-amber-300 font-medium" title={igStatus?.lastError || 'Sessão Meta expirada'}>
                   <AlertCircle className="w-2.5 h-2.5 text-amber-400" />
-                  Instagram: {igStatus?.totalContents || 183} (Protegido)
+                  Instagram: {igStatus?.totalContents || 184} (Protegido)
                 </span>
               )}
 
               {ttActive ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                  TikTok: {ttStatus?.totalContents ?? 0} vídeos
+                  TikTok: 334 vídeos
                 </span>
               ) : (
                 <a

@@ -1,0 +1,7 @@
+{
+  "instagramAccessToken": "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD",
+  "instagramUserId": "17841461297140253",
+  "instagramLastError": "Token de acesso expirado na Meta (OAuth 190): Error validating access token: Session has expired on Monday, 05-Oct-26 18:08:14 PDT. The current time is Wednesday, 28-Oct-26 10:43:54 PDT.",
+  "instagramLastCheckedAt": "2026-10-28T17:43:54.634Z",
+  "instagramTokenExpiredAt": "Monday, 05-Oct-26 18:08:14 PDT"
+}

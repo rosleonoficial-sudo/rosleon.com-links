@@ -65,6 +65,7 @@ export interface InstagramStats {
   lastSyncedAt?: string;
   stale?: boolean;
   syncError?: string | null;
+  tokenExpired?: boolean;
   updatedAt?: string;
 }
 
@@ -139,6 +140,15 @@ export interface CentralMediaKitData {
   snapshotId: string;
   generatedAt: string;
   nextUpdateAt: string;
+  totalViews3Networks?: number;
+  totalViews3NetworksFormatted?: string;
+  totalLikes?: number;
+  totalLikesFormatted?: string;
+  totalComments?: number;
+  totalCommentsFormatted?: string;
+  totalShares?: number;
+  totalSharesFormatted?: string;
+  avgEngagementRate?: number;
   instagram: InstagramStats;
   youtube: {
     subscribers: number;
@@ -152,8 +162,12 @@ export interface CentralMediaKitData {
   tiktok: {
     followers: number;
     followersFormatted: string;
+    likes?: number;
+    likesFormatted?: string;
     views: number;
     viewsFormatted: string;
+    videos?: number;
+    videosFormatted?: string;
     isAutoSynced: boolean;
   };
   communityTotal: {
