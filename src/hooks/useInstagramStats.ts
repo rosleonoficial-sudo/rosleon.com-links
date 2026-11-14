@@ -48,20 +48,20 @@ export function useInstagramStats() {
           if (igData) {
             setConfigured(true);
             const followers = igData.followers ?? igData.followersCount ?? 0;
-            const viewsTotal = igData.viewsTotal ?? igData.views30Days ?? igData.views30d ?? 1070560;
+            const viewsTotal = igData.viewsTotal ?? igData.views30Days ?? igData.views30d ?? 0;
             const viewsTotalFormatted = igData.viewsTotalFormatted || igData.views30DaysFormatted || viewsTotal.toLocaleString('pt-BR');
 
-            const tiktokFollowers = mkJson?.tiktok?.followers ?? 15089;
+            const tiktokFollowers = mkJson?.tiktok?.followers ?? 0;
             const tiktokViews = mkJson?.tiktok?.views ?? 0;
             const tiktokVideos = mkJson?.tiktok?.videos ?? 0;
             const totalViews3Networks = mkJson?.totalViews3Networks;
             const totalViews3NetworksFormatted = mkJson?.totalViews3NetworksFormatted;
 
-            const totalLikes = mkJson?.totalLikes ?? igData.totalLikes ?? 314056;
+            const totalLikes = mkJson?.totalLikes ?? igData.totalLikes ?? 0;
             const totalLikesFormatted = mkJson?.totalLikesFormatted ?? igData.totalLikesFormatted;
-            const totalComments = mkJson?.totalComments ?? igData.totalComments ?? 61338;
+            const totalComments = mkJson?.totalComments ?? igData.totalComments ?? 0;
             const totalCommentsFormatted = mkJson?.totalCommentsFormatted ?? igData.totalCommentsFormatted;
-            const totalShares = mkJson?.totalShares ?? igData.totalShares ?? 28459;
+            const totalShares = mkJson?.totalShares ?? igData.totalShares ?? 0;
             const totalSharesFormatted = mkJson?.totalSharesFormatted ?? igData.totalSharesFormatted;
             const avgEngagementRate = mkJson?.avgEngagementRate ?? igData.avgEngagementRate;
 
@@ -78,7 +78,7 @@ export function useInstagramStats() {
               views30d: viewsTotal,
               views30DaysFormatted: viewsTotalFormatted,
               views30dFormatted: viewsTotalFormatted,
-              videosTotal: igData.videosTotal || 183,
+              videosTotal: igData.videosTotal || 0,
               tiktokFollowers,
               tiktokViews,
               tiktokVideos,
@@ -91,11 +91,12 @@ export function useInstagramStats() {
               totalShares,
               totalSharesFormatted,
               avgEngagementRate,
-              source: igData.source || "instagram_meta_graph_api",
+              source: igData.source || "instagram_api_instagram_login",
               isAutoSynced: igData.isAutoSynced ?? true,
               lastSyncedAt: igData.lastSyncedAt || new Date().toISOString(),
               stale: igData.stale ?? false,
               syncError: igData.syncError ?? null,
+              tokenExpired: igData.tokenExpired ?? false,
               updatedAt: igData.lastSyncedAt || new Date().toISOString()
             });
             setError(null);

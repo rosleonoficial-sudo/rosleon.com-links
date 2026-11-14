@@ -85,7 +85,7 @@ export const InstagramTokenModal: React.FC<InstagramTokenModalProps> = ({
                 Atualizar Token do Instagram
               </h3>
               <p className="text-xs text-slate-400 font-medium">
-                Conexão oficial via Meta Graph API (@rosleonoficial)
+                Instagram API with Instagram Login (@rosleonoficial)
               </p>
             </div>
           </div>
@@ -103,13 +103,13 @@ export const InstagramTokenModal: React.FC<InstagramTokenModalProps> = ({
         <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 space-y-2">
           <div className="flex items-center gap-1.5 text-amber-400 font-bold">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>Por que atualizar?</span>
+            <span>Compatibilidade graph.instagram.com</span>
           </div>
           <p className="leading-relaxed text-slate-400">
-            Os tokens de longa duração da Meta possuem validade de 60 dias. Quando o token expira, a API do Instagram deixa de responder com novos posts e métricas em tempo real.
+            A integração usa a Instagram API with Instagram Login (<code className="text-pink-300">graph.instagram.com</code>). Cole um token iniciado com <strong className="text-white">IGAA...</strong> gerado com as permissões <code className="text-cyan-300">instagram_business_basic</code> e <code className="text-cyan-300">instagram_business_manage_insights</code> (tokens EAA... do Facebook/System User não funcionam neste endpoint).
           </p>
           <div className="pt-1 text-[11px] text-slate-400 flex items-center gap-1">
-            <span>Para gerar um novo token: acesse o</span>
+            <span>Para gerar o token compatível: acesse</span>
             <a
               href="https://developers.facebook.com/apps"
               target="_blank"
@@ -118,7 +118,7 @@ export const InstagramTokenModal: React.FC<InstagramTokenModalProps> = ({
             >
               Meta Developers <ExternalLink className="w-3 h-3" />
             </a>
-            <span>ou o Graph API Explorer.</span>
+            <span>→ Instagram API with Instagram Login.</span>
           </div>
         </div>
 
@@ -144,13 +144,13 @@ export const InstagramTokenModal: React.FC<InstagramTokenModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-              <span>Novo Access Token da Meta (Instagram Graph API)</span>
+              <span>Novo Access Token (Instagram API with Instagram Login)</span>
               <span className="text-[11px] text-slate-500 font-normal">Obrigatório</span>
             </label>
             <textarea
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Cole aqui o token (começa com IGAA... ou EAAB...)"
+              placeholder="Cole aqui o token gerado (começa com IGAA...)"
               rows={3}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-mono text-xs placeholder:text-slate-600 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all resize-none"
               disabled={loading}

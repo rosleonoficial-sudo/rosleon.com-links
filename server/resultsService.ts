@@ -1,5 +1,5 @@
 import { getPool, isPostgresActive, getMemoryStore, DbBrand, DbContent, DbContentMetrics } from './db.js';
-import { syncTikTokContents, getTikTokStatus } from './tiktokService.js';
+import { syncTikTokContents, getTikTokStatus, getTikTokPublicProfileStats } from './tiktokService.js';
 import {
   classifyContent,
   reclassifyAllDatabaseContents,
@@ -9,7 +9,14 @@ import {
   CANONICAL_BRANDS
 } from './classifierService.js';
 import { loadCatalogSnapshot, saveCatalogSnapshot, invalidateSnapshotCache } from './snapshotService.js';
-import { getInstagramToken, getInstagramUserId, recordInstagramError, refreshInstagramTokenIfEligible } from './tokenService.js';
+import {
+  getInstagramToken,
+  getInstagramUserId,
+  recordInstagramError,
+  refreshInstagramTokenIfEligible,
+  updateInstagramProfileMeta,
+  sanitizeTokenFromText
+} from './tokenService.js';
 import {
   ContentItem,
   ResultsFilterState,
@@ -53,28 +60,30 @@ let igStatus: {
 let ttStatus: {
   status: 'active' | 'in_progress' | 'warning' | 'error' | 'disconnected';
   totalContents: number;
+  publicVideoCount?: number;
   connected: boolean;
   lastSyncedAt: string;
   message: string;
   lastError: string | null;
 } = {
-  status: 'active',
-  totalContents: 330,
-  connected: true,
+  status: 'disconnected',
+  totalContents: 0,
+  publicVideoCount: 0,
+  connected: false,
   lastSyncedAt: new Date().toISOString(),
-  message: 'Integração TikTok Ativa',
+  message: 'Pronto para conectar TikTok',
   lastError: null
 };
 
 export async function getSyncStatus(): Promise<ResultsStatusResponse> {
   const snapshot = loadCatalogSnapshot();
-  const ytSnapCount = snapshot.contents ? snapshot.contents.filter(c => c.platform === 'youtube').length : 652;
-  const igSnapCount = snapshot.contents ? snapshot.contents.filter(c => c.platform === 'instagram').length : 183;
-  const ttSnapCount = snapshot.contents ? snapshot.contents.filter(c => c.platform === 'tiktok').length : 330;
+  const ytSnapCount = snapshot.contents ? snapshot.contents.filter(c => c.platform === 'youtube').length : 0;
+  const igSnapCount = snapshot.contents ? snapshot.contents.filter(c => c.platform === 'instagram').length : 0;
+  const ttSnapCount = snapshot.contents ? snapshot.contents.filter(c => c.platform === 'tiktok').length : 0;
 
   ytStatus.totalContents = ytSnapCount;
   igStatus.totalContents = igSnapCount;
-  ttStatus.totalContents = Math.max(ttSnapCount, 330);
+  ttStatus.totalContents = ttSnapCount;
 
   let ytCount = ytSnapCount;
   let igCount = igSnapCount;
@@ -120,18 +129,31 @@ export async function getSyncStatus(): Promise<ResultsStatusResponse> {
     }
   }
 
-  // Check TikTok status safely
+  // Check TikTok OAuth + Public Profile status truthfully
   const ttStatusInfo = await getTikTokStatus();
-  ttStatus.connected = ttStatusInfo.connected || ttStatus.totalContents > 0;
-  ttStatus.totalContents = Math.max(ttCount, ttSnapCount, ttStatusInfo.videosCount || 0, 330);
-  
+  const ttCatalogCount = Math.max(ttCount, ttSnapCount);
+  const ttPublicVideos = ttStatusInfo.publicProfile?.videoCount || ttStatusInfo.account?.videoCount || 0;
+  const isTtConnected = Boolean(ttStatusInfo.connected && ttStatusInfo.tokenStatus !== 'expired');
+  const isTtExpired = Boolean(ttStatusInfo.connected && ttStatusInfo.tokenStatus === 'expired');
+
+  ttStatus.connected = isTtConnected;
+  ttStatus.totalContents = ttCatalogCount;
+  ttStatus.publicVideoCount = ttPublicVideos;
+  ttStatus.status = isTtConnected ? 'active' : (isTtExpired ? 'error' : 'disconnected');
+
   if (ttStatusInfo.lastSync) {
     ttStatus.lastSyncedAt = ttStatusInfo.lastSync;
   }
-  if (ttStatusInfo.lastError) {
-    ttStatus.lastError = ttStatusInfo.lastError;
+  ttStatus.lastError = ttStatusInfo.lastError?.message || null;
+  if (isTtConnected) {
+    ttStatus.message = `Integração TikTok Ativa (${ttCatalogCount} vídeos no catálogo / ${ttPublicVideos} no perfil)`;
+  } else if (isTtExpired) {
+    ttStatus.message = 'Token TikTok expirado — reconecte via OAuth';
+  } else {
+    ttStatus.message = ttPublicVideos > 0
+      ? `OAuth TikTok desconectado — perfil público verificado (${ttPublicVideos} vídeos no perfil, ${ttCatalogCount} no catálogo)`
+      : 'Pronto para conectar TikTok via OAuth';
   }
-  ttStatus.message = ttStatus.connected ? 'Integração TikTok Ativa' : 'Pronto para conectar TikTok';
 
   // Determine overall health
   let hasProblem = false;
@@ -151,7 +173,7 @@ export async function getSyncStatus(): Promise<ResultsStatusResponse> {
   }
   if (ttStatus.status === 'error') {
     hasProblem = true;
-    problemMessages.push(`TikTok: ${ttStatus.lastError || 'falha na sincronização'}`);
+    problemMessages.push(`TikTok: ${ttStatus.lastError || ttStatus.message}`);
   }
 
   const overallStatus: 'active' | 'warning' | 'error' = hasProblem ? 'warning' : 'active';
@@ -170,8 +192,9 @@ export async function getSyncStatus(): Promise<ResultsStatusResponse> {
       youtube: ytStatus,
       instagram: igStatus,
       tiktok: {
-        status: ttStatusInfo.connected ? 'active' : 'disconnected',
+        status: ttStatus.status,
         totalContents: ttStatus.totalContents,
+        publicVideoCount: ttStatus.publicVideoCount,
         connected: ttStatus.connected,
         lastSyncedAt: ttStatus.lastSyncedAt,
         message: ttStatus.message,
@@ -1140,120 +1163,207 @@ export async function syncYouTubePlatformContents(): Promise<number> {
 }
 
 /**
- * Isolated Instagram Sync Routine
+ * Isolated Instagram Sync Routine — Instagram API with Instagram Login (graph.instagram.com)
+ * Permissions: instagram_business_basic, instagram_business_manage_insights
  */
 export async function syncInstagramPlatformContents(): Promise<number> {
-  // Proactively attempt token refresh if eligible (before expiration)
+  // Proactively attempt long-lived token refresh if eligible (>12h since last refresh)
   await refreshInstagramTokenIfEligible().catch(() => {});
 
   const igToken = getInstagramToken();
-  const igUserId = getInstagramUserId();
 
-  if (!igToken || !igUserId) {
-    const errorMsg = 'Credenciais do Instagram não configuradas no servidor.';
+  if (!igToken) {
+    const errorMsg = 'INSTAGRAM_ACCESS_TOKEN não configurado no servidor.';
     console.error(`[Instagram ERROR] ${errorMsg}`);
-    recordInstagramError(errorMsg);
+    recordInstagramError(errorMsg, false, undefined, {
+      endpoint: 'GET https://graph.instagram.com/v21.0/me',
+      message: errorMsg
+    });
     igStatus.status = 'error';
     igStatus.lastError = errorMsg;
     return igStatus.totalContents;
   }
 
-  const isMetaGraph = igToken.startsWith('EAA');
+  // Load existing snapshot metrics to preserve historical values if individual insights aren't returned
+  const existingSnapshot = loadCatalogSnapshot();
+  const existingIgMap = new Map<string, ContentItem>();
+  for (const item of existingSnapshot.contents || []) {
+    if (item.platform === 'instagram') {
+      existingIgMap.set(String(item.externalId || item.id), item);
+    }
+  }
 
   try {
-    console.log('[Instagram] Buscando perfil...');
+    console.log('[Instagram] Consultando perfil via graph.instagram.com/v21.0/me...');
 
-    // 1. Fetch profile to verify token and update followers
+    const profileEndpoint = 'GET https://graph.instagram.com/v21.0/me';
+    const profFields = 'id,user_id,username,name,account_type,profile_picture_url,followers_count,media_count';
+    const profUrl = `https://graph.instagram.com/v21.0/me?fields=${profFields}&access_token=${encodeURIComponent(igToken)}`;
+
+    let profileData: any = null;
+
     try {
-      const profUrl = isMetaGraph
-        ? `https://graph.facebook.com/v21.0/${igUserId}?fields=id,username,name,followers_count,media_count&access_token=${igToken}`
-        : `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${igToken}`;
-
       const profRes = await fetch(profUrl);
       if (profRes.ok) {
-        console.log('[Instagram] Seguidores atualizados.');
+        profileData = await profRes.json();
+        updateInstagramProfileMeta({
+          userId: profileData.user_id || profileData.id,
+          username: profileData.username,
+          followersCount: typeof profileData.followers_count === 'number' ? profileData.followers_count : undefined,
+          profilePictureUrl: profileData.profile_picture_url
+        });
+        console.log(`[Instagram] Perfil autenticado (@${profileData.username || 'rosleonoficial'}, seguidores: ${profileData.followers_count ?? 'N/D'}, mídias: ${profileData.media_count ?? 'N/D'}).`);
       } else {
         const errJson = await profRes.json().catch(() => null);
-        const rawMsg = errJson?.error?.message || `HTTP ${profRes.status}`;
-        const sanitizedMsg = rawMsg.replace(igToken, '***');
-        console.error(`[Instagram ERROR] ${sanitizedMsg}`);
-        const isExpired = errJson?.error?.code === 190 || rawMsg.includes('Session has expired') || rawMsg.includes('expired');
+        const err = errJson?.error;
+        const rawMsg = err?.message || `HTTP ${profRes.status}`;
+        const sanitizedMsg = sanitizeTokenFromText(rawMsg, igToken);
+        const errCode = err?.code ?? profRes.status;
+        const errSubcode = err?.error_subcode;
+
+        const isExpired = errCode === 190 || errSubcode === 463 || sanitizedMsg.includes('Session has expired') || sanitizedMsg.includes('expired');
         let expiredDate = undefined;
-        if (rawMsg.includes('Session has expired on')) {
-          const match = rawMsg.match(/Session has expired on ([^.]+)/);
+        if (sanitizedMsg.includes('Session has expired on')) {
+          const match = sanitizedMsg.match(/Session has expired on ([^.]+)/);
           if (match) expiredDate = match[1].trim();
         }
-        recordInstagramError(sanitizedMsg, isExpired, expiredDate);
+
+        let detailedMsg = `Falha em ${profileEndpoint} | Código Meta: ${errCode}${errSubcode ? ` (subcode ${errSubcode})` : ''} | Mensagem: ${sanitizedMsg}`;
+        if (igToken.startsWith('EAA') && sanitizedMsg.includes('Cannot parse access token')) {
+          detailedMsg += ' (O token configurado nos Secrets ainda é do tipo EAA... do Facebook/System User, incompatível com graph.instagram.com. Gere um token IGAA... em Instagram API with Instagram Login.)';
+        }
+
+        console.error(`[Instagram ERROR] ${detailedMsg}`);
+        recordInstagramError(detailedMsg, isExpired, expiredDate, {
+          endpoint: profileEndpoint,
+          code: errCode,
+          subcode: errSubcode,
+          type: err?.type,
+          message: sanitizedMsg
+        });
         igStatus.status = 'error';
-        igStatus.lastError = sanitizedMsg;
+        igStatus.lastError = detailedMsg;
         return igStatus.totalContents;
       }
     } catch (profErr: any) {
-      console.error(`[Instagram ERROR] Falha de rede ao buscar perfil: ${profErr.message}`);
-      recordInstagramError(`Erro de rede: ${profErr.message}`);
+      const sanitizedNet = sanitizeTokenFromText(profErr.message || 'Erro de rede', igToken);
+      const detailedMsg = `Falha em ${profileEndpoint} | Erro de rede: ${sanitizedNet}`;
+      console.error(`[Instagram ERROR] ${detailedMsg}`);
+      recordInstagramError(detailedMsg, false, undefined, {
+        endpoint: profileEndpoint,
+        message: sanitizedNet
+      });
       igStatus.status = 'error';
-      igStatus.lastError = profErr.message;
+      igStatus.lastError = detailedMsg;
       return igStatus.totalContents;
     }
 
-    console.log('[Instagram] Buscando mídias...');
+    console.log('[Instagram] Buscando mídias via graph.instagram.com/v21.0/me/media...');
 
-    let nextUrl: string | null = isMetaGraph
-      ? `https://graph.facebook.com/v21.0/${igUserId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=100&access_token=${igToken}`
-      : `https://graph.instagram.com/v20.0/${igUserId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=100&access_token=${igToken}`;
+    const mediaEndpoint = 'GET https://graph.instagram.com/v21.0/me/media';
+    const mediaFields = 'id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count';
+    let nextUrl: string | null = `https://graph.instagram.com/v21.0/me/media?fields=${mediaFields}&limit=100&access_token=${encodeURIComponent(igToken)}`;
 
     const collectedIgContents: ContentItem[] = [];
     let igCount = 0;
     let pageCount = 0;
+    let insightsErrorRecorded: string | null = null;
 
     while (nextUrl && pageCount < 20) {
       pageCount++;
       const mediaRes = await fetch(nextUrl);
       if (!mediaRes.ok) {
         const errJson = await mediaRes.json().catch(() => null);
-        const rawMsg = errJson?.error?.message || `HTTP ${mediaRes.status}`;
-        const sanitizedMsg = rawMsg.replace(igToken, '***');
-        console.error(`[Instagram ERROR] ${sanitizedMsg}`);
-        recordInstagramError(sanitizedMsg);
+        const err = errJson?.error;
+        const rawMsg = err?.message || `HTTP ${mediaRes.status}`;
+        const sanitizedMsg = sanitizeTokenFromText(rawMsg, igToken);
+        const errCode = err?.code ?? mediaRes.status;
+        const detailedMsg = `Falha em ${mediaEndpoint} | Código Meta: ${errCode} | Mensagem: ${sanitizedMsg}`;
+        console.error(`[Instagram ERROR] ${detailedMsg}`);
+        recordInstagramError(detailedMsg, errCode === 190, undefined, {
+          endpoint: mediaEndpoint,
+          code: errCode,
+          subcode: err?.error_subcode,
+          type: err?.type,
+          message: sanitizedMsg
+        });
+        igStatus.status = 'error';
+        igStatus.lastError = detailedMsg;
         break;
       }
 
       const mediaData = await mediaRes.json();
       const items = mediaData.data || [];
-      console.log(`[Instagram] ${items.length} mídias recebidas.`);
+      console.log(`[Instagram] Página ${pageCount}: ${items.length} mídias recebidas via graph.instagram.com.`);
 
       for (let i = 0; i < items.length; i += 10) {
         const chunk = items.slice(i, i + 10);
         await Promise.all(chunk.map(async (item: any) => {
           const caption = item.caption || 'Publicação ROSLEON Instagram';
           const permalink = item.permalink || 'https://www.instagram.com/rosleonoficial/';
-          
-          let contentType: 'reels' | 'video' = 'reels';
-          let thumb = item.thumbnail_url || item.media_url || 'https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
+          const existingItem = existingIgMap.get(String(item.id));
+
+          const contentType: 'reels' | 'video' = 'reels';
+          let thumb = item.thumbnail_url || item.media_url || existingItem?.thumbnailUrl || 'https://i.postimg.cc/02xhNKb5/Chat-GPT-Image-16-de-jul-de-2026-16-19-14.png';
           if (item.media_type === 'IMAGE' || item.media_type === 'CAROUSEL_ALBUM') {
             thumb = item.media_url || item.thumbnail_url || thumb;
           }
 
-          const likes = typeof item.like_count === 'number' ? item.like_count : 0;
-          const comments = typeof item.comments_count === 'number' ? item.comments_count : 0;
-          const pubAt = item.timestamp || new Date().toISOString();
+          const likes = typeof item.like_count === 'number' ? item.like_count : (existingItem?.metrics?.likesCount ?? 0);
+          const comments = typeof item.comments_count === 'number' ? item.comments_count : (existingItem?.metrics?.commentsCount ?? 0);
+          const pubAt = item.timestamp || existingItem?.publishedAt || new Date().toISOString();
 
-          let realShares: number | null = Math.round(likes * 0.12);
-          try {
-            const insRes = await fetch(`https://graph.instagram.com/v20.0/${item.id}/insights?metric=shares&access_token=${igToken}`);
-            if (insRes.ok) {
-              const insData = await insRes.json();
-              if (insData.data && insData.data[0] && insData.data[0].values && insData.data[0].values[0]) {
-                const val = insData.data[0].values[0].value;
-                if (typeof val === 'number') realShares = val;
+          let realViews: number | null = null;
+          let realShares: number | null = null;
+
+          // Fetch media insights via Instagram API with Instagram Login (instagram_business_manage_insights)
+          const metricCombos = ['views,reach,shares', 'views,shares', 'views', 'shares'];
+          for (const metricSet of metricCombos) {
+            try {
+              const insRes = await fetch(
+                `https://graph.instagram.com/v21.0/${item.id}/insights?metric=${metricSet}&access_token=${encodeURIComponent(igToken)}`
+              );
+              if (insRes.ok) {
+                const insData = await insRes.json();
+                for (const m of (insData.data || [])) {
+                  const val = m?.values?.[0]?.value ?? m?.total_value?.value;
+                  if (typeof val === 'number') {
+                    if (m.name === 'views' && realViews === null) realViews = val;
+                    if (m.name === 'shares' && realShares === null) realShares = val;
+                  }
+                }
+                break;
+              } else {
+                const insErr = await insRes.json().catch(() => null);
+                const code = insErr?.error?.code;
+                // If permission missing (10 or 200) or token invalid (190), record once and stop retrying combos
+                if (code === 10 || code === 190 || code === 200) {
+                  if (!insightsErrorRecorded) {
+                    const msg = sanitizeTokenFromText(insErr?.error?.message || `HTTP ${insRes.status}`, igToken);
+                    insightsErrorRecorded = `Insights (code ${code}): ${msg}`;
+                    console.warn(`[Instagram Insights] ${insightsErrorRecorded}`);
+                  }
+                  break;
+                }
+                // Otherwise (e.g. code 100 for metric not supported on specific old media type), try next combo
               }
+            } catch {
+              break;
             }
-          } catch (e) {
-            // retain default estimated shares
           }
 
-          const views = Math.max(likes * 12 + comments * 30, 2500);
-          const engagementRate = views > 0 ? parseFloat((((likes + comments + (realShares || 0)) / views) * 100).toFixed(2)) : 0;
+          const finalShares: number | null = realShares !== null
+            ? realShares
+            : (existingItem?.metrics?.sharesCount ?? Math.round(likes * 0.12));
+
+          const fallbackViews = existingItem?.metrics?.viewsCount && existingItem.metrics.viewsCount > 0
+            ? existingItem.metrics.viewsCount
+            : Math.max(likes * 12 + comments * 30, 2500);
+
+          const finalViews = realViews !== null && realViews > 0 ? realViews : fallbackViews;
+          const engagementRate = finalViews > 0
+            ? parseFloat((((likes + comments + (finalShares || 0)) / finalViews) * 100).toFixed(2))
+            : 0;
 
           await upsertContentToDb({
             platform: 'instagram',
@@ -1264,10 +1374,10 @@ export async function syncInstagramPlatformContents(): Promise<number> {
             thumbnail_url: thumb,
             content_type: contentType,
             published_at: pubAt,
-            views_count: views,
+            views_count: finalViews,
             likes_count: likes,
             comments_count: comments,
-            shares_count: realShares,
+            shares_count: finalShares,
             engagement_rate: engagementRate
           });
 
@@ -1285,10 +1395,10 @@ export async function syncInstagramPlatformContents(): Promise<number> {
             brands: cls.primaryBrands,
             classification: cls,
             metrics: {
-              viewsCount: views,
+              viewsCount: finalViews,
               likesCount: likes,
               commentsCount: comments,
-              sharesCount: realShares,
+              sharesCount: finalShares,
               engagementRate,
               lastSyncedAt: new Date().toISOString()
             }
@@ -1304,26 +1414,27 @@ export async function syncInstagramPlatformContents(): Promise<number> {
     if (collectedIgContents.length > 0) {
       collectedIgContents.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
       const lastDate = new Date(collectedIgContents[0].publishedAt).toLocaleDateString('pt-BR');
-      console.log(`[Instagram] Última mídia: ${lastDate}.`);
-      console.log('[Instagram] Atualização concluída.');
+      console.log(`[Instagram] Última mídia: ${lastDate} (${collectedIgContents[0].publishedAt}).`);
+      console.log('[Instagram] Atualização concluída via graph.instagram.com.');
 
       if (collectedIgContents.length >= 50) {
         saveCatalogSnapshot(collectedIgContents, 'instagram');
       }
+      invalidateCatalogCache();
 
       igStatus = {
         status: 'active',
-        totalContents: igCount,
+        totalContents: Math.max(igCount, existingIgMap.size),
         lastSyncedAt: new Date().toISOString(),
-        lastError: null
+        lastError: insightsErrorRecorded
       };
 
-      return igCount;
+      return igStatus.totalContents;
     }
 
     return igStatus.totalContents;
   } catch (err: any) {
-    const sanitized = err.message ? err.message.replace(igToken, '***') : 'Erro desconhecido';
+    const sanitized = sanitizeTokenFromText(err.message || 'Erro desconhecido', igToken);
     console.error('[Instagram ERROR]', sanitized);
     igStatus.status = 'error';
     igStatus.lastError = sanitized;
@@ -1336,19 +1447,43 @@ export async function syncInstagramPlatformContents(): Promise<number> {
  */
 export async function syncTikTokPlatformContents(): Promise<number> {
   try {
-    console.log('[TikTok] Buscando perfil e vídeos...');
-    const ttRes = await syncTikTokContents();
+    console.log('[TikTok] Buscando perfil público e vídeos via OAuth...');
+    const [publicStats, ttRes] = await Promise.all([
+      getTikTokPublicProfileStats(true),
+      syncTikTokContents()
+    ]);
     const count = typeof ttRes === 'number' ? ttRes : (ttRes.uniqueVideosFetched || 0);
+    const stopReason = typeof ttRes === 'number' ? 'completed' : ttRes.stopReason;
+
+    ttStatus.publicVideoCount = publicStats.videoCount || 0;
+    ttStatus.lastSyncedAt = new Date().toISOString();
 
     if (count > 0) {
       ttStatus.totalContents = count;
       ttStatus.connected = true;
       ttStatus.status = 'active';
       ttStatus.lastError = null;
+      ttStatus.message = `Catálogo TikTok sincronizado (${count} vídeos)`;
+      console.log(`[TikTok] Atualização concluída: ${count} vídeos no catálogo.`);
+    } else if (stopReason === 'no_active_token') {
+      const snap = loadCatalogSnapshot();
+      const snapTtCount = (snap.contents || []).filter(c => c.platform === 'tiktok').length;
+      ttStatus.totalContents = snapTtCount;
+      ttStatus.connected = false;
+      ttStatus.status = 'disconnected';
+      ttStatus.lastError = null;
+      ttStatus.message = publicStats.live
+        ? `OAuth não conectado — perfil público atualizado (${publicStats.followerCount.toLocaleString('pt-BR')} seguidores, ${publicStats.heartCount.toLocaleString('pt-BR')} curtidas, ${publicStats.videoCount} vídeos no perfil; ${snapTtCount} vídeos no catálogo)`
+        : 'OAuth TikTok não conectado';
+      console.log(`[TikTok] ${ttStatus.message}`);
+    } else {
+      ttStatus.status = 'warning';
+      ttStatus.lastError = `Sincronização retornou 0 vídeos (${stopReason})`;
+      ttStatus.message = ttStatus.lastError;
+      console.warn(`[TikTok] ${ttStatus.lastError}`);
     }
 
-    console.log('[TikTok] Atualização concluída.');
-    return count;
+    return ttStatus.totalContents;
   } catch (err: any) {
     console.error('[TikTok ERROR]', err.message);
     ttStatus.status = 'warning';

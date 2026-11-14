@@ -14,25 +14,25 @@ export const PartnershipsCard: React.FC<PartnershipsCardProps> = ({ creator, sta
   const { t, formatNumber } = useLanguage();
 
   // Calculate total combined views across YouTube, Instagram & TikTok
-  const ytViewsRaw = stats.rawViews || 8876341;
-  const igViewsRaw = instagramStats?.viewsTotal ?? instagramStats?.views30Days ?? instagramStats?.views30d ?? 1070560;
-  const ttViewsRaw = instagramStats?.tiktokViews ?? 2356235;
+  const ytViewsRaw = stats.rawViews || 0;
+  const igViewsRaw = instagramStats?.viewsTotal ?? instagramStats?.views30Days ?? instagramStats?.views30d ?? 0;
+  const ttViewsRaw = instagramStats?.tiktokViews ?? 0;
   const totalViewsRaw = ytViewsRaw + igViewsRaw + ttViewsRaw;
 
   const totalViewsCompact = `+${formatNumber(Number((totalViewsRaw / 1_000_000).toFixed(1)))} ${t('partnerships.millions')}`;
   const totalViewsExact = formatNumber(totalViewsRaw);
 
   // Calculate total audience
-  const ytSubsRaw = stats.rawSubscribers || 45300;
-  const igFollowersRaw = instagramStats?.followers ?? instagramStats?.followersCount ?? 38772;
-  const ttFollowersRaw = instagramStats?.tiktokFollowers ?? 15300;
+  const ytSubsRaw = stats.rawSubscribers || 0;
+  const igFollowersRaw = instagramStats?.followers ?? instagramStats?.followersCount ?? 0;
+  const ttFollowersRaw = instagramStats?.tiktokFollowers ?? 0;
   const totalAudienceRaw = ytSubsRaw + igFollowersRaw + ttFollowersRaw;
   const totalAudienceFormatted = `+${formatNumber(Number((totalAudienceRaw / 1_000).toFixed(1)))} ${t('partnerships.thousand')}`;
 
   // Calculate dynamic engagement metrics (likes, comments, shares) from real catalog
-  const totalLikesRaw = instagramStats?.totalLikes ?? 314056;
-  const totalCommentsRaw = instagramStats?.totalComments ?? 61338;
-  const totalSharesRaw = instagramStats?.totalShares ?? 28459;
+  const totalLikesRaw = instagramStats?.totalLikes ?? 0;
+  const totalCommentsRaw = instagramStats?.totalComments ?? 0;
+  const totalSharesRaw = instagramStats?.totalShares ?? 0;
 
   const totalLikesFormatted = totalLikesRaw >= 1_000_000
     ? `+${formatNumber(Number((totalLikesRaw / 1_000_000).toFixed(1)))} ${t('partnerships.million')}`

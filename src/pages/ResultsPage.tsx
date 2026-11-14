@@ -165,23 +165,25 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ onNavigateHome }) => {
       const ytInfo = syncJson.platforms?.youtube;
       const igInfo = syncJson.platforms?.instagram;
       const ttInfo = syncJson.platforms?.tiktok;
+      const ytSubs = syncJson.mediaKit?.youtube?.subscribers;
 
-      const isIgExpired = igInfo?.tokenExpired || igInfo?.status === 'error';
+      const isIgError = Boolean(syncJson.mediaKit?.instagram?.tokenExpired || igInfo?.status === 'error');
+      const igSavedCount = igInfo?.totalContents ?? 0;
       const details = [
-        `YouTube: ${ytInfo?.totalContents || 665} vídeos auditados (${ytInfo?.status === 'active' ? 'API Google ativa' : 'Protegido'})`,
-        isIgExpired
-          ? `Instagram: Sessão Meta expirada (requer novo token). 184 postagens protegidas mantidas.`
-          : `Instagram: ${igInfo?.totalContents || 184} postagens sincronizadas`,
-        `TikTok: ${ttInfo?.status === 'verified' || ttInfo?.status === 'active' ? 'Métricas públicas verificadas (@rosleonoficial)' : 'Catálogo mantido'}`
+        `YouTube: ${ytInfo?.totalContents ?? 0} vídeos auditados${ytSubs ? ` · ${ytSubs.toLocaleString('pt-BR')} inscritos` : ''} (${ytInfo?.status === 'active' ? 'API Google ativa' : 'Protegido'})`,
+        isIgError
+          ? `Instagram: ${igInfo?.lastError || 'Falha na autenticação (requer token IGAA...)'} (${igSavedCount} postagens protegidas mantidas)`
+          : `Instagram: ${igSavedCount} postagens sincronizadas`,
+        `TikTok: ${ttInfo?.message || (ttInfo?.status === 'active' ? `${ttInfo?.totalContents ?? 0} vídeos sincronizados` : 'OAuth não conectado')}`
       ];
 
       setRefreshNotification({
-        type: isIgExpired ? 'warning' : 'success',
-        title: isIgExpired ? 'Sincronização Realizada com Alerta de Token' : 'Sincronização Concluída com Sucesso',
-        message: isIgExpired
-          ? 'YouTube e TikTok foram atualizados com as métricas mais recentes. O token do Instagram expirou na Meta e precisa ser renovado.'
+        type: isIgError ? 'warning' : 'success',
+        title: isIgError ? 'Sincronização Realizada com Alerta no Instagram' : 'Sincronização Concluída com Sucesso',
+        message: isIgError
+          ? (igInfo?.lastError || 'YouTube e TikTok foram consultados. O token do Instagram precisa ser atualizado para sincronizar novos posts.')
           : 'Todas as redes sociais foram consultadas diretamente nas APIs oficiais e os dados foram atualizados.',
-        igExpired: isIgExpired,
+        igExpired: isIgError,
         details
       });
     } catch (e) {

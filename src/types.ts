@@ -167,6 +167,8 @@ export interface CentralMediaKitData {
     views: number;
     viewsFormatted: string;
     videos?: number;
+    publicVideoCount?: number;
+    catalogVideos?: number;
     videosFormatted?: string;
     isAutoSynced: boolean;
   };
@@ -362,7 +364,7 @@ export interface ResultsStatusResponse {
   platforms: {
     youtube: { status: 'active' | 'degraded' | 'error'; totalContents: number; lastSyncedAt: string; lastError?: string | null };
     instagram: { status: 'active' | 'degraded' | 'error'; totalContents: number; lastSyncedAt: string; lastError?: string | null };
-    tiktok: { status: 'active' | 'in_progress' | 'warning' | 'error' | 'disconnected'; totalContents: number; connected?: boolean; lastSyncedAt?: string; message?: string; lastError?: string | null };
+    tiktok: { status: 'active' | 'in_progress' | 'warning' | 'error' | 'disconnected'; totalContents: number; publicVideoCount?: number; connected?: boolean; lastSyncedAt?: string; message?: string; lastError?: string | null };
   };
 }
 

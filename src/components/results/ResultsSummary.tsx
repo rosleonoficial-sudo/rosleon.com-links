@@ -43,32 +43,44 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   };
 
   // YouTube Metrics
-  const ytSubsFormatted = mediaKitData?.youtube?.subscribersFormatted || '45,3 mil';
-  const ytViewsFormatted = mediaKitData?.youtube?.viewsFormatted || '8,90 MILHÕES';
-  const ytVideosCount = mediaKitData?.youtube?.youtubeReportedVideoCount || 670;
-  const ytAuditableCount = summary.breakdown.youtube?.totalContents || mediaKitData?.youtube?.videos || 665;
-  const isYtActive = status?.platforms?.youtube?.status === 'active';
+  const ytSubsNum = mediaKitData?.youtube?.subscribers || 0;
+  const ytSubsFormatted = mediaKitData?.youtube?.subscribersFormatted || (ytSubsNum > 0 ? `${(ytSubsNum / 1000).toFixed(1).replace('.', ',')} mil` : '—');
+  const ytViewsRaw = mediaKitData?.youtube?.views ?? summary.breakdown.youtube?.totalViews ?? 0;
+  const ytViewsFormatted = mediaKitData?.youtube?.viewsFormatted || (ytViewsRaw >= 1_000_000
+    ? `${(ytViewsRaw / 1_000_000).toFixed(2).replace('.', ',')} MILHÕES`
+    : ytViewsRaw.toLocaleString('pt-BR'));
+  const ytAuditableCount = summary.breakdown.youtube?.totalContents || mediaKitData?.youtube?.videos || 0;
+  const ytVideosCount = mediaKitData?.youtube?.youtubeReportedVideoCount || ytAuditableCount;
 
   // Instagram Metrics
-  const igFollowers = mediaKitData?.instagram?.followersCount || mediaKitData?.instagram?.followers || 38772;
-  const igFollowersFormatted = `${(igFollowers / 1000).toFixed(1).replace('.', ',')} mil`;
-  const igPostsCount = summary.breakdown.instagram?.totalContents || mediaKitData?.instagram?.videosTotal || 184;
-  const igViewsFormatted = mediaKitData?.instagram?.viewsTotalFormatted || '1,07 MILHÕES';
-  const isIgExpired = Boolean(mediaKitData?.instagram?.tokenExpired || status?.platforms?.instagram?.status === 'error' || status?.platforms?.instagram?.status === 'degraded');
+  const igFollowers = mediaKitData?.instagram?.followersCount || mediaKitData?.instagram?.followers || 0;
+  const igFollowersFormatted = igFollowers > 0 ? `${(igFollowers / 1000).toFixed(1).replace('.', ',')} mil` : '—';
+  const igPostsCount = summary.breakdown.instagram?.totalContents ?? mediaKitData?.instagram?.videosTotal ?? 0;
+  const igViewsRaw = mediaKitData?.instagram?.viewsTotal ?? summary.breakdown.instagram?.totalViews ?? 0;
+  const igViewsFormatted = mediaKitData?.instagram?.viewsTotalFormatted || (igViewsRaw >= 1_000_000
+    ? `${(igViewsRaw / 1_000_000).toFixed(2).replace('.', ',')} MILHÕES`
+    : igViewsRaw.toLocaleString('pt-BR'));
+  const isIgExpired = Boolean(
+    mediaKitData?.instagram?.tokenExpired ||
+    mediaKitData?.instagram?.stale ||
+    status?.platforms?.instagram?.status === 'error' ||
+    status?.platforms?.instagram?.status === 'degraded'
+  );
   const igErrorMsg = mediaKitData?.instagram?.syncError || status?.platforms?.instagram?.lastError;
 
   // TikTok Metrics
-  const ttFollowers = mediaKitData?.tiktok?.followers || 15300;
-  const ttFollowersFormatted = mediaKitData?.tiktok?.followersFormatted || '15,3 mil';
-  const ttLikes = mediaKitData?.tiktok?.likes || 99200;
-  const ttLikesFormatted = mediaKitData?.tiktok?.likesFormatted || '99,2 mil';
-  const ttVideosCount = mediaKitData?.tiktok?.videos || 334;
+  const ttFollowers = mediaKitData?.tiktok?.followers ?? 0;
+  const ttFollowersFormatted = mediaKitData?.tiktok?.followersFormatted || (ttFollowers > 0 ? `${(ttFollowers / 1000).toFixed(1).replace('.', ',')} mil` : '—');
+  const ttLikes = mediaKitData?.tiktok?.likes ?? 0;
+  const ttLikesFormatted = mediaKitData?.tiktok?.likesFormatted || (ttLikes > 0 ? `${(ttLikes / 1000).toFixed(1).replace('.', ',')} mil` : '—');
+  const ttCatalogCount = mediaKitData?.tiktok?.catalogVideos ?? summary.breakdown.tiktok?.totalContents ?? status?.platforms?.tiktok?.totalContents ?? 0;
+  const ttVideosCount = mediaKitData?.tiktok?.publicVideoCount || mediaKitData?.tiktok?.videos || status?.platforms?.tiktok?.publicVideoCount || ttCatalogCount;
   const isTtConnected = Boolean(mediaKitData?.tiktok?.isAutoSynced || status?.platforms?.tiktok?.connected);
 
   // Consolidated Community and Views
-  const totalCommunityNum = (mediaKitData?.communityTotal?.total) || (45300 + igFollowers + ttFollowers);
-  const totalCommunityFormatted = `${(totalCommunityNum / 1000).toFixed(1).replace('.', ',')} mil`;
-  const totalViewsFormatted = mediaKitData?.totalViews3NetworksFormatted || '9,98 MILHÕES';
+  const totalCommunityNum = mediaKitData?.communityTotal?.total || (ytSubsNum + igFollowers + ttFollowers);
+  const totalCommunityFormatted = totalCommunityNum > 0 ? `${(totalCommunityNum / 1000).toFixed(1).replace('.', ',')} mil` : '—';
+  const totalViewsFormatted = mediaKitData?.totalViews3NetworksFormatted || formatNum(summary.totalViews || 0);
 
   const ytShares = summary.breakdown.youtube?.totalShares ?? null;
   const igShares = summary.breakdown.instagram?.totalShares ?? null;
@@ -218,12 +230,12 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
             <span className="text-[11px] text-slate-500">Público Ativo</span>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-rose-400 tracking-tight">
-            +{formatNum(summary.totalLikes || 316000)}
+            +{formatNum(summary.totalLikes || 0)}
           </div>
           <div className="text-xs text-slate-400 flex items-center gap-2">
-            <span>{formatNum(summary.totalComments || 61600)} comentários</span>
+            <span>{formatNum(summary.totalComments || 0)} comentários</span>
             <span>·</span>
-            <span>{formatNum(summary.totalShares || 28500)} compart.</span>
+            <span>{formatNum(summary.totalShares || 0)} compart.</span>
           </div>
         </div>
 
@@ -237,7 +249,7 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
             <span className="text-[11px] text-slate-500">Média</span>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-purple-400 tracking-tight">
-            {summary.avgEngagementRate || 5.59}%
+            {summary.avgEngagementRate || 0}%
           </div>
           <p className="text-xs text-slate-400">
             Fórmula: (interações ÷ views) × 100
@@ -298,7 +310,7 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                   {ytSubsFormatted}
                 </div>
                 <span className="text-[11px] text-slate-500 font-mono">
-                  {mediaKitData?.youtube?.subscribers?.toLocaleString('pt-BR') || '45.300'} inscritos confirmados
+                  {ytSubsNum > 0 ? `${ytSubsNum.toLocaleString('pt-BR')} inscritos confirmados` : 'Sincronizando inscritos...'}
                 </span>
               </div>
 
@@ -420,7 +432,9 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                 <div className="flex items-center justify-between gap-1">
                   <span className="font-bold flex items-center gap-1 text-[11px]">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    Sessão Meta expirada (05/10/26)
+                    {igErrorMsg?.includes('EAA')
+                      ? 'Token EAA... incompatível (requer IGAA...)'
+                      : 'Sessão Instagram expirada/inválida'}
                   </span>
                   {onOpenTokenModal && (
                     <button
@@ -431,13 +445,13 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                     </button>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  Dados anteriores protegidos. Cole um novo token da Meta para sincronizar os conteúdos recentes.
+                <p className="text-[10px] text-slate-300 leading-tight line-clamp-3" title={igErrorMsg || undefined}>
+                  {igErrorMsg || 'Dados anteriores protegidos. Informe um token IGAA... da Instagram API with Instagram Login para sincronizar novos posts.'}
                 </p>
               </div>
             ) : (
               <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                <span className="font-mono text-[11px]">Meta Graph API v20.0</span>
+                <span className="font-mono text-[11px]">Instagram API (graph.instagram.com)</span>
                 <a
                   href="https://www.instagram.com/rosleonoficial/"
                   target="_blank"
@@ -522,7 +536,9 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
                   <div className="text-base sm:text-lg font-black text-white mt-0.5">
                     {ttVideosCount} vídeos
                   </div>
-                  <span className="text-[10px] text-slate-500">Publicados no perfil</span>
+                  <span className="text-[10px] text-slate-500">
+                    {ttCatalogCount > 0 ? `${ttCatalogCount} no catálogo` : 'Publicados no perfil (catálogo via OAuth)'}
+                  </span>
                 </div>
               </div>
             </div>

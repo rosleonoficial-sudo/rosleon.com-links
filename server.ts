@@ -4,8 +4,19 @@ import { createServer as createViteServer } from 'vite';
 import { initDatabase } from './server/db.js';
 import { searchContents, getAllBrands, getSyncStatus, syncSocialMediaContents, getBrandRanking, getAllCatalogContents, invalidateCatalogCache } from './server/resultsService.js';
 import { reclassifyAllDatabaseContents } from './server/classifierService.js';
-import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState, HANDLER_VERSION, BUILD_MARKER } from './server/tiktokService.js';
-import { getInstagramToken, getInstagramUserId, setInstagramToken, testInstagramToken, getInstagramTokenStatus } from './server/tokenService.js';
+import { getTikTokAuthUrl, handleTikTokCallback, getTikTokStatus, syncTikTokContents, saveOAuthState, validateAndDeleteOAuthState, getTikTokPublicProfileStats, HANDLER_VERSION, BUILD_MARKER } from './server/tiktokService.js';
+import { fetchYouTubeChannelStats, formatYouTubeSubscribers, invalidateYouTubeStatsCache } from './server/youtubeService.js';
+import {
+  getInstagramToken,
+  getInstagramUserId,
+  setInstagramToken,
+  testInstagramToken,
+  refreshInstagramToken,
+  getInstagramTokenStatus,
+  updateInstagramProfileMeta,
+  recordInstagramError,
+  sanitizeTokenFromText
+} from './server/tokenService.js';
 import { invalidateSnapshotCache } from './server/snapshotService.js';
 
 const app = express();
@@ -20,311 +31,13 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Helper formatting functions
-function formatYouTubeSubscribers(count: number): string {
-  if (count >= 1_000_000) {
-    const val = (count / 1_000_000).toFixed(1).replace('.0', '').replace('.', ',');
-    return `${val} mi`;
-  }
-  if (count >= 100_000) {
-    return `${Math.floor(count / 1_000)} mil`;
-  }
-  if (count >= 1_000) {
-    const val = (count / 1_000).toFixed(1).replace('.0', '').replace('.', ',');
-    return `${val} mil`;
-  }
-  return `${count}`;
-}
-
-function formatViews(count: number): string {
-  if (count >= 1_000_000) {
-    const val = (count / 1_000_000).toFixed(1).replace('.0', '').replace('.', ',');
-    return `${val} MILHÕES`;
-  }
-  if (count >= 1_000) {
-    const val = Math.floor(count / 1_000);
-    return `${val} MIL`;
-  }
-  return `${count}`;
-}
-
-function formatVideos(count: number): string {
-  return `${count.toLocaleString('pt-BR')} vídeos`;
-}
-
-// In-memory cache for YouTube stats (TTL: 50s)
-let youtubeStatsCache: {
-  data: any;
-  timestamp: number;
-} | null = null;
-
-const CACHE_TTL_MS = 50 * 1000;
-
-async function scrapeTikTokProfile() {
-  try {
-    const res = await fetch('https://www.tiktok.com/@rosleonoficial', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8'
-      }
-    });
-    if (res.ok) {
-      const html = await res.text();
-      const sigiMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)<\/script>/) || html.match(/<script id="SIGI_STATE"[^>]*>(.*?)<\/script>/);
-      if (sigiMatch) {
-        const jsonStr = sigiMatch[1];
-        const followerMatch = jsonStr.match(/"followerCount":(\d+)/);
-        const heartMatch = jsonStr.match(/"heartCount":(\d+)/) || jsonStr.match(/"heart":(\d+)/);
-        const videoMatch = jsonStr.match(/"videoCount":(\d+)/);
-        return {
-          followerCount: followerMatch ? parseInt(followerMatch[1], 10) : 15300,
-          heartCount: heartMatch ? parseInt(heartMatch[1], 10) : 99200,
-          videoCount: videoMatch ? parseInt(videoMatch[1], 10) : 334
-        };
-      }
-    }
-  } catch (e: any) {
-    console.warn("Falha ao raspar perfil do TikTok no server.ts:", e.message);
-  }
-  return { followerCount: 15300, heartCount: 99200, videoCount: 334 };
-}
-
-async function fetchYouTubeChannelStats(forceReload: boolean = false) {
-  const apiKey = process.env.YOUTUBE_API_KEY || process.env.VITE_YOUTUBE_API_KEY || "AIzaSyC2iaAWsA_rE_7-asbQiI0Aso6Cu3OBXn0";
-
-  if (!forceReload && youtubeStatsCache && Date.now() - youtubeStatsCache.timestamp < CACHE_TTL_MS) {
-    return youtubeStatsCache.data;
-  }
-
-  // Obter dinamicamente a contagem de conteúdos auditáveis do catálogo (mesma fonte do /resultados e /api/media-kit)
-  let youtubeAuditableContentCount = 665;
-  try {
-    const searchRes = await searchContents({ platform: 'youtube' });
-    if (searchRes && searchRes.summary && typeof searchRes.summary.totalContents === 'number' && searchRes.summary.totalContents > 0) {
-      youtubeAuditableContentCount = searchRes.summary.totalContents;
-    }
-  } catch (e) {
-    console.warn("Aviso ao buscar contagem auditável do YouTube:", e);
-  }
-
-  const defaultRawSubs = 45300;
-  const defaultRawViews = 8876341;
-  const defaultRawVideos = youtubeAuditableContentCount;
-
-  // Live scrape fallback if API key is not set
-  async function scrapeYouTubeChannel() {
-    try {
-      const pageRes = await fetch("https://www.youtube.com/@rosleonoficial", {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8"
-        }
-      });
-      if (!pageRes.ok) return null;
-      const html = await pageRes.text();
-
-      let subText = "";
-      let vidText = "";
-
-      const matches = [...html.matchAll(/"content":"([^"]+)"/g)].map(m => m[1]);
-      for (const text of matches) {
-        if (!subText && (text.includes("inscrito") || text.includes("subscribers"))) {
-          subText = text;
-        }
-        if (!vidText && (text.includes("vídeo") || text.includes("videos"))) {
-          vidText = text;
-        }
-      }
-
-      if (subText) {
-        let num = defaultRawSubs;
-        const clean = subText.replace(/inscritos|subscribers/gi, "").trim();
-        if (clean.includes("mil") || clean.includes("K") || clean.includes("k")) {
-          const valStr = clean.replace(/mil|k/gi, "").trim().replace(",", ".");
-          const val = parseFloat(valStr);
-          if (!isNaN(val)) num = Math.round(val * 1000);
-        } else {
-          const val = parseInt(clean.replace(/\D/g, ""), 10);
-          if (!isNaN(val)) num = val;
-        }
-
-        let vidNum = youtubeAuditableContentCount;
-        let repVidNum = 656;
-        if (vidText) {
-          const cleanVid = vidText.replace(/vídeos|videos/gi, "").replace(/\D/g, "");
-          const parsedVid = parseInt(cleanVid, 10);
-          if (!isNaN(parsedVid)) repVidNum = parsedVid;
-        }
-
-        return { rawSubscribers: num, rawVideos: vidNum, youtubeReportedVideoCount: repVidNum, youtubeAuditableContentCount: vidNum };
-      }
-    } catch (e) {
-      console.warn("Falha ao raspar canal do YouTube no server.ts:", e);
-    }
-    return null;
-  }
-
-  if (!apiKey) {
-    const scraped = await scrapeYouTubeChannel();
-    const rawSubscribers = scraped ? scraped.rawSubscribers : defaultRawSubs;
-    const rawVideos = youtubeAuditableContentCount;
-    const youtubeReportedVideoCount = scraped?.youtubeReportedVideoCount || 656;
-
-    const defaultData = {
-      subscribers: rawSubscribers.toLocaleString('pt-BR'),
-      subscribersShort: rawSubscribers.toLocaleString('pt-BR'),
-      subscribersExact: rawSubscribers.toLocaleString('pt-BR'),
-      subscribersFull: rawSubscribers.toLocaleString('pt-BR'),
-      views: defaultRawViews.toLocaleString('pt-BR'),
-      viewsCompact: defaultRawViews.toLocaleString('pt-BR'),
-      videos: rawVideos.toLocaleString('pt-BR'),
-      rawSubscribers,
-      rawViews: defaultRawViews,
-      rawVideos,
-      youtubeReportedVideoCount,
-      youtubeAuditableContentCount,
-      viewsFull: defaultRawViews.toLocaleString('pt-BR'),
-      videosFull: rawVideos.toLocaleString('pt-BR'),
-      channelTitle: "ROSLEON",
-      updatedAt: new Date().toISOString()
-    };
-    return {
-      success: true,
-      apiKeyConfigured: false,
-      data: defaultData
-    };
-  }
-
-  try {
-    const handle = "rosleonoficial";
-    let channelData: any = null;
-
-    // Method 1: Try forHandle=@rosleonoficial
-    let url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=%40${handle}&key=${apiKey}`;
-    let res = await fetch(url);
-    if (res.ok) {
-      let json = await res.json();
-      if (json.items && json.items.length > 0) {
-        channelData = json.items[0];
-      }
-    }
-
-    // Method 2: Try forHandle=rosleonoficial (without @)
-    if (!channelData) {
-      url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${handle}&key=${apiKey}`;
-      res = await fetch(url);
-      if (res.ok) {
-        let json = await res.json();
-        if (json.items && json.items.length > 0) {
-          channelData = json.items[0];
-        }
-      }
-    }
-
-    // Method 3: Search for channel query
-    if (!channelData) {
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=%40${handle}&maxResults=1&key=${apiKey}`;
-      const searchRes = await fetch(searchUrl);
-      if (searchRes.ok) {
-        const searchJson = await searchRes.json();
-        if (searchJson.items && searchJson.items.length > 0) {
-          const channelId = searchJson.items[0].snippet.channelId;
-          const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`;
-          const cRes = await fetch(channelUrl);
-          if (cRes.ok) {
-            const cJson = await cRes.json();
-            if (cJson.items && cJson.items.length > 0) {
-              channelData = cJson.items[0];
-            }
-          }
-        }
-      }
-    }
-
-    if (!channelData || !channelData.statistics) {
-      throw new Error("Não foi possível encontrar as estatísticas do canal @rosleonoficial no YouTube.");
-    }
-
-    const stats = channelData.statistics;
-    const snippet = channelData.snippet || {};
-
-    const rawSubscribers = parseInt(stats.subscriberCount || `${defaultRawSubs}`, 10) || defaultRawSubs;
-    const rawViews = parseInt(stats.viewCount || `${defaultRawViews}`, 10) || defaultRawViews;
-    const youtubeReportedVideoCount = parseInt(stats.videoCount || `${defaultRawVideos}`, 10) || defaultRawVideos;
-
-    const fullSubscribers = rawSubscribers.toLocaleString('pt-BR');
-    const fullViews = rawViews.toLocaleString('pt-BR');
-    const fullVideos = youtubeAuditableContentCount.toLocaleString('pt-BR');
-
-    const formattedData = {
-      subscribers: fullSubscribers,
-      subscribersShort: fullSubscribers,
-      subscribersExact: fullSubscribers,
-      subscribersFull: fullSubscribers,
-      views: fullViews,
-      viewsCompact: fullViews,
-      videos: fullVideos,
-      rawSubscribers,
-      rawViews,
-      rawVideos: youtubeAuditableContentCount,
-      youtubeReportedVideoCount,
-      youtubeAuditableContentCount,
-      viewsFull: fullViews,
-      videosFull: fullVideos,
-      channelTitle: snippet.title || "ROSLEON",
-      channelDescription: snippet.description || "",
-      thumbnail: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || "",
-      updatedAt: new Date().toISOString()
-    };
-
-    const responsePayload = {
-      success: true,
-      apiKeyConfigured: true,
-      data: formattedData
-    };
-
-    youtubeStatsCache = {
-      data: responsePayload,
-      timestamp: Date.now()
-    };
-
-    return responsePayload;
-  } catch (err: any) {
-    console.error("Erro ao buscar estatísticas do YouTube:", err.message);
-
-    if (youtubeStatsCache) {
-      return youtubeStatsCache.data;
-    }
-
-    return {
-      success: true,
-      error: err.message || "Erro de conexão com a API do YouTube",
-      apiKeyConfigured: true,
-      data: {
-        subscribers: defaultRawSubs.toLocaleString('pt-BR'),
-        subscribersShort: defaultRawSubs.toLocaleString('pt-BR'),
-        subscribersExact: defaultRawSubs.toLocaleString('pt-BR'),
-        subscribersFull: defaultRawSubs.toLocaleString('pt-BR'),
-        views: defaultRawViews.toLocaleString('pt-BR'),
-        viewsCompact: defaultRawViews.toLocaleString('pt-BR'),
-        videos: youtubeAuditableContentCount.toLocaleString('pt-BR'),
-        rawSubscribers: defaultRawSubs,
-        rawViews: defaultRawViews,
-        rawVideos: youtubeAuditableContentCount,
-        youtubeReportedVideoCount: 656,
-        youtubeAuditableContentCount,
-        viewsFull: defaultRawViews.toLocaleString('pt-BR'),
-        videosFull: youtubeAuditableContentCount.toLocaleString('pt-BR'),
-        channelTitle: "ROSLEON",
-        updatedAt: new Date().toISOString()
-      }
-    };
-  }
-}
-
-// API Route for YouTube Stats
-app.get('/api/youtube-stats', async (_req, res) => {
-  const result = await fetchYouTubeChannelStats();
+// API Route for YouTube Stats (uses shared live YouTube Data API v3 + scrape fallback)
+app.get('/api/youtube-stats', async (req, res) => {
+  const force = req.query?.force === 'true' || req.query?.forceRefresh === 'true';
+  const result = await fetchYouTubeChannelStats(force);
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.json(result);
 });
 
@@ -454,9 +167,20 @@ function generateCentralRealtimeAudienceSnapshot() {
   };
 }
 
-// In-memory cache for Instagram stats (TTL: 5 min)
+// In-memory cache exclusively for Instagram remote API profile/insights (TTL: 5 min)
 let instagramStatsCache: {
-  data: any;
+  tokenPreview: string;
+  rawFollowers: number;
+  rawViews30Days: number;
+  username: string;
+  name: string;
+  profilePictureUrl: string;
+  source: string;
+  isAutoSynced: boolean;
+  stale: boolean;
+  syncError: string | null;
+  tokenExpired: boolean;
+  lastSyncedAt: string;
   timestamp: number;
 } | null = null;
 
@@ -465,133 +189,197 @@ const INSTAGRAM_CACHE_TTL_MS = 5 * 60 * 1000;
 async function fetchCentralMediaKitData(forceReload: boolean = false) {
   const token = getInstagramToken();
   const userId = getInstagramUserId();
+  const tokenStatus = getInstagramTokenStatus();
 
   // Always compute fresh realtimeAudience snapshot block
   const realtimeAudience = generateCentralRealtimeAudienceSnapshot();
 
-  if (!forceReload && instagramStatsCache && (Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS)) {
-    return {
-      ...instagramStatsCache.data,
-      snapshotId: realtimeAudience.snapshotId,
-      generatedAt: realtimeAudience.generatedAt,
-      nextUpdateAt: realtimeAudience.nextUpdateAt,
-      realtimeAudience
+  const canUseIgCache =
+    !forceReload &&
+    instagramStatsCache &&
+    instagramStatsCache.tokenPreview === tokenStatus.tokenPreview &&
+    Date.now() - instagramStatsCache.timestamp < INSTAGRAM_CACHE_TTL_MS;
+
+  let rawFollowers = canUseIgCache
+    ? instagramStatsCache!.rawFollowers
+    : (typeof tokenStatus.followersCount === 'number' && tokenStatus.followersCount > 0 ? tokenStatus.followersCount : 38772);
+  let rawViews30Days = canUseIgCache ? instagramStatsCache!.rawViews30Days : 478322;
+  let username = canUseIgCache ? instagramStatsCache!.username : (tokenStatus.username || "rosleonoficial");
+  let name = canUseIgCache ? instagramStatsCache!.name : "ROSLEON | Leonardo Mey";
+  let profilePictureUrl = canUseIgCache
+    ? instagramStatsCache!.profilePictureUrl
+    : (tokenStatus.profilePictureUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png");
+  let source = canUseIgCache ? instagramStatsCache!.source : "instagram_api_instagram_login";
+  let isAutoSynced = canUseIgCache ? instagramStatsCache!.isAutoSynced : true;
+  let stale = canUseIgCache ? instagramStatsCache!.stale : false;
+  let syncError: string | null = canUseIgCache ? instagramStatsCache!.syncError : null;
+  let tokenExpired = canUseIgCache ? instagramStatsCache!.tokenExpired : false;
+  let igLastSyncedAt = canUseIgCache ? instagramStatsCache!.lastSyncedAt : new Date().toISOString();
+
+  if (!canUseIgCache) {
+    try {
+      if (!token) {
+        stale = true;
+        isAutoSynced = false;
+        syncError = "INSTAGRAM_ACCESS_TOKEN não configurado no servidor.";
+      } else {
+        // Instagram API with Instagram Login (graph.instagram.com/v21.0)
+        // Requires permissions: instagram_business_basic, instagram_business_manage_insights
+        const profileFields = "id,user_id,username,name,profile_picture_url,followers_count,media_count";
+        const profileEndpoint = "GET https://graph.instagram.com/v21.0/me";
+        const profileUrl = `https://graph.instagram.com/v21.0/me?fields=${profileFields}&access_token=${encodeURIComponent(token)}`;
+        const profileRes = await fetch(profileUrl);
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          name = profileData.name || name;
+          username = profileData.username || username;
+          if (profileData.profile_picture_url) profilePictureUrl = profileData.profile_picture_url;
+          if (typeof profileData.followers_count === 'number') rawFollowers = profileData.followers_count;
+
+          updateInstagramProfileMeta({
+            userId: profileData.user_id || profileData.id || userId,
+            username,
+            followersCount: rawFollowers,
+            profilePictureUrl
+          });
+
+          const now = new Date();
+          const until = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+          const since = until - (30 * 24 * 60 * 60);
+
+          try {
+            const insightsUrl = `https://graph.instagram.com/v21.0/me/insights?metric=views&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${encodeURIComponent(token)}`;
+            const insightsRes = await fetch(insightsUrl);
+
+            if (insightsRes.ok) {
+              const insightsData = await insightsRes.json();
+              if (insightsData.data && Array.isArray(insightsData.data) && insightsData.data.length > 0) {
+                const viewsObj = insightsData.data.find((item: any) => item.name === 'views');
+                if (viewsObj && viewsObj.total_value && typeof viewsObj.total_value.value === 'number') {
+                  rawViews30Days = viewsObj.total_value.value;
+                } else if (Array.isArray(viewsObj?.values) && viewsObj.values.length > 0) {
+                  rawViews30Days = viewsObj.values.reduce((acc: number, v: any) => acc + (typeof v.value === 'number' ? v.value : 0), 0);
+                }
+              }
+            } else {
+              const fallbackUrl = `https://graph.instagram.com/v21.0/me/insights?metric=reach&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${encodeURIComponent(token)}`;
+              const fRes = await fetch(fallbackUrl);
+              if (fRes.ok) {
+                const fData = await fRes.json();
+                const reachObj = fData.data?.find((item: any) => item.name === 'reach');
+                if (reachObj?.total_value && typeof reachObj.total_value.value === 'number') {
+                  rawViews30Days = reachObj.total_value.value;
+                } else if (Array.isArray(reachObj?.values) && reachObj.values.length > 0) {
+                  const lastVal = reachObj.values[reachObj.values.length - 1]?.value;
+                  if (typeof lastVal === 'number') rawViews30Days = lastVal;
+                }
+              } else {
+                const insErrJson = await insightsRes.json().catch(() => null);
+                const insErr = insErrJson?.error;
+                if (insErr) {
+                  const msg = sanitizeTokenFromText(insErr.message || `HTTP ${insightsRes.status}`, token);
+                  console.warn(`[Instagram Insights] Falha em GET https://graph.instagram.com/v21.0/me/insights (code ${insErr.code ?? insightsRes.status}): ${msg}`);
+                }
+              }
+            }
+          } catch (iErr: any) {
+            console.warn("[Instagram API] Aviso ao buscar insights em graph.instagram.com:", iErr.message);
+          }
+        } else {
+          let metaErrMsg = `HTTP ${profileRes.status}`;
+          let errCode: number | string = profileRes.status;
+          let errSubcode: number | string | undefined;
+          let errType: string | undefined;
+          try {
+            const errJson = await profileRes.json();
+            if (errJson?.error) {
+              const err = errJson.error;
+              errCode = err.code ?? profileRes.status;
+              errSubcode = err.error_subcode;
+              errType = err.type;
+              const msg = sanitizeTokenFromText(err.message || '', token);
+              metaErrMsg = msg || metaErrMsg;
+              if (err.code === 190 || err.error_subcode === 463 || msg.includes('expired') || msg.includes('Session has expired')) {
+                tokenExpired = true;
+              }
+              syncError = `Falha em ${profileEndpoint} | Código Meta: ${errCode}${errSubcode ? ` (subcode ${errSubcode})` : ''} | Mensagem: ${msg}`;
+              if (token.startsWith('EAA') && msg.includes('Cannot parse access token')) {
+                syncError += ' (Token EAA... antigo incompatível com graph.instagram.com; gere um token IGAA... via Instagram API with Instagram Login.)';
+              }
+              console.error(`[Instagram API] ${syncError}`);
+            } else {
+              syncError = `Falha em ${profileEndpoint} (${metaErrMsg})`;
+            }
+          } catch (_) {
+            syncError = `Erro ao conectar com graph.instagram.com (${metaErrMsg})`;
+          }
+          recordInstagramError(syncError, tokenExpired, undefined, {
+            endpoint: profileEndpoint,
+            code: errCode,
+            subcode: errSubcode,
+            type: errType,
+            message: metaErrMsg
+          });
+          stale = true;
+        }
+      }
+    } catch (err: any) {
+      const safeMsg = sanitizeTokenFromText(err.message || "Erro de comunicação com graph.instagram.com", token);
+      console.error("[Instagram API] Erro na requisição central:", safeMsg);
+      syncError = safeMsg;
+      stale = true;
+    }
+
+    igLastSyncedAt = new Date().toISOString();
+    instagramStatsCache = {
+      tokenPreview: tokenStatus.tokenPreview,
+      rawFollowers,
+      rawViews30Days,
+      username,
+      name,
+      profilePictureUrl,
+      source,
+      isAutoSynced,
+      stale,
+      syncError,
+      tokenExpired,
+      lastSyncedAt: igLastSyncedAt,
+      timestamp: Date.now()
     };
   }
 
-  let rawFollowers = 38772;
-  let rawViews30Days = 478322;
-  let username = "rosleonoficial";
-  let name = "ROSLEON | Leonardo Mey";
-  let profilePictureUrl = "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png";
-  let source = "instagram_meta_graph_api";
-  let isAutoSynced = true;
-  let stale = false;
-  let syncError: string | null = null;
-  let tokenExpired = false;
+  // Always compose fresh catalog summary, YouTube live stats, and TikTok status
+  let youtubeSubscribers = 0;
+  let youtubeViews = 0;
+  let youtubeVideos = 0;
+  let youtubeReportedVideoCount = 0;
 
-  try {
-    const profileFields = "id,username,name,profile_picture_url,followers_count,media_count";
-    let profileUrl = `https://graph.instagram.com/v20.0/${userId}?fields=${profileFields}&access_token=${token}`;
-    let profileRes = await fetch(profileUrl);
+  let instagramTotalViews = 0;
+  let instagramTotalVideos = 0;
 
-    if (!profileRes.ok) {
-      profileUrl = `https://graph.instagram.com/me?fields=${profileFields}&access_token=${token}`;
-      profileRes = await fetch(profileUrl);
-    }
-
-    if (profileRes.ok) {
-      const profileData = await profileRes.json();
-      name = profileData.name || name;
-      username = profileData.username || username;
-      if (profileData.profile_picture_url) profilePictureUrl = profileData.profile_picture_url;
-      if (typeof profileData.followers_count === 'number') rawFollowers = profileData.followers_count;
-
-      const now = new Date();
-      const until = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
-      const since = until - (30 * 24 * 60 * 60);
-
-      try {
-        const insightsUrl = `https://graph.instagram.com/v20.0/${userId}/insights?metric=views&metric_type=total_value&period=day&since=${since}&until=${until}&access_token=${token}`;
-        const insightsRes = await fetch(insightsUrl);
-
-        if (insightsRes.ok) {
-          const insightsData = await insightsRes.json();
-          if (insightsData.data && Array.isArray(insightsData.data) && insightsData.data.length > 0) {
-            const viewsObj = insightsData.data.find((item: any) => item.name === 'views');
-            if (viewsObj && viewsObj.total_value && typeof viewsObj.total_value.value === 'number') {
-              rawViews30Days = viewsObj.total_value.value;
-            }
-          }
-        } else {
-          const fallbackUrl = `https://graph.instagram.com/v20.0/${userId}/insights?metric=reach&period=days_28&access_token=${token}`;
-          const fRes = await fetch(fallbackUrl);
-          if (fRes.ok) {
-            const fData = await fRes.json();
-            if (fData.data && Array.isArray(fData.data) && fData.data.length > 0) {
-              const lastVal = fData.data[0]?.values?.[fData.data[0].values.length - 1]?.value;
-              if (typeof lastVal === 'number') rawViews30Days = lastVal;
-            }
-          }
-        }
-      } catch (iErr: any) {
-        console.warn("[Instagram API] Aviso ao buscar insights:", iErr.message);
-        syncError = iErr.message || "Erro de insights";
-      }
-    } else {
-      let metaErrMsg = `HTTP ${profileRes.status}`;
-      try {
-        const errJson = await profileRes.json();
-        if (errJson?.error) {
-          const err = errJson.error;
-          if (err.code === 190 || err.error_subcode === 463 || err.message?.includes('expired') || err.message?.includes('Session has expired')) {
-            tokenExpired = true;
-            stale = true;
-            syncError = "Token de acesso expirado na Meta (desde 05/10/2026). Atualize o token para sincronizar novos posts.";
-            console.error(`[Instagram API] Erro de autenticação: ${err.message}`);
-          } else {
-            syncError = `Erro da Meta API (${err.code}): ${err.message}`;
-          }
-        }
-      } catch (_) {
-        syncError = `Erro ao conectar com Meta Graph API (${metaErrMsg})`;
-      }
-      stale = true;
-    }
-  } catch (err: any) {
-    console.error("[Instagram API] Erro na requisição central:", err.message);
-    syncError = err.message || "Erro de comunicação com a Meta";
-    stale = true;
-  }
-
-  // 1. Fetch catalog items from resultsService (Single Source of Truth)
-  let youtubeSubscribers = 43400;
-  let youtubeViews = 8277301;
-  let youtubeVideos = 651;
-
-  let instagramTotalViews = 1070560;
-  let instagramTotalVideos = 183;
-
-  let tiktokFollowers = 15200;
+  let tiktokFollowers = 0;
+  let tiktokLikes = 0;
   let tiktokViews = 0;
-  let tiktokVideos = 0;
+  let tiktokCatalogVideos = 0;
+  let tiktokPublicVideos = 0;
   let tiktokAutoSynced = false;
 
-  let totalLikes = 314056;
-  let totalComments = 61338;
-  let totalShares = 28459;
-  let avgEngagementRate = 5.59;
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalShares = 0;
+  let avgEngagementRate = 0;
   let summary: any = null;
 
   try {
-    const searchRes = await searchContents({});
+    const searchRes = await searchContents({ limit: 1 });
     summary = searchRes.summary;
 
     if (summary && summary.totalContents > 0) {
-      if (summary.totalLikes) totalLikes = summary.totalLikes;
-      if (summary.totalComments) totalComments = summary.totalComments;
-      if (summary.totalShares !== null && summary.totalShares !== undefined) totalShares = summary.totalShares;
-      if (summary.avgEngagementRate) avgEngagementRate = summary.avgEngagementRate;
+      totalLikes = summary.totalLikes || 0;
+      totalComments = summary.totalComments || 0;
+      totalShares = summary.totalShares ?? 0;
+      avgEngagementRate = summary.avgEngagementRate || 0;
 
       if (summary.breakdown.youtube) {
         youtubeViews = summary.breakdown.youtube.totalViews;
@@ -603,61 +391,69 @@ async function fetchCentralMediaKitData(forceReload: boolean = false) {
       }
       if (summary.breakdown.tiktok) {
         tiktokViews = summary.breakdown.tiktok.totalViews;
-        tiktokVideos = summary.breakdown.tiktok.totalContents;
+        tiktokCatalogVideos = summary.breakdown.tiktok.totalContents;
       }
     }
   } catch (catErr) {
     console.warn("Erro ao consultar agregação do resultsService no server.ts:", catErr);
   }
 
-  let youtubeReportedVideoCount = 656;
-
-  // Fetch YouTube channel subscribers
+  // Fetch fresh YouTube channel subscribers (live Data API v3 subscriberCount)
   try {
-    const ytRes = await fetchYouTubeChannelStats();
-    if (ytRes && ytRes.data) {
-      if (ytRes.data.rawSubscribers) {
+    const ytRes = await fetchYouTubeChannelStats(forceReload);
+    if (ytRes?.data) {
+      if (ytRes.data.rawSubscribers > 0) {
         youtubeSubscribers = ytRes.data.rawSubscribers;
       }
-      if (ytRes.data.youtubeReportedVideoCount) {
+      if (youtubeViews === 0 && ytRes.data.rawViews > 0) {
+        youtubeViews = ytRes.data.rawViews;
+      }
+      if (ytRes.data.youtubeReportedVideoCount > 0) {
         youtubeReportedVideoCount = ytRes.data.youtubeReportedVideoCount;
+      }
+      if (youtubeVideos === 0 && ytRes.data.youtubeAuditableContentCount > 0) {
+        youtubeVideos = ytRes.data.youtubeAuditableContentCount;
       }
     }
   } catch (ytErr) {
     console.warn("YouTube stats fetch warning in central media kit:", ytErr);
   }
 
-  let tiktokLikes = 99200;
-
+  // Fetch fresh TikTok OAuth + Public Profile metrics
   try {
-    const ttStatus = await getTikTokStatus();
-    if (ttStatus && ttStatus.account && ttStatus.account.followersCount > 0) {
+    const [ttStatus, publicProfile] = await Promise.all([
+      getTikTokStatus(),
+      forceReload ? getTikTokPublicProfileStats(true) : Promise.resolve(null)
+    ]);
+    const livePublic = publicProfile || ttStatus?.publicProfile;
+    const isConnected = Boolean(ttStatus?.connected && ttStatus?.tokenStatus !== 'expired');
+
+    tiktokAutoSynced = isConnected;
+    if (ttStatus?.account && ttStatus.account.followersCount > 0) {
       tiktokFollowers = ttStatus.account.followersCount;
-      if (ttStatus.account.likesCount) tiktokLikes = ttStatus.account.likesCount;
-      if (ttStatus.account.videoCount) tiktokVideos = ttStatus.account.videoCount;
-    } else {
-      const scrapedTt = await scrapeTikTokProfile();
-      if (scrapedTt) {
-        if (scrapedTt.followerCount > 0) tiktokFollowers = scrapedTt.followerCount;
-        if (scrapedTt.heartCount > 0) tiktokLikes = scrapedTt.heartCount;
-        if (scrapedTt.videoCount > 0 && tiktokVideos === 0) tiktokVideos = scrapedTt.videoCount;
-      }
+      tiktokLikes = ttStatus.account.likesCount || livePublic?.heartCount || 0;
+      tiktokPublicVideos = ttStatus.account.videoCount || livePublic?.videoCount || 0;
+    } else if (livePublic) {
+      if (livePublic.followerCount > 0) tiktokFollowers = livePublic.followerCount;
+      if (livePublic.heartCount > 0) tiktokLikes = livePublic.heartCount;
+      if (livePublic.videoCount > 0) tiktokPublicVideos = livePublic.videoCount;
     }
-    if (ttStatus && ttStatus.connected) tiktokAutoSynced = true;
   } catch (ttErr) {
     console.warn("TikTok status warning in central media kit:", ttErr);
   }
 
+  const tiktokDisplayVideos = tiktokPublicVideos || tiktokCatalogVideos;
+
   const youtubeData = {
     subscribers: youtubeSubscribers,
-    subscribersFormatted: `${(youtubeSubscribers / 1000).toFixed(1).replace('.', ',')} mil`,
+    subscribersFormatted: formatYouTubeSubscribers(youtubeSubscribers),
     views: youtubeViews,
     viewsFormatted: youtubeViews >= 1000000
       ? `${(youtubeViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
       : youtubeViews.toLocaleString('pt-BR'),
     videos: youtubeVideos,
     youtubeAuditableContentCount: youtubeVideos,
-    youtubeReportedVideoCount
+    youtubeReportedVideoCount: youtubeReportedVideoCount || youtubeVideos
   };
 
   const tiktokData = {
@@ -669,8 +465,10 @@ async function fetchCentralMediaKitData(forceReload: boolean = false) {
     viewsFormatted: tiktokViews >= 1000000
       ? `${(tiktokViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES`
       : tiktokViews.toLocaleString('pt-BR'),
-    videos: tiktokVideos || 334,
-    videosFormatted: `${(tiktokVideos || 334).toLocaleString('pt-BR')} vídeos`,
+    videos: tiktokDisplayVideos,
+    publicVideoCount: tiktokPublicVideos,
+    catalogVideos: tiktokCatalogVideos,
+    videosFormatted: `${tiktokDisplayVideos.toLocaleString('pt-BR')} vídeos`,
     isAutoSynced: tiktokAutoSynced
   };
 
@@ -680,9 +478,8 @@ async function fetchCentralMediaKitData(forceReload: boolean = false) {
 
   const totalCommunity = rawFollowers + youtubeData.subscribers + tiktokData.followers;
   const totalViews3Networks = youtubeViews + instagramTotalViews + tiktokViews;
-  const lastSyncedAt = new Date().toISOString();
 
-  const payload = {
+  return {
     success: true,
     snapshotId: realtimeAudience.snapshotId,
     generatedAt: realtimeAudience.generatedAt,
@@ -723,7 +520,7 @@ async function fetchCentralMediaKitData(forceReload: boolean = false) {
       videosTotal: instagramTotalVideos,
       source,
       isAutoSynced,
-      lastSyncedAt,
+      lastSyncedAt: igLastSyncedAt,
       stale,
       syncError,
       tokenExpired,
@@ -744,15 +541,6 @@ async function fetchCentralMediaKitData(forceReload: boolean = false) {
     },
     realtimeAudience
   };
-
-  if (summary && summary.totalContents > 200) {
-    instagramStatsCache = {
-      data: payload,
-      timestamp: Date.now()
-    };
-  }
-
-  return payload;
 }
 
 // API Route for Central Media Kit
@@ -872,10 +660,10 @@ app.get(['/api/brands/ranking', '/brands/ranking'], async (req, res) => {
 });
 
 // POST /api/results/sync & POST /results/sync & POST /api/media-kit/refresh - Manual Sync Trigger
-app.post(['/api/results/sync', '/results/sync', '/api/media-kit/refresh'], async (req, res) => {
+app.post(['/api/results/sync', '/results/sync', '/api/media-kit/refresh'], async (_req, res) => {
   try {
     // Invalidate in-memory caches to guarantee fresh data
-    youtubeStatsCache = null;
+    invalidateYouTubeStatsCache();
     instagramStatsCache = null;
     invalidateCatalogCache();
     invalidateSnapshotCache();
@@ -891,14 +679,16 @@ app.post(['/api/results/sync', '/results/sync', '/api/media-kit/refresh'], async
 
     const feedbackParts = [];
     if (isYtOk) {
-      feedbackParts.push(`YouTube: ${status.platforms.youtube.totalContents} vídeos sincronizados.`);
+      feedbackParts.push(`YouTube: ${status.platforms.youtube.totalContents} vídeos sincronizados (${mediaKit.youtube.subscribers.toLocaleString('pt-BR')} inscritos).`);
+    } else {
+      feedbackParts.push(`YouTube: ${status.platforms.youtube.lastError || 'erro ao sincronizar'}.`);
     }
     if (isIgOk) {
       feedbackParts.push(`Instagram: ${status.platforms.instagram.totalContents} publicações sincronizadas.`);
     } else {
       feedbackParts.push(`Instagram: ${status.platforms.instagram.lastError || 'Token precisa ser renovado na Meta'}.`);
     }
-    feedbackParts.push(`TikTok: ${status.platforms.tiktok.totalContents} vídeos (${status.platforms.tiktok.message}).`);
+    feedbackParts.push(`TikTok: ${status.platforms.tiktok.message || `${status.platforms.tiktok.totalContents} vídeos`}.`);
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -937,7 +727,8 @@ app.post('/api/instagram/update-token', async (req, res) => {
       });
     }
 
-    setInstagramToken(token, userId, testRes.profile?.username);
+    const resolvedUserId = testRes.profile?.user_id || testRes.profile?.id || userId;
+    setInstagramToken(token, resolvedUserId, testRes.profile?.username);
     instagramStatsCache = null;
     invalidateSnapshotCache();
 
@@ -955,8 +746,34 @@ app.post('/api/instagram/update-token', async (req, res) => {
   }
 });
 
+// POST /api/instagram/refresh-token - Explicit long-lived token renewal via graph.instagram.com/refresh_access_token
+app.post('/api/instagram/refresh-token', async (_req, res) => {
+  try {
+    const result = await refreshInstagramToken();
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        errorCode: result.errorCode,
+        error: result.error || 'Não foi possível renovar o token no momento.'
+      });
+    }
+    instagramStatsCache = null;
+    return res.json({
+      success: true,
+      expiresIn: result.expiresIn,
+      expiresAt: result.expiresAt,
+      status: getInstagramTokenStatus()
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Erro ao renovar token' });
+  }
+});
+
 // GET /api/instagram/token-status
 app.get('/api/instagram/token-status', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.json({ success: true, status: getInstagramTokenStatus() });
 });
 
@@ -1067,6 +884,8 @@ app.post(['/api/tiktok/sync', '/tiktok/sync'], async (_req, res) => {
     await initDatabase();
     const result = await syncTikTokContents();
     await reclassifyAllDatabaseContents();
+    instagramStatsCache = null;
+    invalidateCatalogCache();
     const importedCount = typeof result === 'number' ? result : (result.uniqueVideosFetched || 0);
     res.json({ success: true, importedCount, report: result, timestamp: new Date().toISOString() });
   } catch (err: any) {

@@ -214,7 +214,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Followers */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-white">
-                    {formatNumber(instagramStats?.tiktokFollowers ?? 15089)}
+                    {formatNumber(instagramStats?.tiktokFollowers ?? 0)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('social.followers')}
@@ -226,7 +226,7 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
                 {/* Visualizações */}
                 <div className="text-center px-1">
                   <div className="text-sm sm:text-base font-extrabold text-cyan-400">
-                    {formatNumber(instagramStats?.tiktokViews ?? 2356235)}
+                    {formatNumber(instagramStats?.tiktokViews ?? 0)}
                   </div>
                   <div className="text-[10px] sm:text-xs font-medium text-slate-400">
                     {t('youtube.views')}

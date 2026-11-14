@@ -1,6 +1,7 @@
-import { getTikTokStatus } from '../server/tiktokService.js';
-import { isPostgresActive, getPool } from '../server/db.js';
-import { getAllCatalogContents, searchContents } from '../server/resultsService.js';
+import { getTikTokStatus, getTikTokPublicProfileStats } from '../server/tiktokService.js';
+import { searchContents } from '../server/resultsService.js';
+import { getInstagramToken, getInstagramTokenStatus, sanitizeTokenFromText } from '../server/tokenService.js';
+import { fetchYouTubeChannelStats, formatYouTubeSubscribers } from '../server/youtubeService.js';
 
 const UF_DEFINITIONS = [
   { id: 'SP', name: 'São Paulo', region: 'Sudeste', weight: 25.6, topCity: 'São Paulo', x: 59, y: 70 },
@@ -137,69 +138,80 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.VITE_INSTAGRAM_ACCESS_TOKEN || "IGAAfbyzK6zZARBZAGFnNDUtRXQxZAU5PWi1SVVZAuRkpGUjJkMDEyTWVQQU1zUkNGS3pfZAW0wNEJWaTlXcUVvYWRROUt3eUZAJMmx5MVNTNEFETkVQa0piUTl2SG9rWHFFRm1hN2NBYzVwQUhSWURtUTZAQY0JkMl9Ea0hPYmJ6cUhOOAZDZD";
-  const userId = process.env.INSTAGRAM_USER_ID || process.env.VITE_INSTAGRAM_USER_ID || '17841461297140253';
+  const token = getInstagramToken();
+  const tokenStatus = getInstagramTokenStatus();
 
-  let rawFollowers = 40170;
-  let username = "rosleonoficial";
+  let rawFollowers = typeof tokenStatus.followersCount === 'number' && tokenStatus.followersCount > 0 ? tokenStatus.followersCount : 38772;
+  let username = tokenStatus.username || "rosleonoficial";
   let name = "ROSLEON | Leonardo Mey";
-  let profilePictureUrl = "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png";
-  let source = "instagram_meta_graph_api";
+  let profilePictureUrl = tokenStatus.profilePictureUrl || "https://res.cloudinary.com/jfqsykts/image/upload/c_fill,w_160,h_160,g_auto/q_auto:eco/f_auto/v1786311280/ChatGPT_Image_16_de_jul._de_2026_16_19_14.png";
+  let source = "instagram_api_instagram_login";
   let isAutoSynced = true;
   let stale = false;
   let syncError: string | null = null;
+  let tokenExpired = false;
 
   try {
-    const profileFields = "id,username,name,profile_picture_url,followers_count,media_count";
-    let profileUrl = `https://graph.instagram.com/v20.0/${userId}?fields=${profileFields}&access_token=${token}`;
-    let profileRes = await fetch(profileUrl);
-
-    if (!profileRes.ok) {
-      profileUrl = `https://graph.instagram.com/me?fields=${profileFields}&access_token=${token}`;
-      profileRes = await fetch(profileUrl);
-    }
-
-    if (profileRes.ok) {
-      const profileData = await profileRes.json();
-      name = profileData.name || name;
-      username = profileData.username || username;
-      if (profileData.profile_picture_url) profilePictureUrl = profileData.profile_picture_url;
-      if (typeof profileData.followers_count === 'number') rawFollowers = profileData.followers_count;
+    if (!token) {
+      stale = true;
+      isAutoSynced = false;
+      syncError = "INSTAGRAM_ACCESS_TOKEN não configurado no servidor.";
     } else {
-      syncError = "Erro no perfil da Meta API";
+      const profileFields = "id,user_id,username,name,profile_picture_url,followers_count,media_count";
+      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=${profileFields}&access_token=${encodeURIComponent(token)}`);
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        name = profileData.name || name;
+        username = profileData.username || username;
+        if (profileData.profile_picture_url) profilePictureUrl = profileData.profile_picture_url;
+        if (typeof profileData.followers_count === 'number') rawFollowers = profileData.followers_count;
+      } else {
+        const errJson = await profileRes.json().catch(() => null);
+        const err = errJson?.error;
+        const msg = sanitizeTokenFromText(err?.message || `HTTP ${profileRes.status}`, token);
+        if (err?.code === 190 || err?.error_subcode === 463 || msg.includes('expired') || msg.includes('Session has expired')) {
+          tokenExpired = true;
+        }
+        syncError = `Falha em GET https://graph.instagram.com/v21.0/me | Código Meta: ${err?.code ?? profileRes.status} | Mensagem: ${msg}`;
+        stale = true;
+      }
     }
   } catch (err: any) {
-    syncError = err.message;
+    syncError = sanitizeTokenFromText(err.message || 'Erro de rede', token);
     stale = true;
   }
 
-  // 1. Fetch catalog items from DB / memory store (Fuente Unica de Verdad)
-  let youtubeSubscribers = 43400;
-  let youtubeViews = 8277301;
-  let youtubeVideos = 651;
+  // 1. Fetch catalog items from resultsService (Single Source of Truth)
+  let youtubeSubscribers = 0;
+  let youtubeViews = 0;
+  let youtubeVideos = 0;
+  let youtubeReportedVideoCount = 0;
 
-  let instagramTotalViews = 1070560;
-  let instagramTotalVideos = 183;
+  let instagramTotalViews = 0;
+  let instagramTotalVideos = 0;
 
-  let tiktokFollowers = 15089;
+  let tiktokFollowers = 0;
+  let tiktokLikes = 0;
   let tiktokViews = 0;
-  let tiktokVideos = 0;
+  let tiktokCatalogVideos = 0;
+  let tiktokPublicVideos = 0;
   let tiktokAutoSynced = false;
 
-  let totalLikes = 314053;
-  let totalComments = 61338;
-  let totalShares = 28459;
-  let avgEngagementRate = 5.59;
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalShares = 0;
+  let avgEngagementRate = 0;
 
   try {
-    const searchRes = await searchContents({});
+    const searchRes = await searchContents({ limit: 1 });
     const summary = searchRes.summary;
 
     if (summary && summary.totalContents > 0) {
-      if (summary.totalLikes) totalLikes = summary.totalLikes;
-      if (summary.totalComments) totalComments = summary.totalComments;
-      if (summary.totalShares !== null && summary.totalShares !== undefined) totalShares = summary.totalShares;
-      if (summary.avgEngagementRate) avgEngagementRate = summary.avgEngagementRate;
+      totalLikes = summary.totalLikes || 0;
+      totalComments = summary.totalComments || 0;
+      totalShares = summary.totalShares ?? 0;
+      avgEngagementRate = summary.avgEngagementRate || 0;
 
       if (summary.breakdown.youtube) {
         youtubeViews = summary.breakdown.youtube.totalViews;
@@ -211,42 +223,75 @@ export default async function handler(req: any, res: any) {
       }
       if (summary.breakdown.tiktok) {
         tiktokViews = summary.breakdown.tiktok.totalViews;
-        tiktokVideos = summary.breakdown.tiktok.totalContents;
+        tiktokCatalogVideos = summary.breakdown.tiktok.totalContents;
       }
     }
   } catch (cErr) {
     console.warn('Erro ao consultar catálogo para Media Kit:', cErr);
   }
 
-  // 2. Fetch TikTok Real-time Account Status for Followers Count
+  // 2. Fetch live YouTube channel subscriberCount
   try {
-    const ttStatus = await getTikTokStatus();
-    if (ttStatus && ttStatus.account) {
-      if (ttStatus.account.followersCount > 0) tiktokFollowers = ttStatus.account.followersCount;
+    const ytRes = await fetchYouTubeChannelStats(true);
+    if (ytRes?.data) {
+      if (ytRes.data.rawSubscribers > 0) youtubeSubscribers = ytRes.data.rawSubscribers;
+      if (youtubeViews === 0 && ytRes.data.rawViews > 0) youtubeViews = ytRes.data.rawViews;
+      if (ytRes.data.youtubeReportedVideoCount > 0) youtubeReportedVideoCount = ytRes.data.youtubeReportedVideoCount;
+      if (youtubeVideos === 0 && ytRes.data.youtubeAuditableContentCount > 0) youtubeVideos = ytRes.data.youtubeAuditableContentCount;
     }
-    if (ttStatus && ttStatus.connected) tiktokAutoSynced = true;
+  } catch (ytErr) {
+    console.warn('Erro ao buscar inscritos do YouTube no Media Kit:', ytErr);
+  }
+
+  // 3. Fetch TikTok OAuth + Public Profile metrics
+  try {
+    const [ttStatus, publicProfile] = await Promise.all([
+      getTikTokStatus(),
+      getTikTokPublicProfileStats(true)
+    ]);
+    const livePublic = publicProfile || ttStatus?.publicProfile;
+    const isConnected = Boolean(ttStatus?.connected && ttStatus?.tokenStatus !== 'expired');
+    tiktokAutoSynced = isConnected;
+    if (ttStatus?.account && ttStatus.account.followersCount > 0) {
+      tiktokFollowers = ttStatus.account.followersCount;
+      tiktokLikes = ttStatus.account.likesCount || livePublic?.heartCount || 0;
+      tiktokPublicVideos = ttStatus.account.videoCount || livePublic?.videoCount || 0;
+    } else if (livePublic) {
+      if (livePublic.followerCount > 0) tiktokFollowers = livePublic.followerCount;
+      if (livePublic.heartCount > 0) tiktokLikes = livePublic.heartCount;
+      if (livePublic.videoCount > 0) tiktokPublicVideos = livePublic.videoCount;
+    }
   } catch (e) {
     console.warn('Erro ao carregar métricas real-time do TikTok para Media Kit:', e);
   }
 
+  const tiktokDisplayVideos = tiktokPublicVideos || tiktokCatalogVideos;
+
   const youtubeData = {
     subscribers: youtubeSubscribers,
-    subscribersFormatted: `${(youtubeSubscribers / 1000).toFixed(1).replace('.', ',')} mil`,
+    subscribersFormatted: formatYouTubeSubscribers(youtubeSubscribers),
     views: youtubeViews,
     viewsFormatted: youtubeViews >= 1000000 
       ? `${(youtubeViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES` 
       : youtubeViews.toLocaleString('pt-BR'),
-    videos: youtubeVideos
+    videos: youtubeVideos,
+    youtubeAuditableContentCount: youtubeVideos,
+    youtubeReportedVideoCount: youtubeReportedVideoCount || youtubeVideos
   };
 
   const tiktokData = {
     followers: tiktokFollowers,
-    followersFormatted: tiktokFollowers.toLocaleString('pt-BR'),
+    followersFormatted: tiktokFollowers >= 1000 ? `${(tiktokFollowers / 1000).toFixed(1).replace('.', ',')} mil` : tiktokFollowers.toLocaleString('pt-BR'),
+    likes: tiktokLikes,
+    likesFormatted: tiktokLikes >= 1000 ? `${(tiktokLikes / 1000).toFixed(1).replace('.', ',')} mil` : tiktokLikes.toLocaleString('pt-BR'),
     views: tiktokViews,
     viewsFormatted: tiktokViews >= 1000000 
       ? `${(tiktokViews / 1000000).toFixed(2).replace('.', ',')} MILHÕES` 
       : tiktokViews.toLocaleString('pt-BR'),
-    videos: tiktokVideos,
+    videos: tiktokDisplayVideos,
+    publicVideoCount: tiktokPublicVideos,
+    catalogVideos: tiktokCatalogVideos,
+    videosFormatted: `${tiktokDisplayVideos.toLocaleString('pt-BR')} vídeos`,
     isAutoSynced: tiktokAutoSynced
   };
 
@@ -304,6 +349,7 @@ export default async function handler(req: any, res: any) {
       lastSyncedAt,
       stale,
       syncError,
+      tokenExpired,
       username,
       name,
       profilePictureUrl

@@ -1,5 +1,76 @@
-import { getPool, isPostgresActive, getMemoryStore, getDatabaseInfoSafe } from './db.js';
-import { upsertContentToDb, reprocessAllContentBrands } from './resultsService.js';
+import fs from 'fs';
+import path from 'path';
+import { getPool, getDatabaseInfoSafe } from './db.js';
+import { upsertContentToDb, invalidateCatalogCache } from './resultsService.js';
+import { classifyContent } from './classifierService.js';
+import { saveCatalogSnapshot, loadCatalogSnapshot } from './snapshotService.js';
+import { ContentItem } from '../src/types.js';
+
+const TIKTOK_TOKEN_FILE = path.join(process.cwd(), 'server', 'data', 'tiktok_tokens.json');
+const inMemoryOAuthStates = new Map<string, number>();
+
+export interface TikTokPublicProfileStats {
+  followerCount: number;
+  heartCount: number;
+  videoCount: number;
+  fetchedAt: string;
+  live: boolean;
+}
+
+let cachedPublicStats: { data: TikTokPublicProfileStats; timestamp: number } | null = null;
+const PUBLIC_STATS_TTL_MS = 5 * 60 * 1000;
+
+export async function getTikTokPublicProfileStats(force: boolean = false): Promise<TikTokPublicProfileStats> {
+  if (!force && cachedPublicStats && Date.now() - cachedPublicStats.timestamp < PUBLIC_STATS_TTL_MS) {
+    return cachedPublicStats.data;
+  }
+
+  try {
+    const res = await fetch('https://www.tiktok.com/@rosleonoficial', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8'
+      }
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const sigiMatch =
+        html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)<\/script>/) ||
+        html.match(/<script id="SIGI_STATE"[^>]*>(.*?)<\/script>/);
+      if (sigiMatch) {
+        const jsonStr = sigiMatch[1];
+        const followerMatch = jsonStr.match(/"followerCount":(\d+)/);
+        const heartMatch = jsonStr.match(/"heartCount":(\d+)/) || jsonStr.match(/"heart":(\d+)/);
+        const videoMatch = jsonStr.match(/"videoCount":(\d+)/);
+        if (followerMatch || heartMatch || videoMatch) {
+          const data: TikTokPublicProfileStats = {
+            followerCount: followerMatch ? parseInt(followerMatch[1], 10) : (cachedPublicStats?.data.followerCount || 0),
+            heartCount: heartMatch ? parseInt(heartMatch[1], 10) : (cachedPublicStats?.data.heartCount || 0),
+            videoCount: videoMatch ? parseInt(videoMatch[1], 10) : (cachedPublicStats?.data.videoCount || 0),
+            fetchedAt: new Date().toISOString(),
+            live: true
+          };
+          cachedPublicStats = { data, timestamp: Date.now() };
+          return data;
+        }
+      }
+    }
+  } catch (e: any) {
+    console.warn('[TikTok] Falha ao consultar perfil público @rosleonoficial:', e.message);
+  }
+
+  if (cachedPublicStats) {
+    return cachedPublicStats.data;
+  }
+
+  return {
+    followerCount: 0,
+    heartCount: 0,
+    videoCount: 0,
+    fetchedAt: new Date().toISOString(),
+    live: false
+  };
+}
 
 export interface TikTokTokenRecord {
   id?: number;
@@ -125,6 +196,7 @@ export async function initTikTokTable() {
  * Save temporary OAuth state in DB (for serverless persistence across instances)
  */
 export async function saveOAuthState(state: string) {
+  inMemoryOAuthStates.set(state, Date.now() + 10 * 60 * 1000);
   await initTikTokTable();
   const pool = getPool();
   if (pool) {
@@ -141,7 +213,7 @@ export async function saveOAuthState(state: string) {
 }
 
 /**
- * Validate state against cookie or Postgres table, then consume (delete) it
+ * Validate state against cookie, memory store, or Postgres table, then consume (delete) it
  */
 export async function validateAndDeleteOAuthState(queryState: string, cookieState?: string | null): Promise<boolean> {
   let isValid = false;
@@ -151,7 +223,16 @@ export async function validateAndDeleteOAuthState(queryState: string, cookieStat
     isValid = true;
   }
 
-  // 2. Database persistence validation without table creation blocking
+  // 2. In-memory fallback validation (for environments without PostgreSQL)
+  if (!isValid && inMemoryOAuthStates.has(queryState)) {
+    const exp = inMemoryOAuthStates.get(queryState) || 0;
+    if (exp > Date.now()) {
+      isValid = true;
+    }
+  }
+  inMemoryOAuthStates.delete(queryState);
+
+  // 3. Database persistence validation without table creation blocking
   if (!isValid) {
     const pool = getPool();
     if (pool) {
@@ -243,11 +324,38 @@ export function getLastSyncDiagnosticReport(): TikTokSyncDiagnosticReport | null
  * Store or Update TikTok Token in PostgreSQL with IMMEDIATE read-back verification
  * PostgreSQL/Neon is the SOLE AND EXCLUSIVE source of truth.
  */
+function saveTikTokTokenToDisk(record: TikTokTokenRecord) {
+  try {
+    const dir = path.dirname(TIKTOK_TOKEN_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(TIKTOK_TOKEN_FILE, JSON.stringify(record, null, 2), 'utf-8');
+  } catch (e: any) {
+    console.warn('[TikTok Persistence] Aviso ao salvar tiktok_tokens.json:', e.message);
+  }
+}
+
+function loadTikTokTokenFromDisk(): TikTokTokenRecord | null {
+  try {
+    if (fs.existsSync(TIKTOK_TOKEN_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(TIKTOK_TOKEN_FILE, 'utf-8'));
+      if (parsed && parsed.access_token) {
+        return parsed as TikTokTokenRecord;
+      }
+    }
+  } catch (e: any) {
+    console.warn('[TikTok Persistence] Aviso ao ler tiktok_tokens.json:', e.message);
+  }
+  return null;
+}
+
 export async function saveTikTokTokenRecord(record: TikTokTokenRecord): Promise<boolean> {
   const pool = getPool();
   if (!pool) {
-    console.error('ERRO CRÍTICO: PostgreSQL não configurado para persistir token do TikTok');
-    throw new Error('database_not_configured');
+    saveTikTokTokenToDisk(record);
+    console.log(`[TikTok Persistence] Token salvo em armazenamento local para open_id=${record.open_id}`);
+    return true;
   }
 
   await initTikTokTable();
@@ -341,16 +449,23 @@ export async function updateTikTokSyncError(openId: string, errorMsg: string | n
         [errorMsg, openId]
       );
     } catch (e) {}
+    return;
+  }
+  const diskRecord = loadTikTokTokenFromDisk();
+  if (diskRecord && diskRecord.open_id === openId) {
+    diskRecord.last_error = errorMsg;
+    diskRecord.updated_at = new Date().toISOString();
+    saveTikTokTokenToDisk(diskRecord);
   }
 }
 
 /**
- * Get active TikTok token record DIRECTLY from PostgreSQL (NO IN-MEMORY FALLBACK)
+ * Get active TikTok token record from PostgreSQL (or local disk fallback when DATABASE_URL is unset)
  */
 export async function getTikTokTokenRecord(): Promise<TikTokTokenRecord | null> {
   const pool = getPool();
   if (!pool) {
-    return null;
+    return loadTikTokTokenFromDisk();
   }
 
   await initTikTokTable();
@@ -693,7 +808,7 @@ export async function getTikTokStatus() {
   await initTikTokTable();
   const dbInfo = getDatabaseInfoSafe();
 
-  // Count imported TikTok videos from DB
+  // Count imported TikTok videos from DB or local snapshot fallback
   let videosCount = 0;
   let dbLastSync: string | null = null;
 
@@ -711,8 +826,13 @@ export async function getTikTokStatus() {
         dbLastSync = new Date(countRes.rows[0].last_sync).toISOString();
       }
     } catch (e) {}
+  } else {
+    const snap = loadCatalogSnapshot();
+    const ttSnapItems = (snap.contents || []).filter(c => c.platform === 'tiktok');
+    videosCount = ttSnapItems.length;
   }
 
+  const publicProfile = await getTikTokPublicProfileStats();
   const record = await getTikTokTokenRecord();
 
   if (!record) {
@@ -733,6 +853,7 @@ export async function getTikTokStatus() {
       success: true,
       connected: false,
       account: null,
+      publicProfile,
       lastSync: dbLastSync,
       videosCount: videosCount,
       tokenStatus: 'not_connected',
@@ -762,11 +883,12 @@ export async function getTikTokStatus() {
       displayName: record.display_name,
       avatarUrl: record.avatar_url,
       openId: record.open_id,
-      followersCount: record.followers_count,
+      followersCount: record.followers_count || publicProfile.followerCount,
       followingCount: record.following_count,
-      likesCount: record.likes_count,
-      videoCount: record.video_count || videosCount
+      likesCount: record.likes_count || publicProfile.heartCount,
+      videoCount: record.video_count || videosCount || publicProfile.videoCount
     },
+    publicProfile,
     lastSync: record.last_synced_at || dbLastSync,
     videosCount: Math.max(record.video_count || 0, videosCount),
     tokenStatus: tokenStatus,
@@ -839,6 +961,7 @@ export async function syncTikTokContents(): Promise<TikTokSyncDiagnosticReport> 
   const seenVideoIds = new Set<string>();
   const seenCursors = new Set<number>();
   const pageDiagnostics: TikTokPageDiagnostic[] = [];
+  const collectedTikTokItems: ContentItem[] = [];
 
   let pageNumber = 0;
   let totalRawVideos = 0;
@@ -1007,6 +1130,29 @@ export async function syncTikTokContents(): Promise<TikTokSyncDiagnosticReport> 
         comments_count: comments,
         shares_count: shares,
         engagement_rate: engagementRate
+      });
+
+      const cls = classifyContent(caption, description, 'video', 'tiktok');
+      collectedTikTokItems.push({
+        id: item.id,
+        platform: 'tiktok',
+        externalId: item.id,
+        title: caption,
+        description,
+        url,
+        thumbnailUrl: thumbnail,
+        contentType: 'video',
+        publishedAt,
+        brands: cls.primaryBrands,
+        classification: cls,
+        metrics: {
+          viewsCount: views,
+          likesCount: likes,
+          commentsCount: comments,
+          sharesCount: shares,
+          engagementRate,
+          lastSyncedAt: new Date().toISOString()
+        }
       });
 
       persistedVideos++;
@@ -1187,6 +1333,29 @@ export async function syncTikTokContents(): Promise<TikTokSyncDiagnosticReport> 
           engagement_rate: engagementRate
         });
 
+        const cls = classifyContent(caption, description, 'video', 'tiktok');
+        collectedTikTokItems.push({
+          id: item.id,
+          platform: 'tiktok',
+          externalId: item.id,
+          title: caption,
+          description,
+          url,
+          thumbnailUrl: thumbnail,
+          contentType: 'video',
+          publishedAt,
+          brands: cls.primaryBrands,
+          classification: cls,
+          metrics: {
+            viewsCount: views,
+            likesCount: likes,
+            commentsCount: comments,
+            sharesCount: shares,
+            engagementRate,
+            lastSyncedAt: new Date().toISOString()
+          }
+        });
+
         persistedVideos++;
       }
 
@@ -1230,6 +1399,11 @@ export async function syncTikTokContents(): Promise<TikTokSyncDiagnosticReport> 
         continueBackfill = false;
       }
     }
+  }
+
+  if (collectedTikTokItems.length > 0) {
+    saveCatalogSnapshot(collectedTikTokItems, 'tiktok');
+    invalidateCatalogCache();
   }
 
   const totalDurationMs = Date.now() - syncStartTime;

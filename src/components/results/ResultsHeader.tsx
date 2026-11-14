@@ -235,13 +235,13 @@ export const ResultsHeader: React.FC<ResultsHeaderProps> = ({
               {ttActive ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-emerald-500/30 text-[10px] text-emerald-300 font-medium">
                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                  TikTok: 334 vídeos
+                  TikTok: {ttStatus?.totalContents ?? 0} vídeos
                 </span>
               ) : (
                 <a
                   href="/api/tiktok/login"
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-[11px] text-cyan-200 font-semibold transition-colors shadow-sm"
-                  title="Conectar Conta Oficial do TikTok via OAuth"
+                  title={ttStatus?.publicVideoCount ? `Conectar OAuth TikTok (${ttStatus.publicVideoCount} vídeos no perfil)` : 'Conectar Conta Oficial do TikTok via OAuth'}
                 >
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                   Conectar TikTok
